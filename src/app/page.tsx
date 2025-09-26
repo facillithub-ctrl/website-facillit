@@ -1,9 +1,10 @@
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
+import Features from '@/components/Features'; // Adicionado
 import Modules from '@/components/Modules';
+import Testimonials from '@/components/Testimonials'; // Adicionado
 import Faq from '@/components/Faq';
 import Footer from '@/components/Footer';
-// Importe outros componentes que você criar aqui
 
 export default function Home() {
   return (
@@ -11,9 +12,10 @@ export default function Home() {
       <Header />
       <main id="fullpage-container">
         <Hero />
+        <Features /> {/* Adicionado */}
         <Modules />
+        <Testimonials /> {/* Adicionado */}
         <Faq />
-        {/* Adicione os outros componentes da página aqui */}
       </main>
       <Footer />
     </>
