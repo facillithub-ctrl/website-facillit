@@ -9,7 +9,7 @@ const testimonialsData = [
 
 const TestimonialCard = ({ name, role, text, img }: typeof testimonialsData[0]) => (
   <div className="testimonial-card bg-white p-8 rounded-2xl border border-gray-200 text-left w-96 mx-4 flex-shrink-0">
-    <p className="testimonial-text">&quot;Este serviço é incrível!&quot;</p>
+   <p className="testimonial-text">&quot;Este serviço é incrível!&quot;</p> 
     <div className="flex items-center gap-4">
       <Image src={`https://i.pravatar.cc/60?img=${img}`} alt={`Foto de ${name}`} width={60} height={60} className="rounded-full" />
       <div>

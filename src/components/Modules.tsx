@@ -3,23 +3,23 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-// Dados completos dos 12 módulos
+// Dados completos dos 12 módulos com rotas
 const modulesData = [
-  { icon: 'fa-graduation-cap', title: 'Facillit Edu', frontText: 'Gestão pedagógica e de alunos.', backText: 'Plataforma completa para instituições de ensino, alinhada à BNCC.' },
-  { icon: 'fa-gamepad', title: 'Facillit Games', frontText: 'Aprenda de forma divertida.', backText: 'Inovação pedagógica através da gamificação adaptativa.' },
-  { icon: 'fa-pencil-alt', title: 'Facillit Write', frontText: 'Escrita com IA e tutores.', backText: 'Produção textual com correção híbrida de IA e tutores humanos.' },
-  { icon: 'fa-calendar-check', title: 'Facillit Day', frontText: 'Agenda, tarefas e hábitos.', backText: 'Assistente pessoal inteligente que centraliza sua rotina para máxima produtividade.' },
-  { icon: 'fa-play-circle', title: 'Facillit Play', frontText: 'Streaming educacional.', backText: 'Serviço de streaming focado em educação, com videoaulas, documentários e eventos.' },
-  { icon: 'fa-book-open', title: 'Facillit Library', frontText: 'Biblioteca e portfólios.', backText: 'Biblioteca digital e plataforma para escrita criativa e portfólios digitais.' },
-  { icon: 'fa-users', title: 'Facillit Connect', frontText: 'Rede social de estudos.', backText: 'Rede social para criar comunidades de estudo e conectar alunos e professores.' },
-  { icon: 'fa-bullseye', title: 'Facillit Coach & Career', frontText: 'Soft skills e carreira.', backText: 'Desenvolvimento de soft skills e orientação vocacional para conectar a oportunidades.' },
-  { icon: 'fa-flask', title: 'Facillit Lab', frontText: 'Laboratório virtual.', backText: 'Simulações e ambientes 3D para o aprendizado prático de STEM.' },
-  { icon: 'fa-file-alt', title: 'Facillit Test', frontText: 'Simulados, quizzes e provas.', backText: 'Crie e realize simulados com análises de desempenho detalhadas.' },
-  { icon: 'fa-tasks', title: 'Facillit Task', frontText: 'Gestão de tarefas gerais.', backText: 'Plataforma de gestão de tarefas que vai além dos estudos, incluindo treino e pets.' },
-  { icon: 'fa-lightbulb', title: 'Facillit Create', frontText: 'Mapas mentais e gráficos.', backText: 'Ferramentas para criação de materiais visuais como infográficos e mapas mentais.' },
+  { slug: 'facillit-edu', icon: 'fa-graduation-cap', title: 'Facillit Edu', frontText: 'Gestão pedagógica e de alunos.', backText: 'Plataforma completa para instituições de ensino, alinhada à BNCC.' },
+  { slug: 'facillit-games', icon: 'fa-gamepad', title: 'Facillit Games', frontText: 'Aprenda de forma divertida.', backText: 'Inovação pedagógica através da gamificação adaptativa.' },
+  { slug: 'facillit-write', icon: 'fa-pencil-alt', title: 'Facillit Write', frontText: 'Escrita com IA e tutores.', backText: 'Produção textual com correção híbrida de IA e tutores humanos.' },
+  { slug: 'facillit-day', icon: 'fa-calendar-check', title: 'Facillit Day', frontText: 'Agenda, tarefas e hábitos.', backText: 'Assistente pessoal inteligente que centraliza sua rotina para máxima produtividade.' },
+  { slug: 'facillit-play', icon: 'fa-play-circle', title: 'Facillit Play', frontText: 'Streaming educacional.', backText: 'Serviço de streaming focado em educação, com videoaulas, documentários e eventos.' },
+  { slug: 'facillit-library', icon: 'fa-book-open', title: 'Facillit Library', frontText: 'Biblioteca e portfólios.', backText: 'Biblioteca digital e plataforma para escrita criativa e portfólios digitais.' },
+  { slug: 'facillit-connect', icon: 'fa-users', title: 'Facillit Connect', frontText: 'Rede social de estudos.', backText: 'Rede social para criar comunidades de estudo e conectar alunos e professores.' },
+  { slug: 'facillit-coach-career', icon: 'fa-bullseye', title: 'Facillit Coach & Career', frontText: 'Soft skills e carreira.', backText: 'Desenvolvimento de soft skills e orientação vocacional para conectar a oportunidades.' },
+  { slug: 'facillit-lab', icon: 'fa-flask', title: 'Facillit Lab', frontText: 'Laboratório virtual.', backText: 'Simulações e ambientes 3D para o aprendizado prático de STEM.' },
+  { slug: 'facillit-test', icon: 'fa-file-alt', title: 'Facillit Test', frontText: 'Simulados, quizzes e provas.', backText: 'Crie e realize simulados com análises de desempenho detalhadas.' },
+  { slug: 'facillit-task', icon: 'fa-tasks', title: 'Facillit Task', frontText: 'Gestão de tarefas gerais.', backText: 'Plataforma de gestão de tarefas que vai além dos estudos, incluindo treino e pets.' },
+  { slug: 'facillit-create', icon: 'fa-lightbulb', title: 'Facillit Create', frontText: 'Mapas mentais e gráficos.', backText: 'Ferramentas para criação de materiais visuais como infográficos e mapas mentais.' },
 ];
 
-const ModuleCard = ({ icon, title, frontText, backText }: typeof modulesData[0]) => {
+const ModuleCard = ({ slug, icon, title, frontText, backText }: typeof modulesData[0]) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
   return (
@@ -35,7 +35,7 @@ const ModuleCard = ({ icon, title, frontText, backText }: typeof modulesData[0])
         <div className="module-card-back absolute w-full h-full bg-royal-blue text-white border border-gray-200 rounded-2xl flex flex-col justify-center items-center p-6 text-center [transform:rotateY(180deg)] [backface-visibility:hidden]">
           <h4 className="text-xl font-bold mb-2">{title}</h4>
           <p className="text-sm opacity-90 mb-4">{backText}</p>
-          <Link href="#" className="mt-auto bg-white/20 px-4 py-2 rounded-full text-xs font-bold hover:bg-white/30" onClick={(e) => e.stopPropagation()}>
+          <Link href={`/modulos/${slug}`} className="mt-auto bg-white/20 px-4 py-2 rounded-full text-xs font-bold hover:bg-white/30" onClick={(e) => e.stopPropagation()}>
             Saber mais <i className="fas fa-arrow-right ml-1"></i>
           </Link>
         </div>

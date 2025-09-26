@@ -18,11 +18,10 @@ export default function Footer() {
           <div>
             <h5 className="font-bold text-gray-400 uppercase tracking-wider text-sm mb-4">Módulos populares</h5>
             <ul className="space-y-3">
-              <li><Link href="#" className="text-gray-300 hover:text-white transition-colors">Facillit Edu</Link></li>
-              <li><Link href="#" className="text-gray-300 hover:text-white transition-colors">Facillit Games</Link></li>
-              <li><Link href="#" className="text-gray-300 hover:text-white transition-colors">Facillit Write</Link></li>
-              <li><Link href="#" className="text-gray-300 hover:text-white transition-colors">Facillit Day</Link></li>
-              {/* Adicionar mais links dos módulos se desejar */}
+              <li><Link href="/modulos/facillit-edu" className="text-gray-300 hover:text-white transition-colors">Facillit Edu</Link></li>
+              <li><Link href="/modulos/facillit-games" className="text-gray-300 hover:text-white transition-colors">Facillit Games</Link></li>
+              <li><Link href="/modulos/facillit-write" className="text-gray-300 hover:text-white transition-colors">Facillit Write</Link></li>
+              <li><Link href="/modulos/facillit-day" className="text-gray-300 hover:text-white transition-colors">Facillit Day</Link></li>
             </ul>
           </div>
           <div>

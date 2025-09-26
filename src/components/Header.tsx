@@ -4,27 +4,27 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-// --- Dados para os Menus ---
+// --- Dados para os Menus (COM ROTAS ATUALIZADAS) ---
 const modulos = {
   "Estudo & Foco": [
-    { href: "#", title: "Facillit Edu", subtitle: "Gestão pedagógica e de alunos." },
-    { href: "#", title: "Facillit Write", subtitle: "Escrita com correção de IA." },
-    { href: "#", title: "Facillit Test", subtitle: "Criação de simulados e provas." },
-    { href: "#", title: "Facillit Lab", subtitle: "Laboratório virtual com simulações." },
+    { href: "/modulos/facillit-edu", title: "Facillit Edu", subtitle: "Gestão pedagógica e de alunos." },
+    { href: "/modulos/facillit-write", title: "Facillit Write", subtitle: "Escrita com correção de IA." },
+    { href: "/modulos/facillit-test", title: "Facillit Test", subtitle: "Criação de simulados e provas." },
+    { href: "/modulos/facillit-lab", title: "Facillit Lab", subtitle: "Laboratório virtual com simulações." },
   ],
   "Organização Pessoal": [
-    { href: "#", title: "Facillit Day", subtitle: "Agenda, tarefas, finanças e hábitos." },
-    { href: "#", title: "Facillit Task", subtitle: "Gestão de tarefas além dos estudos." },
-    { href: "#", title: "Facillit Finances", subtitle: "Central de gestão financeira." },
+    { href: "/modulos/facillit-day", title: "Facillit Day", subtitle: "Agenda, tarefas, finanças e hábitos." },
+    { href: "/modulos/facillit-task", title: "Facillit Task", subtitle: "Gestão de tarefas além dos estudos." },
   ],
   "Carreira & Skills": [
-    { href: "#", title: "Facillit Coach & Career", subtitle: "Orientação vocacional." },
-    { href: "#", title: "Facillit Connect", subtitle: "Rede social educacional." },
+    { href: "/modulos/facillit-coach-career", title: "Facillit Coach & Career", subtitle: "Orientação vocacional." },
+    { href: "/modulos/facillit-connect", title: "Facillit Connect", subtitle: "Rede social educacional." },
   ],
   "Conteúdo & Criação": [
-    { href: "#", title: "Facillit Play", subtitle: "Streaming de videoaulas." },
-    { href: "#", title: "Facillit Library", subtitle: "Biblioteca digital e portfólios." },
-    { href: "#", title: "Facillit Create", subtitle: "Criação de mapas mentais." },
+    { href: "/modulos/facillit-play", title: "Facillit Play", subtitle: "Streaming de videoaulas." },
+    { href: "/modulos/facillit-library", title: "Facillit Library", subtitle: "Biblioteca digital e portfólios." },
+    { href: "/modulos/facillit-create", title: "Facillit Create", subtitle: "Criação de mapas mentais." },
+    { href: "/modulos/facillit-games", title: "Facillit Games", subtitle: "jogos educacionais." },
   ],
 };
 const solucoes = [
@@ -81,8 +81,8 @@ export default function Header() {
           </Link>
           
           <nav className="hidden lg:flex items-center gap-8 mx-auto">
-            <Link href="#hero" className={`font-bold transition-colors ${linkColor}`}>Início</Link>
-            <Link href="#features" className={`font-bold transition-colors ${linkColor}`}>Diferenciais</Link>
+            <Link href="/#hero" className={`font-bold transition-colors ${linkColor}`}>Início</Link>
+            <Link href="/#features" className={`font-bold transition-colors ${linkColor}`}>Diferenciais</Link>
             
             <div className="group relative">
               <button className={`font-bold flex items-center gap-1 transition-colors ${linkColor}`}>Módulos <i className="fas fa-chevron-down text-xs transition-transform group-hover:rotate-180"></i></button>
@@ -133,8 +133,8 @@ export default function Header() {
         <div className="flex justify-between items-center p-4 border-b flex-shrink-0"><Image src="/assets/images/LOGO/png/logoazul.svg" alt="Facillit Hub Logo" width={28} height={28} /><button onClick={() => setMenuOpen(false)} className="text-3xl text-dark-text">&times;</button></div>
         <div className="overflow-y-auto p-5">
           <ul className="space-y-2">
-            <li><Link href="#hero" className="block py-3 text-lg font-medium" onClick={() => setMenuOpen(false)}>Início</Link></li>
-            <li><Link href="#features" className="block py-3 text-lg font-medium" onClick={() => setMenuOpen(false)}>Diferenciais</Link></li>
+            <li><Link href="/#hero" className="block py-3 text-lg font-medium" onClick={() => setMenuOpen(false)}>Início</Link></li>
+            <li><Link href="/#features" className="block py-3 text-lg font-medium" onClick={() => setMenuOpen(false)}>Diferenciais</Link></li>
             <li>
               <button onClick={() => toggleMobileDropdown('modulos')} className="w-full flex justify-between items-center py-3 text-lg font-medium">Módulos <i className={`fas fa-chevron-down text-sm transition-transform ${openMobileDropdown === 'modulos' ? 'rotate-180' : ''}`}></i></button>
               <div className={`overflow-hidden transition-all duration-300 ${openMobileDropdown === 'modulos' ? 'max-h-[500px]' : 'max-h-0'}`}><ul className="pl-4 mt-2 space-y-2 border-l-2">{Object.values(modulos).flat().map(item => <li key={item.title}><Link href={item.href} className="block py-2 text-text-muted" onClick={() => setMenuOpen(false)}>{item.title}</Link></li>)}</ul></div>
