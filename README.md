@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Facillit Hub - Projeto Next.js com App Router
 
-## Getting Started
+Este é o projeto do site Facillit Hub convertido para Next.js 13+ (com App Router) e Tailwind CSS.
 
-First, run the development server:
+## Como Rodar o Projeto
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1.  **Instale as dependências:**
+    Certifique-se de ter o Node.js instalado. Em seguida, execute o comando:
+    ```bash
+    npm install
+    ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2.  **Inicie o servidor de desenvolvimento:**
+    ```bash
+    npm run dev
+    ```
+    Abra [http://localhost:3000](http://localhost:3000) no seu navegador para ver o resultado.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Estrutura do Projeto (App Router)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+-   **/src/app**: Contém as rotas do site. Cada pasta é um segmento de URL. O arquivo `page.tsx` dentro de uma pasta define a UI para aquela rota.
+    -   `layout.tsx`: O layout raiz que envolve todas as páginas.
+    -   `globals.css`: Estilos globais importados no `layout.tsx`.
+-   **/src/components**: Contém os componentes React reutilizáveis (Header, Footer, etc.).
+-   **/public**: Contém todos os assets estáticos como imagens. O caminho no código deve ser absoluto, começando com `/` (ex: `/assets/images/logo.svg`).
+-   **/lib**: Ideal para colocar scripts auxiliares, como a configuração do cliente Supabase.
 
-## Learn More
+## Pontos Importantes
 
-To learn more about Next.js, take a look at the following resources:
+1.  **Componentes Cliente vs. Servidor**: No App Router, os componentes são **Servidor** por padrão. Qualquer componente que use hooks do React (`useState`, `useEffect`, `onClick`) precisa ser um **Componente Cliente**. Para isso, adicione a diretiva `"use client";` no topo do arquivo. A maioria dos seus componentes interativos (Header, FAQ, formulários) precisará disso.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2.  **Roteamento**: Para criar uma nova página (ex: `/register`), crie uma nova pasta em `src/app` (`src/app/register/`) e adicione um arquivo `page.tsx` dentro dela. Use o componente `<Link href="/caminho">` do Next.js para a navegação.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3.  **Lógica de Autenticação (Supabase)**: Crie um arquivo em `/lib/supabaseClient.ts` para inicializar o cliente Supabase. Importe este cliente nas páginas de `login` e `register` para lidar com a lógica de autenticação. Lembre-se que essas páginas devem ser Componentes Cliente (`"use client";`).
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4.  **Metadados e SEO**: As meta tags e o título da página são gerenciados exportando um objeto `metadata` de `layout.tsx` ou `page.tsx`, como mostrado no exemplo do `layout.tsx`.
