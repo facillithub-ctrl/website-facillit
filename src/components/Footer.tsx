@@ -35,9 +35,9 @@ export default function Footer() {
            <div>
             <h5 className="font-bold text-gray-400 uppercase tracking-wider text-sm mb-4">Empresa</h5>
             <ul className="space-y-3">
-               <li><Link href="#" className="text-gray-300 hover:text-white transition-colors">Sobre Nós</Link></li>
-               <li><Link href="#" className="text-gray-300 hover:text-white transition-colors">Carreiras</Link></li>
-               <li><Link href="#" className="text-gray-300 hover:text-white transition-colors">Contato</Link></li>
+               <li><Link href="/recursos/sobre-nos" className="text-gray-300 hover:text-white transition-colors">Sobre Nós</Link></li>
+               <li><Link href="/recursos/carreiras" className="text-gray-300 hover:text-white transition-colors">Carreiras</Link></li>
+               <li><Link href="/recursos/contato" className="text-gray-300 hover:text-white transition-colors">Contato</Link></li>
             </ul>
           </div>
            <div>

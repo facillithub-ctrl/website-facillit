@@ -33,9 +33,18 @@ const solucoes = [
     { href: "#", title: "Para Empresas", subtitle: "Produtividade e bem-estar corporativo." },
 ];
 const recursos = {
-    "Empresa": [{ href: "#", title: "Sobre Nós", subtitle: "Conheça nossa história e missão." }, { href: "#", title: "Carreiras", subtitle: "Junte-se à nossa equipe." }],
-    "Suporte": [{ href: "#footer-section", title: "Contato", subtitle: "Fale com nosso time." }, { href: "#", title: "Central de Ajuda", subtitle: "Encontre respostas rápidas." }],
-    "Legal": [{ href: "#", title: "Termos de Uso", subtitle: "Nossas políticas e termos." }, { href: "#", title: "Blog", subtitle: "Artigos e novidades." }],
+    "Empresa": [
+      { href: "/recursos/sobre-nos", title: "Sobre Nós", subtitle: "Conheça nossa história e missão." }, 
+      { href: "/recursos/carreiras", title: "Carreiras", subtitle: "Junte-se à nossa equipe." }
+    ],
+    "Suporte": [
+      { href: "/recursos/contato", title: "Contato", subtitle: "Fale com nosso time." }, 
+      { href: "/recursos/ajuda", title: "Central de Ajuda", subtitle: "Encontre respostas rápidas." }
+    ],
+    "Legal": [
+      { href: "/recursos/uso", title: "Termos de Uso", subtitle: "Nossas políticas e termos." }, 
+      { href: "recursos/blog", title: "Blog", subtitle: "Artigos e novidades." }
+    ],
 }
 
 // --- Sub-componentes para os Dropdowns ---
