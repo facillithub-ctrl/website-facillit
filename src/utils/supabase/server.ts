@@ -9,18 +9,15 @@ export default function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        // A função 'get' agora acessa o cookie diretamente do objeto cookieStore
         get(name: string) {
           return cookieStore.get(name)?.value
         },
-        // Adicionamos as funções 'set' e 'remove' para completar a interface
-        // que o Supabase espera, garantindo que a sessão possa ser gerenciada
         set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value, ...options })
           } catch (error) {
-            // O erro "TextEncoder is not a constructor" pode ocorrer em algumas
-            // versões do Next.js. Ignorá-lo em 'set' e 'remove' é seguro.
+            // Ações de `set` e `remove` podem ser ignoradas com segurança em Server Actions
+            // e outros ambientes onde a manipulação de cookies não é síncrona.
           }
         },
         remove(name: string, options: CookieOptions) {

@@ -28,8 +28,8 @@ export default function LoginPage() {
       setError('E-mail ou senha inválidos. Por favor, tente novamente.');
       setIsLoading(false);
     } else {
-      // Apenas recarrega a página. O layout cuidará do redirecionamento.
-      router.refresh(); 
+      // CORREÇÃO: Redireciona para o dashboard após o login
+      router.push('/dashboard/edu'); 
     }
   };
 

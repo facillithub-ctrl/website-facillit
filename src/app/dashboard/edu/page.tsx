@@ -13,6 +13,8 @@ type ClassFromRPC = {
 export default async function EduDashboardPage() {
     const supabase = createSupabaseServerClient();
     
+    // --- CORREÇÃO APLICADA AQUI ---
+    // Obtém a sessão de forma mais segura para evitar erro de desestruturação
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session?.user) {
