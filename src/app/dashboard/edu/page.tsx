@@ -1,10 +1,23 @@
 import Link from 'next/link';
-import createSupabaseServerClient from '@/utils/supabase/server'; // ATUALIZADO
+import createSupabaseServerClient from '@/utils/supabase/server';
+
+// --- TIPO CORRIGIDO ---
+// A estrutura de dados real que o Supabase retorna.
+type ClassFromRPC = {
+  id: string;
+  name: string;
+  subjects: { name: string } | null;
+  enrollments: { count: number }[]; // É um array contendo um objeto com a contagem
+};
 
 export default async function EduDashboardPage() {
-    const supabase = createSupabaseServerClient(); // ATUALIZADO
+    const supabase = createSupabaseServerClient();
     
     const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.user) {
+        return <p className="text-red-500">Você precisa estar logado para ver esta página.</p>;
+    }
 
     const { data: classes, error } = await supabase
         .from('school_classes')
@@ -14,7 +27,7 @@ export default async function EduDashboardPage() {
             subjects ( name ),
             enrollments ( count )
         `)
-        .eq('teacher_id', session?.user.id);
+        .eq('teacher_id', session.user.id);
 
     if (error) {
         console.error("Erro ao buscar turmas:", error);
@@ -22,7 +35,6 @@ export default async function EduDashboardPage() {
     }
 
     return (
-        // ... O resto do seu JSX continua exatamente o mesmo
         <div>
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-3xl font-bold">Módulo Edu</h1>
@@ -30,14 +42,16 @@ export default async function EduDashboardPage() {
                     <i className="fas fa-plus mr-2"></i>Criar Nova Turma
                 </button>
             </div>
+
             {classes && classes.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {classes.map((classItem: any) => (
+                    {classes.map((classItem: ClassFromRPC) => ( // Usando o tipo corrigido
                         <Link key={classItem.id} href={`/dashboard/edu/turma/${classItem.id}`} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl hover:-translate-y-1 transition-all block">
                             <h2 className="text-xl font-bold text-dark-text">{classItem.name}</h2>
                             <p className="text-text-muted mb-4">{classItem.subjects?.name || 'Disciplina não definida'}</p>
                             <div className="flex items-center text-sm text-text-muted">
                                 <i className="fas fa-users mr-2"></i>
+                                {/* Acessando a contagem de forma segura */}
                                 <span>{classItem.enrollments[0]?.count || 0} Alunos</span>
                             </div>
                         </Link>
