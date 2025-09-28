@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { ThemeProvider } from '@/components/ThemeProvider';
+import CookieConsent from '@/components/CookieConsent'; // Importe o novo componente
 
 export const metadata: Metadata = {
   title: 'Facillit HUB',
@@ -20,6 +21,7 @@ export default function RootLayout({
       <body className="font-inter bg-background-light text-dark-text">
         <ThemeProvider>
           {children}
+          <CookieConsent /> {/* Adicione o componente aqui */}
         </ThemeProvider>
       </body>
     </html>

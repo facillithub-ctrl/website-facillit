@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import createSupabaseServerClient from '@/utils/supabase/server';
 
-// Tipos para facilitar (sem alterações)
+// Tipos para facilitar
 export type Essay = {
   id: string;
   title: string;
@@ -12,6 +12,7 @@ export type Essay = {
   submitted_at: string | null;
   prompt_id: string | null;
   student_id: string;
+  consent_to_ai_training?: boolean; // Campo de consentimento adicionado
 };
 
 export type EssayCorrection = {
@@ -34,7 +35,7 @@ export type EssayPrompt = {
     source: string;
 };
 
-// Funções existentes (sem alterações)
+// Funções existentes (com a atualização no saveOrUpdateEssay)
 export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -49,6 +50,7 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
     status: essayData.status,
     prompt_id: essayData.prompt_id,
     submitted_at: essayData.status === 'submitted' ? new Date().toISOString() : essayData.submitted_at,
+    consent_to_ai_training: essayData.consent_to_ai_training, // Campo adicionado
   };
 
   const { data, error } = await supabase.from('essays').upsert(dataToUpsert).select().single();

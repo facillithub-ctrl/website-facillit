@@ -12,17 +12,26 @@ type Props = {
 
 export default function EssayEditor({ essay, prompts, onBack }: Props) {
   const [currentEssay, setCurrentEssay] = useState(essay || {});
+  const [consent, setConsent] = useState(false); // Novo estado para o consentimento
   const [isPending, startTransition] = useTransition();
   const [selectedPrompt, setSelectedPrompt] = useState<EssayPrompt | null>(
     prompts.find(p => p.id === essay?.prompt_id) || null
   );
 
   const handleSave = (status: 'draft' | 'submitted') => {
+    // Validação do consentimento ao enviar para correção
+    if (status === 'submitted' && !consent) {
+        alert('Você precisa autorizar o uso da redação para fins de melhoria da IA antes de enviar.');
+        return;
+    }
+
     startTransition(async () => {
       const updatedData = {
         ...currentEssay,
         status,
         prompt_id: selectedPrompt?.id,
+        // Inclui o novo campo
+        consent_to_ai_training: consent,
       };
       const result = await saveOrUpdateEssay(updatedData);
       if (!result.error) {
@@ -65,6 +74,21 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                 className="w-full h-96 p-4 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-royal-blue"
             />
 
+            {/* Checkbox de Consentimento */}
+            <div className="mt-6">
+                <label className="flex items-center gap-3 cursor-pointer">
+                    <input 
+                        type="checkbox" 
+                        checked={consent}
+                        onChange={(e) => setConsent(e.target.checked)}
+                        className="h-5 w-5 rounded border-gray-300 text-royal-blue focus:ring-royal-blue"
+                    />
+                    <span className="text-sm text-gray-600 dark:text-gray-300">
+                        Autorizo o uso anônimo desta redação para o treinamento e aprimoramento da inteligência artificial do Facillit Hub.
+                    </span>
+                </label>
+            </div>
+
             <div className="mt-6 flex justify-end gap-4">
                 <button onClick={() => handleSave('draft')} disabled={isPending} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 disabled:opacity-50">
                     {isPending ? 'Salvando...' : 'Salvar Rascunho'}
@@ -75,7 +99,6 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
             </div>
         </div>
 
-        {/* Bolha/Chat da IA */}
         <div className="fixed bottom-10 right-10 z-20">
             <button className="bg-royal-blue text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center text-2xl transition-transform hover:scale-110">
                 <i className="fas fa-magic"></i>
