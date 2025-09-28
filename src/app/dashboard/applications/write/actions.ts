@@ -185,6 +185,8 @@ export async function getStudentStatistics() {
     const pointToImprove = competencyAverages.sort((a, b) => a.average - b.average)[0];
     
     const progression = corrections.map(c => ({
+        // @ts-expect-error: "c.essays.submitted_at" pode estar indefinido ou não ter o tipo esperado
+        date: new Date(c.essays.submitted_at).toLocaleDateString(),
         grade: c.final_grade,
     }));
 
