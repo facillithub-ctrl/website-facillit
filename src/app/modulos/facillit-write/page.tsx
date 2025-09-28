@@ -37,9 +37,9 @@ export default function FacillitWritePage() {
                     <div className="container mx-auto px-6 text-center">
                         <h2 className="text-3xl md:text-4xl font-bold text-dark-text mb-12">Veja o Write em Ação</h2>
                         <div className="grid md:grid-cols-3 gap-4">
-                            <Image src="/assets/modulespervw/writedashborad.jpeg" alt="Dashboard" width={500} height={300} className="rounded-lg shadow-lg" />
-                            <Image src="/assets/images/placeholder-module.png" alt="Relatório de correção da IA" width={500} height={300} className="rounded-lg shadow-lg" />
-                            <Image src="/assets/images/placeholder-module.png" alt="Comentários do tutor humano" width={500} height={300} className="rounded-lg shadow-lg" />
+                            <Image src="/assets/modulespervw/write/dashboard.jpeg" alt="Dashboard" width={500} height={300} className="rounded-lg shadow-lg" />
+                            <Image src="/assets/modulespervw/write/tema.jpeg" alt="Temas" width={500} height={300} className="rounded-lg shadow-lg" />
+                            <Image src="/assets/modulespervw/write/correção.jpeg" alt="Comentários do tutor humano" width={500} height={300} className="rounded-lg shadow-lg" />
                         </div>
                     </div>
                 </section>
