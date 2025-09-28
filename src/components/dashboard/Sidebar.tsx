@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import createClient from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import type { UserProfile } from '@/app/dashboard/layout';
+import type { UserProfile } from '@/app/dashboard/types';
 
 const navLinks = [
   { href: '/dashboard', icon: 'fa-home', label: 'Dashboard', roles: ['gestor', 'professor', 'aluno', 'vestibulando'] },
@@ -16,10 +15,17 @@ const navLinks = [
   { href: '/dashboard/admin', icon: 'fa-user-shield', label: 'Painel Admin', roles: ['gestor'] },
 ];
 
-export default function Sidebar({ userProfile }: { userProfile: UserProfile }) {
+type SidebarProps = {
+  userProfile: UserProfile;
+  isMobileOpen: boolean;
+  setIsMobileOpen: (isOpen: boolean) => void;
+  isDesktopCollapsed: boolean;
+  setIsDesktopCollapsed: (isCollapsed: boolean) => void;
+};
+
+export default function Sidebar({ userProfile, isMobileOpen, setIsMobileOpen, isDesktopCollapsed, setIsDesktopCollapsed }: SidebarProps) {
   const router = useRouter();
   const supabase = createClient();
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -28,41 +34,63 @@ export default function Sidebar({ userProfile }: { userProfile: UserProfile }) {
   };
 
   return (
-    <aside 
-      className={`text-white p-4 flex flex-col transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}
-      // Aplicando o mesmo gradiente da página Hero
-      style={{ background: 'linear-gradient(180deg, #1a237e, #2e14ed, #4a148c)' }}
-    >
-      <div className="flex items-center gap-3 mb-8 h-8">
-        <Image src="/assets/images/LOGO/png/logoazul.svg" alt="Facillit Hub Logo" width={32} height={32} className="brightness-0 invert flex-shrink-0" />
-        <span className={`font-bold text-xl transition-opacity duration-200 ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}>Facillit</span>
-      </div>
-      
-      <nav className="flex-1">
-        <ul>
-          {navLinks
-            .filter(link => userProfile.userCategory && link.roles.includes(userProfile.userCategory))
-            .map((link) => (
-            <li key={link.href}>
-              <Link href={link.href} title={link.label} className="flex items-center gap-4 p-3 rounded-lg hover:bg-white/10 transition-colors">
-                <i className={`fas ${link.icon} w-6 text-center text-lg`}></i>
-                <span className={`transition-opacity duration-200 ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}>{link.label}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      
-      <div className="pt-4 border-t border-white/10">
-        <button onClick={() => setIsCollapsed(!isCollapsed)} title={isCollapsed ? 'Expandir' : 'Recolher'} className="flex items-center gap-4 p-3 rounded-lg hover:bg-white/10 transition-colors w-full text-left">
-           <i className={`fas ${isCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'} w-6 text-center`}></i>
-           <span className={`transition-opacity duration-200 ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}>Recolher</span>
-        </button>
-        <button onClick={handleLogout} title="Sair" className="flex items-center gap-4 p-3 rounded-lg hover:bg-white/10 transition-colors w-full text-left mt-2">
-           <i className="fas fa-sign-out-alt w-6 text-center"></i>
-           <span className={`transition-opacity duration-200 ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}>Sair</span>
-        </button>
-      </div>
-    </aside>
+    <>
+      {/* Overlay para fechar o menu em telas pequenas */}
+      <div
+        onClick={() => setIsMobileOpen(false)}
+        className={`fixed inset-0 bg-black/50 z-30 lg:hidden transition-opacity ${
+            isMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      />
+
+      <aside 
+        className={`fixed lg:relative top-0 left-0 h-full text-white p-4 flex flex-col z-40 transition-all duration-300
+          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:translate-x-0 ${isDesktopCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
+        style={{ background: 'linear-gradient(180deg, #1a237e, #2e14ed, #4a148c)' }}
+      >
+        <div className="flex items-center justify-between mb-8 h-8">
+            <div className={`flex items-center gap-3 ${isDesktopCollapsed ? 'lg:justify-center lg:w-full' : ''}`}>
+                <Image src="/assets/images/LOGO/png/logoazul.svg" alt="Facillit Hub Logo" width={32} height={32} className="brightness-0 invert flex-shrink-0" />
+                <span className={`font-bold text-xl whitespace-nowrap transition-opacity ${isDesktopCollapsed ? 'lg:opacity-0 lg:hidden' : ''}`}>Facillit</span>
+            </div>
+            <button onClick={() => setIsMobileOpen(false)} className="lg:hidden text-2xl text-white/80 hover:text-white">
+                <i className="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <nav className="flex-1">
+          <ul>
+            {navLinks
+              .filter(link => userProfile.userCategory && link.roles.includes(userProfile.userCategory))
+              .map((link) => (
+              <li key={link.href}>
+                <Link href={link.href} title={link.label} className={`flex items-center gap-4 p-3 rounded-lg hover:bg-white/10 transition-colors ${isDesktopCollapsed ? 'lg:justify-center' : ''}`}>
+                  <i className={`fas ${link.icon} w-6 text-center text-lg`}></i>
+                  <span className={isDesktopCollapsed ? 'lg:hidden' : ''}>{link.label}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        
+        <div className="pt-4 border-t border-white/10">
+            {/* Botão de Recolher/Expandir para Desktop */}
+            <button 
+                onClick={() => setIsDesktopCollapsed(!isDesktopCollapsed)} 
+                title={isDesktopCollapsed ? 'Expandir' : 'Recolher'} 
+                className={`hidden lg:flex items-center gap-4 p-3 rounded-lg hover:bg-white/10 transition-colors w-full text-left ${isDesktopCollapsed ? 'lg:justify-center' : ''}`}
+            >
+                <i className={`fas ${isDesktopCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'} w-6 text-center`}></i>
+                <span className={isDesktopCollapsed ? 'hidden' : ''}>Recolher</span>
+            </button>
+
+            <button onClick={handleLogout} title="Sair" className={`flex items-center gap-4 p-3 rounded-lg hover:bg-white/10 transition-colors w-full text-left mt-2 ${isDesktopCollapsed ? 'lg:justify-center' : ''}`}>
+                <i className="fas fa-sign-out-alt w-6 text-center"></i>
+                <span className={isDesktopCollapsed ? 'hidden' : ''}>Sair</span>
+            </button>
+        </div>
+      </aside>
+    </>
   );
 }

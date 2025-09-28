@@ -1,40 +1,101 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import type { UserProfile } from '@/app/dashboard/layout';
+import type { UserProfile } from '@/app/dashboard/types';
 import { useTheme } from '@/components/ThemeProvider';
 
-export default function Topbar({ userProfile }: { userProfile: UserProfile }) {
+const modulesData = [
+  { slug: 'facillit-edu', icon: 'fa-graduation-cap', title: 'Edu' },
+  { slug: 'facillit-games', icon: 'fa-gamepad', title: 'Games' },
+  { slug: 'facillit-write', icon: 'fa-pencil-alt', title: 'Write' },
+  { slug: 'facillit-day', icon: 'fa-calendar-check', title: 'Day' },
+  { slug: 'facillit-play', icon: 'fa-play-circle', title: 'Play' },
+  { slug: 'facillit-library', icon: 'fa-book-open', title: 'Library' },
+  { slug: 'facillit-connect', icon: 'fa-users', title: 'Connect' },
+  { slug: 'facillit-coach-career', icon: 'fa-bullseye', title: 'Coach' },
+  { slug: 'facillit-lab', icon: 'fa-flask', title: 'Lab' },
+  { slug: 'facillit-test', icon: 'fa-file-alt', title: 'Test' },
+  { slug: 'facillit-task', icon: 'fa-tasks', title: 'Task' },
+  { slug: 'facillit-create', icon: 'fa-lightbulb', title: 'Create' },
+];
+
+type TopbarProps = {
+  userProfile: UserProfile;
+  toggleSidebar: () => void;
+};
+
+export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
   const [isProfileOpen, setProfileOpen] = useState(false);
+  const [isGridOpen, setGridOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  
+  const gridRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (gridRef.current && !gridRef.current.contains(event.target as Node)) {
+        setGridOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [gridRef, profileRef]);
+
 
   return (
     <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0 dark:bg-gray-800 dark:border-gray-700">
-      {/* Lado Esquerdo: Busca Universal */}
-      <div className="relative w-full max-w-md">
-        <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-        <input 
-          type="search" 
-          placeholder="Busca universal..." 
-          className="w-full bg-gray-100 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-royal-blue dark:bg-gray-700 dark:text-white"
-        />
-      </div>
+      <div className="flex items-center gap-4">
+        <button onClick={toggleSidebar} className="text-gray-500 hover:text-royal-blue text-xl lg:hidden">
+            <i className="fas fa-bars"></i>
+        </button>
 
-      {/* Lado Direito: Ações e Perfil */}
+        <div className="relative hidden sm:block">
+            <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <input 
+              type="search" 
+              placeholder="Busca universal..." 
+              className="w-full max-w-xs bg-gray-100 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-royal-blue dark:bg-gray-700 dark:text-white"
+            />
+        </div>
+      </div>
+      
       <div className="flex items-center gap-4 md:gap-6">
-        {/* BOTÃO DE TEMA */}
         <button onClick={toggleTheme} className="text-gray-500 hover:text-royal-blue text-xl dark:text-gray-400">
             {theme === 'light' ? <i className="fas fa-moon"></i> : <i className="fas fa-sun"></i>}
         </button>
+        
+        <div className="relative" ref={gridRef}>
+            <button onClick={() => setGridOpen(!isGridOpen)} className="text-gray-500 hover:text-royal-blue text-xl dark:text-gray-400">
+                <i className="fas fa-th"></i>
+            </button>
+            {isGridOpen && (
+                <div className="absolute top-full right-0 mt-4 w-[90vw] max-w-sm md:w-80 bg-white rounded-xl shadow-xl border z-10 p-4 dark:bg-gray-700 dark:border-gray-600">
+                    <div className="grid grid-cols-3 gap-4">
+                        {modulesData.map((module) => (
+                            <Link 
+                                key={module.slug} 
+                                href={`/modulos/${module.slug}`}
+                                className="flex flex-col items-center justify-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                            >
+                                <i className={`fas ${module.icon} text-2xl text-royal-blue mb-2`}></i>
+                                <span className="text-xs font-medium text-center text-dark-text dark:text-white">{module.title}</span>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+        
+        <button className="text-gray-500 hover:text-royal-blue text-xl dark:text-gray-400 hidden sm:block"><i className="fas fa-bell"></i></button>
+        <button className="text-gray-500 hover:text-royal-blue text-xl dark:text-gray-400 hidden sm:block"><i className="fas fa-comment"></i></button>
 
-        <button className="text-gray-500 hover:text-royal-blue text-xl dark:text-gray-400"><i className="fas fa-th"></i></button>
-        <button className="text-gray-500 hover:text-royal-blue text-xl dark:text-gray-400"><i className="fas fa-bell"></i></button>
-        <button className="text-gray-500 hover:text-royal-blue text-xl dark:text-gray-400"><i className="fas fa-comment"></i></button>
-
-        {/* Menu do Usuário */}
-        <div className="relative">
+        <div className="relative" ref={profileRef}>
           <button onClick={() => setProfileOpen(!isProfileOpen)} className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-royal-blue dark:bg-gray-600">
                 {userProfile.avatarUrl ? (
