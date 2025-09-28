@@ -6,7 +6,7 @@ import Image from 'next/image';
 import type { UserProfile } from '@/app/dashboard/types';
 import { useTheme } from '@/components/ThemeProvider';
 import createClient from '@/utils/supabase/client';
-import { useRouter } from 'next/navigation'; // Importar useRouter
+import { useRouter } from 'next/navigation';
 
 const modulesData = [
   { slug: 'edu', icon: 'fa-graduation-cap', title: 'Edu' },
@@ -44,7 +44,7 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   
   const { theme, toggleTheme } = useTheme();
-  const router = useRouter(); // Instanciar o router
+  const router = useRouter();
   
   const gridRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -54,7 +54,7 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
 
   useEffect(() => {
     const fetchNotifications = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('notifications')
         .select('*')
         .order('created_at', { ascending: false });
@@ -140,6 +140,7 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
                                 </>
                             );
                             if (isActive) {
+                                // CORREÇÃO: O caminho correto para as aplicações do dashboard é /dashboard/applications/
                                 return (<Link key={module.slug} href={`/dashboard/applications/${module.slug}`} className="relative flex flex-col items-center justify-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">{content}</Link>);
                             } else {
                                 return (<div key={module.slug} className="relative flex flex-col items-center justify-center p-3 rounded-lg bg-gray-50 dark:bg-gray-800 cursor-not-allowed opacity-70" title={`${module.title} (inativo)`}>{content}</div>);
