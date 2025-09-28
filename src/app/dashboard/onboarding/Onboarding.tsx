@@ -20,7 +20,7 @@ const modulesData = [
   { slug: 'create', icon: 'fa-lightbulb', title: 'Facillit Create', description: 'Mapas mentais e gráficos.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
 ];
 
-export default function OnboardingPage({ userProfile }: { userProfile: UserProfile }) {
+export default function Onboarding({ userProfile }: { userProfile: UserProfile }) {
     const supabase = createClient();
     const router = useRouter();
     const [selectedModules, setSelectedModules] = useState<string[]>([]);
@@ -46,19 +46,16 @@ export default function OnboardingPage({ userProfile }: { userProfile: UserProfi
                 .eq('id', user.id);
 
             if (!error) {
-                // CORREÇÃO: Usar router.refresh() para forçar a atualização dos dados do servidor.
-                // Isso fará com que o layout reavalie a condição 'has_completed_onboarding'
-                // e mostre o dashboard correto.
-                router.refresh(); 
+                // CORREÇÃO DEFINITIVA: Força um recarregamento da página para o dashboard.
+                // Isso garante que o layout do servidor busque os novos dados e exiba a interface correta.
+                window.location.assign('/dashboard');
             } else {
                 console.error("Erro ao salvar módulos:", error);
-                setIsLoading(false); // Garante que o botão seja reativado em caso de erro
+                setIsLoading(false);
             }
         } else {
             setIsLoading(false);
         }
-        // O setIsLoading(false) não é mais necessário aqui,
-        // pois a página será recarregada e o componente desmontado.
     };
     
     const availableModules = modulesData.filter(module => 
@@ -70,7 +67,6 @@ export default function OnboardingPage({ userProfile }: { userProfile: UserProfi
             <div className="w-full max-w-2xl bg-white p-8 rounded-xl shadow-lg">
                 <h1 className="text-3xl font-bold text-dark-text mb-2">Bem-vindo(a) ao Facillit Hub!</h1>
                 <p className="text-text-muted mb-8">Personalize sua experiência. Selecione os módulos que você mais usará no seu dia a dia.</p>
-
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
                     {availableModules.map(module => (
                         <button
@@ -85,7 +81,6 @@ export default function OnboardingPage({ userProfile }: { userProfile: UserProfi
                         </button>
                     ))}
                 </div>
-
                 <button
                     onClick={handleContinue}
                     disabled={isLoading || selectedModules.length === 0}

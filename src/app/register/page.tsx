@@ -3,7 +3,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
+import { useRouter } from 'next/navigation';
+import createClient from '@/utils/supabase/client'; // <-- CORREÇÃO: Importar o cliente correto
 
 // --- Tipos de Dados ---
 type FormData = {
@@ -40,6 +41,8 @@ export default function RegisterPage() {
     const [formData, setFormData] = useState<FormData>({});
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
+    const supabase = createClient(); // <-- CORREÇÃO: Instanciar o cliente correto
 
     const handleNextStep = (nextStep: string, data: Partial<FormData> = {}) => {
         setFormData(prev => ({ ...prev, ...data }));
@@ -66,6 +69,11 @@ export default function RegisterPage() {
         const { data: { user }, error: signUpError } = await supabase.auth.signUp({
             email: fullData.email,
             password: fullData.password,
+            options: {
+                data: {
+                    full_name: fullData.fullName, // Passando dados para o gatilho
+                }
+            }
         });
 
         if (signUpError) {
@@ -75,8 +83,9 @@ export default function RegisterPage() {
         }
 
         if (user) {
-            const { error: profileError } = await supabase.from('profiles').insert({
-                id: user.id,
+            // A criação do perfil agora pode ser gerenciada por um Trigger no Supabase,
+            // mas faremos a atualização aqui para garantir que todos os dados sejam salvos.
+            const { error: profileError } = await supabase.from('profiles').update({
                 full_name: fullData.fullName,
                 nickname: fullData.nickname,
                 birth_date: fullData.birthDate,
@@ -93,12 +102,10 @@ export default function RegisterPage() {
                 address_city: fullData.addressCity,
                 address_state: fullData.addressState,
                 category_details: fullData.categoryDetails,
-            });
+            }).eq('id', user.id);
 
             if (profileError) {
                 setError(`Erro ao salvar perfil: ${profileError.message}`);
-                // Se der erro ao criar o perfil, é uma boa prática remover o usuário criado na autenticação
-                // const { data, error } = await supabase.auth.admin.deleteUser(user.id)
             } else {
                 setStep('success');
             }
@@ -133,6 +140,7 @@ export default function RegisterPage() {
 
 
 // --- Componentes de Cena ---
+// (O restante do arquivo com os componentes de cada etapa permanece o mesmo)
 
 const WelcomeStep = ({ onNext }: { onNext: () => void }) => (
     <div className="text-center flex flex-col h-full justify-center">
@@ -302,17 +310,27 @@ const PersonalizationStep = ({ onSubmit, onBack, isLoading }: { onSubmit: (data:
     );
 };
 
-const SuccessStep = () => (
-    <div className="text-center flex flex-col h-full justify-center">
-        <div className="mx-auto bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-            <i className="fas fa-check text-3xl"></i>
+const SuccessStep = () => {
+    const router = useRouter();
+
+    const goToDashboard = () => {
+        router.push('/dashboard');
+        router.refresh(); // Adiciona refresh para garantir que o layout recarregue os dados
+    };
+
+    return (
+        <div className="text-center flex flex-col h-full justify-center">
+            <div className="mx-auto bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+                <i className="fas fa-check text-3xl"></i>
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Conta criada com sucesso!</h2>
+            <p className="text-text-muted mb-6">
+                Enviamos um e-mail de confirmação. Por favor, verifique sua caixa de entrada para ativar sua conta.
+            </p>
+            {/* O Link foi trocado por um botão para usar a lógica de navegação customizada */}
+            <button onClick={goToDashboard} className="w-full py-3 bg-royal-blue text-white rounded-lg font-bold">
+                Ir para o Dashboard
+            </button>
         </div>
-        <h2 className="text-2xl font-bold mb-2">Conta criada com sucesso!</h2>
-        <p className="text-text-muted mb-6">
-            Enviamos um e-mail de confirmação. Por favor, verifique sua caixa de entrada para ativar sua conta.
-        </p>
-        <Link href="/dashboard" className="w-full py-3 bg-royal-blue text-white rounded-lg font-bold">
-            Ir para o Dashboard
-        </Link>
-    </div>
-);
+    );
+};
