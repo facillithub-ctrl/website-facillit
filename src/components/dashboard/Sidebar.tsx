@@ -8,21 +8,22 @@ import type { UserProfile } from '@/app/dashboard/types';
 
 const allNavLinks = [
   { href: '/dashboard', slug: 'dashboard', icon: 'fa-home', label: 'Dashboard' },
-  { href: '/dashboard/edu', slug: 'edu', icon: 'fa-graduation-cap', label: 'Facillit Edu' },
-  { href: '/dashboard/games', slug: 'games', icon: 'fa-gamepad', label: 'Facillit Games' },
-  { href: '/dashboard/write', slug: 'write', icon: 'fa-pencil-alt', label: 'Facillit Write' },
-  { href: '/dashboard/day', slug: 'day', icon: 'fa-calendar-check', label: 'Facillit Day' },
-  { href: '/dashboard/play', slug: 'play', icon: 'fa-play-circle', label: 'Facillit Play' },
-  { href: '/dashboard/library', slug: 'library', icon: 'fa-book-open', label: 'Facillit Library' },
-  { href: '/dashboard/connect', slug: 'connect', icon: 'fa-users', label: 'Facillit Connect' },
-  { href: '/dashboard/coach-career', slug: 'coach-career', icon: 'fa-bullseye', label: 'Facillit Coach' },
-  { href: '/dashboard/lab', slug: 'lab', icon: 'fa-flask', label: 'Facillit Lab' },
-  { href: '/dashboard/test', slug: 'test', icon: 'fa-file-alt', label: 'Facillit Test' },
-  { href: '/dashboard/task', slug: 'task', icon: 'fa-tasks', label: 'Facillit Task' },
-  { href: '/dashboard/create', slug: 'create', icon: 'fa-lightbulb', label: 'Facillit Create' },
-  { href: '/dashboard/admin', slug: 'admin', icon: 'fa-user-shield', label: 'Painel Admin' }, // Específico para gestor
+  { href: '/dashboard/applications/edu', slug: 'edu', icon: 'fa-graduation-cap', label: 'Facillit Edu' },
+  { href: '/dashboard/applications/games', slug: 'games', icon: 'fa-gamepad', label: 'Facillit Games' },
+  { href: '/dashboard/applications/write', slug: 'write', icon: 'fa-pencil-alt', label: 'Facillit Write' },
+  { href: '/dashboard/applications/day', slug: 'day', icon: 'fa-calendar-check', label: 'Facillit Day' },
+  { href: '/dashboard/applications/play', slug: 'play', icon: 'fa-play-circle', label: 'Facillit Play' },
+  { href: '/dashboard/applications/library', slug: 'library', icon: 'fa-book-open', label: 'Facillit Library' },
+  { href: '/dashboard/applications/connect', slug: 'connect', icon: 'fa-users', label: 'Facillit Connect' },
+  { href: '/dashboard/applications/coach-career', slug: 'coach-career', icon: 'fa-bullseye', label: 'Facillit Coach' },
+  { href: '/dashboard/applications/lab', slug: 'lab', icon: 'fa-flask', label: 'Facillit Lab' },
+  { href: '/dashboard/applications/test', slug: 'test', icon: 'fa-file-alt', label: 'Facillit Test' },
+  { href: '/dashboard/applications/task', slug: 'task', icon: 'fa-tasks', label: 'Facillit Task' },
+  { href: '/dashboard/applications/create', slug: 'create', icon: 'fa-lightbulb', label: 'Facillit Create' },
+  { href: '/dashboard/applications/admin', slug: 'admin', icon: 'fa-user-shield', label: 'Painel Admin' },
 ];
 
+// ... (o restante do seu componente Sidebar.tsx permanece o mesmo)
 type SidebarProps = {
   userProfile: UserProfile;
   isMobileOpen: boolean;
@@ -41,7 +42,6 @@ export default function Sidebar({ userProfile, isMobileOpen, setIsMobileOpen, is
     router.refresh();
   };
 
-  // Filtra os links para mostrar apenas o Dashboard + os módulos ativos no perfil do usuário
   const activeNavLinks = allNavLinks.filter(link => 
     link.slug === 'dashboard' || userProfile.active_modules?.includes(link.slug)
   );
