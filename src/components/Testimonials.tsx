@@ -9,8 +9,8 @@ const testimonialsData = [
 
 const TestimonialCard = ({ name, role, text, img }: typeof testimonialsData[0]) => (
   <div className="testimonial-card bg-white p-8 rounded-2xl border border-gray-200 text-left w-96 mx-4 flex-shrink-0">
-   <p className="testimonial-text">&quot;Este serviço é incrível!&quot;</p> 
-    <div className="flex items-center gap-4">
+   <p className="testimonial-text">&quot;{text}&quot;</p> 
+    <div className="flex items-center gap-4 mt-4">
       <Image src={`https://i.pravatar.cc/60?img=${img}`} alt={`Foto de ${name}`} width={60} height={60} className="rounded-full" />
       <div>
         <strong className="block font-bold text-dark-text">{name}</strong>
@@ -29,7 +29,6 @@ export default function Testimonials() {
         </h2>
         <div className="relative w-full">
           <div className="testimonial-carousel flex w-max">
-            {/* Renderiza os cards duas vezes para o efeito de loop contínuo */}
             {testimonialsData.map((testimonial, index) => <TestimonialCard key={index} {...testimonial} />)}
             {testimonialsData.map((testimonial, index) => <TestimonialCard key={`clone-${index}`} {...testimonial} />)}
           </div>

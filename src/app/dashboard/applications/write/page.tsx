@@ -45,7 +45,8 @@ export default async function WritePage() {
       <StudentDashboard 
         initialEssays={essaysResult.data || []} 
         prompts={promptsResult.data || []}
-        statistics={statsResult.data}
+        // CORREÇÃO: Usamos 'statsResult.data ?? null' para garantir que nunca seja undefined
+        statistics={statsResult.data ?? null}
         streak={streakResult.data || 0}
         rankInfo={rankResult.data}
       />
