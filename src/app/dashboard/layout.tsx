@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
-import createSupabaseServerClient from '@/utils/supabase/server';
+// ATENÇÃO: Corrija a importação aqui também, adicionando as chaves {}
+import { createSupabaseServerClient } from '@/utils/supabase/server';
 import type { UserProfile } from './types';
 import DashboardClientLayout from './DashboardClientLayout';
 
@@ -8,7 +9,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createSupabaseServerClient(); // <-- CORREÇÃO: Adicionado 'await'
+  const supabase = createSupabaseServerClient();
 
   const { data: { session } } = await supabase.auth.getSession();
 
@@ -18,11 +19,12 @@ export default async function DashboardLayout({
   
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select(`id, full_name, user_category, avatar_url, pronoun`)
+    .select('id, full_name, user_category, avatar_url, pronoun, has_completed_onboarding, active_modules')
     .eq('id', session.user.id)
     .single();
 
   if (error || !profile) {
+    await supabase.auth.signOut();
     redirect('/login');
   }
 
@@ -32,6 +34,8 @@ export default async function DashboardLayout({
     userCategory: profile.user_category,
     avatarUrl: profile.avatar_url,
     pronoun: profile.pronoun,
+    has_completed_onboarding: profile.has_completed_onboarding,
+    active_modules: profile.active_modules,
   };
 
   return (

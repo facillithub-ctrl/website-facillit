@@ -1,9 +1,10 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-// Esta função agora é 'async' para permitir o uso de 'await'
-export default async function createClient() {
-  const cookieStore = await cookies() // <-- CORREÇÃO: Adicionado 'await'
+// Esta função agora é síncrona e não é mais a exportação padrão.
+// Ela será chamada a cada vez que uma ação no servidor for executada.
+export function createSupabaseServerClient() {
+  const cookieStore = cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,14 +18,17 @@ export default async function createClient() {
           try {
             cookieStore.set({ name, value, ...options })
           } catch (error) {
-            // As ações de 'set' e 'remove' podem ser ignoradas com segurança
+            // A ação 'set' foi chamada de um Server Component.
+            // Isso pode ser ignorado com segurança se você tiver um middleware
+            // atualizando as sessões do usuário.
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options })
           } catch (error) {
-            // Mesma lógica de erro acima
+            // A ação 'remove' foi chamada de um Server Component.
+            // Isso pode ser ignorado com segurança.
           }
         },
       },

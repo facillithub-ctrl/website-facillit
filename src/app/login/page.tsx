@@ -28,7 +28,11 @@ export default function LoginPage() {
       setError('E-mail ou senha inválidos. Por favor, tente novamente.');
       setIsLoading(false);
     } else {
-      router.push('/dashboard'); 
+      // SUCESSO NO LOGIN
+      // 1. Força a revalidação dos Server Components na rota atual e futura
+      router.refresh();
+      // 2. Navega para o dashboard
+      router.push('/dashboard');
     }
   };
 

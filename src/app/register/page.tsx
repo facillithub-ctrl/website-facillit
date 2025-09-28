@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import createClient from '@/utils/supabase/client'; // <-- CORREÇÃO: Importar o cliente correto
+import createClient from '@/utils/supabase/client';
 
 // --- Tipos de Dados ---
 type FormData = {
@@ -42,7 +42,7 @@ export default function RegisterPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
-    const supabase = createClient(); // <-- CORREÇÃO: Instanciar o cliente correto
+    const supabase = createClient();
 
     const handleNextStep = (nextStep: string, data: Partial<FormData> = {}) => {
         setFormData(prev => ({ ...prev, ...data }));
@@ -71,7 +71,7 @@ export default function RegisterPage() {
             password: fullData.password,
             options: {
                 data: {
-                    full_name: fullData.fullName, // Passando dados para o gatilho
+                    full_name: fullData.fullName,
                 }
             }
         });
@@ -83,8 +83,6 @@ export default function RegisterPage() {
         }
 
         if (user) {
-            // A criação do perfil agora pode ser gerenciada por um Trigger no Supabase,
-            // mas faremos a atualização aqui para garantir que todos os dados sejam salvos.
             const { error: profileError } = await supabase.from('profiles').update({
                 full_name: fullData.fullName,
                 nickname: fullData.nickname,
@@ -140,7 +138,7 @@ export default function RegisterPage() {
 
 
 // --- Componentes de Cena ---
-// (O restante do arquivo com os componentes de cada etapa permanece o mesmo)
+// (O restante dos componentes de etapa permanece o mesmo)
 
 const WelcomeStep = ({ onNext }: { onNext: () => void }) => (
     <div className="text-center flex flex-col h-full justify-center">
@@ -313,9 +311,9 @@ const PersonalizationStep = ({ onSubmit, onBack, isLoading }: { onSubmit: (data:
 const SuccessStep = () => {
     const router = useRouter();
 
-    const goToDashboard = () => {
-        router.push('/dashboard');
-        router.refresh(); // Adiciona refresh para garantir que o layout recarregue os dados
+    const goToLogin = () => {
+        router.refresh(); // Garante que qualquer cache de rota seja limpo
+        router.push('/login');
     };
 
     return (
@@ -325,11 +323,10 @@ const SuccessStep = () => {
             </div>
             <h2 className="text-2xl font-bold mb-2">Conta criada com sucesso!</h2>
             <p className="text-text-muted mb-6">
-                Enviamos um e-mail de confirmação. Por favor, verifique sua caixa de entrada para ativar sua conta.
+                Enviamos um e-mail de confirmação. Por favor, verifique sua caixa de entrada para ativar sua conta antes de fazer o login.
             </p>
-            {/* O Link foi trocado por um botão para usar a lógica de navegação customizada */}
-            <button onClick={goToDashboard} className="w-full py-3 bg-royal-blue text-white rounded-lg font-bold">
-                Ir para o Dashboard
+            <button onClick={goToLogin} className="w-full py-3 bg-royal-blue text-white rounded-lg font-bold">
+                Ir para o Login
             </button>
         </div>
     );

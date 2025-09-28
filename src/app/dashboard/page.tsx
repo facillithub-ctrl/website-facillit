@@ -1,4 +1,4 @@
-import createSupabaseServerClient from '@/utils/supabase/server';
+import { createSupabaseServerClient } from '@/utils/supabase/server';
 
 const getWelcomeMessage = (pronoun: string | null | undefined): string => {
   // ... (função continua igual)
@@ -15,7 +15,7 @@ const getWelcomeMessage = (pronoun: string | null | undefined): string => {
 };
 
 export default async function DashboardPage() {
-    const supabase = await createSupabaseServerClient(); // <-- CORREÇÃO: Adicionado 'await'
+    const supabase = createSupabaseServerClient(); // Não precisa mais de 'await' aqui
 
     const { data: { user } } = await supabase.auth.getUser();
     
