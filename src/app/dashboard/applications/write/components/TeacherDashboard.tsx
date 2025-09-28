@@ -3,13 +3,12 @@
 import { useState } from 'react';
 import CorrectionInterface from './CorrectionInterface';
 
-// O tipo foi ajustado para refletir que 'profiles' é um objeto, e não um array.
-// A consulta no Supabase, para uma relação de um-para-muitos, retorna um objeto quando a chave estrangeira é a origem.
+// O tipo foi ajustado para refletir que 'profiles' é um array, como retornado pela query.
 type PendingEssay = {
   id: string;
   title: string | null;
   submitted_at: string | null;
-  profiles: { full_name: string | null } | null; // Corrigido para ser um objeto
+  profiles: { full_name: string | null; }[] | null; // Corrigido para ser um array de objetos
 };
 
 export default function TeacherDashboard({ pendingEssays }: { pendingEssays: PendingEssay[] }) {
@@ -28,8 +27,8 @@ export default function TeacherDashboard({ pendingEssays }: { pendingEssays: Pen
             <li key={essay.id} onClick={() => setSelectedEssayId(essay.id)} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
               <p className="font-bold text-dark-text dark:text-white">{essay.title || "Redação sem título"}</p>
               <p className="text-sm text-gray-500">
-                {/* Acessa o nome completo diretamente do objeto 'profiles' */}
-                Enviada por {essay.profiles?.full_name || 'Aluno desconhecido'} em {new Date(essay.submitted_at!).toLocaleDateString()}
+                {/* Acessa o nome completo do primeiro elemento do array 'profiles' */}
+                Enviada por {essay.profiles?.[0]?.full_name || 'Aluno desconhecido'} em {new Date(essay.submitted_at!).toLocaleDateString()}
               </p>
             </li>
           )) : (

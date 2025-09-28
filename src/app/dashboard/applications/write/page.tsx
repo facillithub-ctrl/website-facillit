@@ -22,7 +22,7 @@ export default async function WritePage() {
     redirect('/login');
   }
 
-  // Se for aluno ou vestibulando, busca as redações e os temas
+  // If the user is a student or preparing for exams, fetch their essays and prompts
   if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
     const { data: essays } = await supabase
         .from('essays')
@@ -35,19 +35,25 @@ export default async function WritePage() {
     return <StudentDashboard initialEssays={essays || []} prompts={prompts || []} />;
   }
 
-  // Se for professor ou gestor, busca as redações pendentes de correção
+  // If the user is a teacher or manager, fetch essays pending correction
   if (['professor', 'gestor'].includes(profile.user_category || '')) {
-     const { data: pendingEssays } = await supabase
+     const { data: pendingEssaysFromDb } = await supabase
         .from('essays')
         .select('id, title, submitted_at, profiles(full_name)')
         .eq('status', 'submitted')
-        // Aqui você poderia adicionar um .eq('organization_id', profile.organization_id) no futuro
         .order('submitted_at', { ascending: true });
 
-    return <TeacherDashboard pendingEssays={pendingEssays || []} />;
+    // FIX: Transform the data to match the component's expected type.
+    // Supabase returns the joined 'profiles' as an array, so we take the first element.
+    const pendingEssays = pendingEssaysFromDb?.map(essay => ({
+      ...essay,
+      profiles: Array.isArray(essay.profiles) ? essay.profiles[0] : essay.profiles,
+    })) || [];
+
+    return <TeacherDashboard pendingEssays={pendingEssays} />;
   }
 
-  // Fallback para outros tipos de usuário
+  // Fallback for other user types
   return (
     <div>
         <h1 className="text-2xl font-bold">Módulo de Redação</h1>
