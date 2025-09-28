@@ -8,10 +8,9 @@ type Props = {
   onBack: () => void;
 };
 
-// Juntando os tipos para facilitar
 type FullEssayDetails = Essay & {
   correction: (EssayCorrection & { profiles: { full_name: string | null } }) | null;
-  profiles: { full_name: string | null } | null; // Adicionando o perfil do aluno
+  profiles: { full_name: string | null } | null;
 };
 
 export default function EssayCorrectionView({ essayId, onBack }: Props) {
@@ -24,7 +23,7 @@ export default function EssayCorrectionView({ essayId, onBack }: Props) {
             if (essayResult.data) {
                 const correctionResult = await getCorrectionForEssay(essayId);
                 setDetails({
-                    ...(essayResult.data as FullEssayDetails), // Casting para incluir 'profiles'
+                    ...(essayResult.data as FullEssayDetails),
                     correction: correctionResult.data || null,
                 });
             }
@@ -41,7 +40,7 @@ export default function EssayCorrectionView({ essayId, onBack }: Props) {
     return (
         <div>
             <button onClick={onBack} className="mb-4 text-sm text-royal-blue font-bold">
-                <i className="fas fa-arrow-left mr-2"></i> Voltar para minhas redações
+                <i className="fas fa-arrow-left mr-2"></i> Voltar
             </button>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Coluna da Redação */}
@@ -61,7 +60,8 @@ export default function EssayCorrectionView({ essayId, onBack }: Props) {
                             {[1, 2, 3, 4, 5].map(i => (
                                 <div key={i} className="flex justify-between items-center p-2 rounded-md bg-gray-50 dark:bg-gray-700">
                                     <span className="font-medium text-sm">Competência {i}</span>
-                                    <span className="font-bold text-sm">{(correction as any)[`grade_c${i}`]}</span>
+                                    {/* CORREÇÃO APLICADA AQUI */}
+                                    <span className="font-bold text-sm">{correction[`grade_c${i}` as keyof EssayCorrection]}</span>
                                 </div>
                             ))}
                             <div>
@@ -77,20 +77,4 @@ export default function EssayCorrectionView({ essayId, onBack }: Props) {
             </div>
         </div>
     );
-}
-// Ação para buscar todas as redações de um aluno
-export async function getEssaysForStudent() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) return { error: 'Usuário não autenticado.' };
-
-  const { data, error } = await supabase
-    .from('essays')
-    .select('id, title, status, submitted_at')
-    .eq('student_id', user.id)
-    .order('submitted_at', { ascending: false, nullsFirst: true });
-
-  if (error) return { error: error.message };
-  return { data };
 }
