@@ -60,7 +60,7 @@ export default function EssayCorrectionView({ essayId, onBack }: Props) {
                             {[1, 2, 3, 4, 5].map(i => (
                                 <div key={i} className="flex justify-between items-center p-2 rounded-md bg-gray-50 dark:bg-gray-700">
                                     <span className="font-medium text-sm">Competência {i}</span>
-                                    {/* CORREÇÃO APLICADA AQUI */}
+                                    {/* A CORREÇÃO FOI FEITA AQUI */}
                                     <span className="font-bold text-sm">{correction[`grade_c${i}` as keyof EssayCorrection]}</span>
                                 </div>
                             ))}
