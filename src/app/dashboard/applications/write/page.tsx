@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import createSupabaseServerClient from '@/utils/supabase/server';
 import StudentDashboard from './components/StudentDashboard';
 import TeacherDashboard from './components/TeacherDashboard';
-import { getPrompts } from './actions';
+import { getPrompts, getStudentStatistics } from './actions';
 
 export default async function WritePage() {
   const supabase = await createSupabaseServerClient();
@@ -22,20 +22,29 @@ export default async function WritePage() {
     redirect('/login');
   }
 
-  // If the user is a student or preparing for exams, fetch their essays and prompts
+  // Se o usuário for um aluno ou vestibulando
   if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
-    const { data: essays } = await supabase
+    // Busca os dados de forma paralela para otimizar o carregamento
+    const [essaysResult, promptsResult, statsResult] = await Promise.all([
+      supabase
         .from('essays')
         .select('id, title, status, submitted_at')
         .eq('student_id', user.id)
-        .order('submitted_at', { ascending: false, nullsFirst: true });
-    
-    const { data: prompts } = await getPrompts();
+        .order('submitted_at', { ascending: false, nullsFirst: true }),
+      getPrompts(),
+      getStudentStatistics()
+    ]);
 
-    return <StudentDashboard initialEssays={essays || []} prompts={prompts || []} />;
+    return (
+      <StudentDashboard 
+        initialEssays={essaysResult.data || []} 
+        prompts={promptsResult.data || []}
+        statistics={statsResult.data}
+      />
+    );
   }
 
-  // If the user is a teacher or manager, fetch essays pending correction
+  // Se o usuário for um professor ou gestor
   if (['professor', 'gestor'].includes(profile.user_category || '')) {
      const { data: pendingEssays } = await supabase
         .from('essays')
@@ -43,12 +52,10 @@ export default async function WritePage() {
         .eq('status', 'submitted')
         .order('submitted_at', { ascending: true });
 
-    // FIX: The incorrect data transformation (.map) was removed here.
-    // We now pass the data directly from Supabase to the component.
     return <TeacherDashboard pendingEssays={pendingEssays || []} />;
   }
 
-  // Fallback for other user types
+  // Fallback para outros tipos de usuário
   return (
     <div>
         <h1 className="text-2xl font-bold">Módulo de Redação</h1>
