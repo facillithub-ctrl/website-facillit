@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+// O caminho da importação deve ser relativo ao diretório pai (write)
 import { Essay, EssayPrompt, getEssaysForStudent } from '../actions';
 import EssayEditor from './EssayEditor';
 import EssayCorrectionView from './EssayCorrectionView';
@@ -14,7 +15,7 @@ type Stats = {
     averages: { avg_final_grade: number; avg_c1: number; avg_c2: number; avg_c3: number; avg_c4: number; avg_c5: number; };
     pointToImprove: { name: string; average: number; };
     progression: { date: string; grade: number; }[];
-} | null;
+} | null; // <-- Tipo já permite nulo, o que está correto.
 
 type RankInfo = {
     rank: number | null;
@@ -29,7 +30,7 @@ type Props = {
   rankInfo: RankInfo;
 };
 
-// Novos Componentes Internos
+// Componentes internos (sem alteração)
 const WritingStreak = ({ days }: { days: number }) => (
     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex items-center gap-4">
         <div className={`text-4xl ${days > 0 ? 'animate-bounce text-orange-500' : 'text-gray-400'}`}>
@@ -124,10 +125,15 @@ export default function StudentDashboard({ initialEssays, prompts, statistics, s
           <ActionShortcuts />
       </div>
 
+      {/* CORREÇÃO APLICADA AQUI: Verifica se `statistics` não é nulo antes de tentar renderizar os componentes que dependem dele */}
       {statistics ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <StatisticsWidget stats={statistics} />
-              <ProgressionChart data={statistics.progression} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              <div className="lg:col-span-1">
+                <StatisticsWidget stats={statistics} />
+              </div>
+              <div className="lg:col-span-2">
+                <ProgressionChart data={statistics.progression} />
+              </div>
           </div>
       ) : (
           <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow mb-6">

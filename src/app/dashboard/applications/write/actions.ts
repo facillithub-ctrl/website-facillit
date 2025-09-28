@@ -185,7 +185,6 @@ export async function getStudentStatistics() {
     const pointToImprove = competencyAverages.sort((a, b) => a.average - b.average)[0];
     
     const progression = corrections.map(c => ({
-        date: new Date(c.essays!.submitted_at!).toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' }),
         grade: c.final_grade,
     }));
 

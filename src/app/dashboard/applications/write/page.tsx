@@ -2,8 +2,7 @@ import { redirect } from 'next/navigation';
 import createSupabaseServerClient from '@/utils/supabase/server';
 import StudentDashboard from './components/StudentDashboard';
 import TeacherDashboard from './components/TeacherDashboard';
-// CORREÇÃO APLICADA AQUI: caminho relativo para o alias
-import { getPrompts, getStudentStatistics, calculateWritingStreak, getUserStateRank } from '@/app/dashboard/applications/write/actions';
+import { getPrompts, getStudentStatistics, calculateWritingStreak, getUserStateRank } from './actions';
 
 export default async function WritePage() {
   const supabase = await createSupabaseServerClient();
@@ -23,9 +22,7 @@ export default async function WritePage() {
     redirect('/login');
   }
 
-  // Se o usuário for um aluno ou vestibulando
   if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
-    // Busca todos os dados de forma paralela para otimizar
     const [
         essaysResult, 
         promptsResult, 
@@ -55,7 +52,6 @@ export default async function WritePage() {
     );
   }
 
-  // Se o usuário for um professor ou gestor
   if (['professor', 'gestor'].includes(profile.user_category || '')) {
      const { data: pendingEssays } = await supabase
         .from('essays')
@@ -66,7 +62,6 @@ export default async function WritePage() {
     return <TeacherDashboard pendingEssays={pendingEssays || []} />;
   }
 
-  // Fallback para outros tipos de usuário
   return (
     <div>
         <h1 className="text-2xl font-bold">Módulo de Redação</h1>
