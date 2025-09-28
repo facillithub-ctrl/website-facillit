@@ -83,7 +83,8 @@ export default function RegisterPage() {
         }
 
         if (user) {
-            const { error: profileError } = await supabase.from('profiles').update({
+            const { error: profileError } = await supabase.from('profiles').insert({
+                id: user.id, // A coluna 'id' precisa ser preenchida com o id do usuário
                 full_name: fullData.fullName,
                 nickname: fullData.nickname,
                 birth_date: fullData.birthDate,
@@ -100,9 +101,10 @@ export default function RegisterPage() {
                 address_city: fullData.addressCity,
                 address_state: fullData.addressState,
                 category_details: fullData.categoryDetails,
-            }).eq('id', user.id);
+            });
 
             if (profileError) {
+                console.error('Erro ao inserir perfil:', profileError);
                 setError(`Erro ao salvar perfil: ${profileError.message}`);
             } else {
                 setStep('success');
@@ -138,8 +140,6 @@ export default function RegisterPage() {
 
 
 // --- Componentes de Cena ---
-// (O restante dos componentes de etapa permanece o mesmo)
-
 const WelcomeStep = ({ onNext }: { onNext: () => void }) => (
     <div className="text-center flex flex-col h-full justify-center">
         <h2 className="text-2xl font-bold mb-2">Olá! É a sua primeira vez por aqui?</h2>
@@ -312,7 +312,7 @@ const SuccessStep = () => {
     const router = useRouter();
 
     const goToLogin = () => {
-        router.refresh(); // Garante que qualquer cache de rota seja limpo
+        router.refresh(); 
         router.push('/login');
     };
 

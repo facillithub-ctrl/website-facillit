@@ -2,7 +2,6 @@
 import createSupabaseServerClient from '@/utils/supabase/server';
 
 const getWelcomeMessage = (pronoun: string | null | undefined): string => {
-  // ... (função continua igual)
   switch (pronoun) {
     case 'Ela/Dela':
       return 'Bem-vinda de volta ao seu Hub.';
@@ -16,7 +15,7 @@ const getWelcomeMessage = (pronoun: string | null | undefined): string => {
 };
 
 export default async function DashboardPage() {
-    // A chamada volta a ter 'await'
+    // A chamada precisa ter 'await'
     const supabase = await createSupabaseServerClient();
 
     const { data: { user } } = await supabase.auth.getUser();

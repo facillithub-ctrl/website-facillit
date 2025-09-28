@@ -9,7 +9,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // A chamada volta a ter 'await'
+  // A chamada precisa ter 'await'
   const supabase = await createSupabaseServerClient();
 
   const { data: { session } } = await supabase.auth.getSession();
