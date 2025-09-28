@@ -37,20 +37,15 @@ export default async function WritePage() {
 
   // If the user is a teacher or manager, fetch essays pending correction
   if (['professor', 'gestor'].includes(profile.user_category || '')) {
-     const { data: pendingEssaysFromDb } = await supabase
+     const { data: pendingEssays } = await supabase
         .from('essays')
         .select('id, title, submitted_at, profiles(full_name)')
         .eq('status', 'submitted')
         .order('submitted_at', { ascending: true });
 
-    // FIX: Transform the data to match the component's expected type.
-    // Supabase returns the joined 'profiles' as an array, so we take the first element.
-    const pendingEssays = pendingEssaysFromDb?.map(essay => ({
-      ...essay,
-      profiles: Array.isArray(essay.profiles) ? essay.profiles[0] : essay.profiles,
-    })) || [];
-
-    return <TeacherDashboard pendingEssays={pendingEssays} />;
+    // FIX: The incorrect data transformation (.map) was removed here.
+    // We now pass the data directly from Supabase to the component.
+    return <TeacherDashboard pendingEssays={pendingEssays || []} />;
   }
 
   // Fallback for other user types
