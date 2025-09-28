@@ -1,4 +1,5 @@
-import { createSupabaseServerClient } from '@/utils/supabase/server';
+// A importação volta a ser 'default' (sem as chaves {})
+import createSupabaseServerClient from '@/utils/supabase/server';
 
 const getWelcomeMessage = (pronoun: string | null | undefined): string => {
   // ... (função continua igual)
@@ -15,7 +16,8 @@ const getWelcomeMessage = (pronoun: string | null | undefined): string => {
 };
 
 export default async function DashboardPage() {
-    const supabase = createSupabaseServerClient(); // Não precisa mais de 'await' aqui
+    // A chamada volta a ter 'await'
+    const supabase = await createSupabaseServerClient();
 
     const { data: { user } } = await supabase.auth.getUser();
     

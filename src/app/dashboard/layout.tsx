@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
-// ATENÇÃO: Corrija a importação aqui também, adicionando as chaves {}
-import { createSupabaseServerClient } from '@/utils/supabase/server';
+// A importação volta a ser 'default' (sem as chaves {})
+import createSupabaseServerClient from '@/utils/supabase/server';
 import type { UserProfile } from './types';
 import DashboardClientLayout from './DashboardClientLayout';
 
@@ -9,7 +9,8 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = createSupabaseServerClient();
+  // A chamada volta a ter 'await'
+  const supabase = await createSupabaseServerClient();
 
   const { data: { session } } = await supabase.auth.getSession();
 
