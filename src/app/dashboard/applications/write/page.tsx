@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation';
 import createSupabaseServerClient from '@/utils/supabase/server';
 import StudentDashboard from './components/StudentDashboard';
 import TeacherDashboard from './components/TeacherDashboard';
-import { getPrompts, getStudentStatistics } from './actions';
+// CORREÇÃO APLICADA AQUI: caminho relativo para o alias
+import { getPrompts, getStudentStatistics, calculateWritingStreak, getUserStateRank } from '@/app/dashboard/applications/write/actions';
 
 export default async function WritePage() {
   const supabase = await createSupabaseServerClient();
@@ -24,15 +25,23 @@ export default async function WritePage() {
 
   // Se o usuário for um aluno ou vestibulando
   if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
-    // Busca os dados de forma paralela para otimizar o carregamento
-    const [essaysResult, promptsResult, statsResult] = await Promise.all([
+    // Busca todos os dados de forma paralela para otimizar
+    const [
+        essaysResult, 
+        promptsResult, 
+        statsResult, 
+        streakResult, 
+        rankResult
+    ] = await Promise.all([
       supabase
         .from('essays')
         .select('id, title, status, submitted_at')
         .eq('student_id', user.id)
         .order('submitted_at', { ascending: false, nullsFirst: true }),
       getPrompts(),
-      getStudentStatistics()
+      getStudentStatistics(),
+      calculateWritingStreak(),
+      getUserStateRank(),
     ]);
 
     return (
@@ -40,6 +49,8 @@ export default async function WritePage() {
         initialEssays={essaysResult.data || []} 
         prompts={promptsResult.data || []}
         statistics={statsResult.data}
+        streak={streakResult.data || 0}
+        rankInfo={rankResult.data}
       />
     );
   }

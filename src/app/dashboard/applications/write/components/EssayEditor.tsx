@@ -39,7 +39,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
   }
 
   return (
-    <div>
+    <div className="relative">
         <button onClick={onBack} className="mb-4 text-sm text-royal-blue font-bold">
             <i className="fas fa-arrow-left mr-2"></i> Voltar para minhas redações
         </button>
@@ -72,6 +72,16 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                 <button onClick={() => handleSave('submitted')} disabled={isPending} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 disabled:opacity-50">
                     {isPending ? 'Enviando...' : 'Enviar para Correção'}
                 </button>
+            </div>
+        </div>
+
+        {/* Bolha/Chat da IA */}
+        <div className="fixed bottom-10 right-10 z-20">
+            <button className="bg-royal-blue text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center text-2xl transition-transform hover:scale-110">
+                <i className="fas fa-magic"></i>
+            </button>
+            <div className="absolute bottom-full right-0 mb-2 w-48 bg-white dark:bg-gray-700 p-3 rounded-lg shadow-md">
+                <p className="text-sm text-dark-text dark:text-white">Precisa de ajuda para escrever?</p>
             </div>
         </div>
     </div>

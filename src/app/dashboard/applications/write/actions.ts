@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import createSupabaseServerClient from '@/utils/supabase/server';
 
-// Tipos para facilitar
+// Tipos para facilitar (sem alterações)
 export type Essay = {
   id: string;
   title: string;
@@ -34,7 +34,7 @@ export type EssayPrompt = {
     source: string;
 };
 
-// Ação para o aluno salvar ou submeter uma redação
+// Funções existentes (sem alterações)
 export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -56,10 +56,10 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
   if (error) return { error: `Erro ao salvar: ${error.message}` };
   
   revalidatePath('/dashboard/applications/write');
+  revalidatePath('/dashboard'); // Adicionado para atualizar o widget
   return { data };
 }
 
-// Ação para buscar os temas de redação
 export async function getPrompts(): Promise<{ data?: EssayPrompt[]; error?: string }> {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
@@ -69,7 +69,6 @@ export async function getPrompts(): Promise<{ data?: EssayPrompt[]; error?: stri
     return { data: data || [] };
 }
 
-// Ação para o professor buscar uma redação específica com o nome do aluno
 export async function getEssayDetails(essayId: string): Promise<{ data?: Essay; error?: string }> {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
@@ -81,7 +80,6 @@ export async function getEssayDetails(essayId: string): Promise<{ data?: Essay; 
     return { data };
 }
 
-// Ação para o professor salvar uma correção
 export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id' | 'corrector_id' | 'created_at'>) {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -106,7 +104,6 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
     return { data: correction };
 }
 
-// Ação para buscar a correção de uma redação
 export async function getCorrectionForEssay(essayId: string): Promise<{ data?: EssayCorrection & { profiles: { full_name: string | null } }; error?: string }> {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
@@ -120,9 +117,6 @@ export async function getCorrectionForEssay(essayId: string): Promise<{ data?: E
     return { data: data || undefined };
 }
 
-// ===================================================================
-// FUNÇÕES ATUALIZADAS E NOVAS
-// ===================================================================
 export async function getEssaysForStudent() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -139,7 +133,6 @@ export async function getEssaysForStudent() {
   return { data };
 }
 
-// NOVA AÇÃO para buscar todas as correções de um aluno
 export async function getCorrectionsForStudent(studentId: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -152,7 +145,6 @@ export async function getCorrectionsForStudent(studentId: string) {
   return { data };
 }
 
-// NOVA AÇÃO para calcular as estatísticas do aluno
 export async function getStudentStatistics() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -162,15 +154,11 @@ export async function getStudentStatistics() {
     const { data: corrections, error } = await getCorrectionsForStudent(user.id);
 
     if (error || !corrections || corrections.length === 0) {
-        return { data: null }; // Retorna nulo se não houver dados para calcular
+        return { data: null };
     }
 
     const totalCorrections = corrections.length;
-    const initialStats = {
-        sum_final_grade: 0,
-        sum_c1: 0, sum_c2: 0, sum_c3: 0, sum_c4: 0, sum_c5: 0,
-    };
-
+    const initialStats = { sum_final_grade: 0, sum_c1: 0, sum_c2: 0, sum_c3: 0, sum_c4: 0, sum_c5: 0 };
     const sums = corrections.reduce((acc, current) => {
         acc.sum_final_grade += current.final_grade;
         acc.sum_c1 += current.grade_c1;
@@ -183,18 +171,14 @@ export async function getStudentStatistics() {
 
     const averages = {
         avg_final_grade: sums.sum_final_grade / totalCorrections,
-        avg_c1: sums.sum_c1 / totalCorrections,
-        avg_c2: sums.sum_c2 / totalCorrections,
-        avg_c3: sums.sum_c3 / totalCorrections,
-        avg_c4: sums.sum_c4 / totalCorrections,
+        avg_c1: sums.sum_c1 / totalCorrections, avg_c2: sums.sum_c2 / totalCorrections,
+        avg_c3: sums.sum_c3 / totalCorrections, avg_c4: sums.sum_c4 / totalCorrections,
         avg_c5: sums.sum_c5 / totalCorrections,
     };
     
     const competencyAverages = [
-        { name: 'C1', average: averages.avg_c1 },
-        { name: 'C2', average: averages.avg_c2 },
-        { name: 'C3', average: averages.avg_c3 },
-        { name: 'C4', average: averages.avg_c4 },
+        { name: 'C1', average: averages.avg_c1 }, { name: 'C2', average: averages.avg_c2 },
+        { name: 'C3', average: averages.avg_c3 }, { name: 'C4', average: averages.avg_c4 },
         { name: 'C5', average: averages.avg_c5 },
     ];
 
@@ -205,12 +189,115 @@ export async function getStudentStatistics() {
         grade: c.final_grade,
     }));
 
-    return {
-        data: {
-            totalCorrections,
-            averages,
-            pointToImprove,
-            progression,
+    return { data: { totalCorrections, averages, pointToImprove, progression } };
+}
+
+// ===================================================================
+// NOVAS FUNÇÕES ADICIONADAS
+// ===================================================================
+
+/**
+ * Calcula os dias consecutivos que o aluno escreveu redações.
+ */
+export async function calculateWritingStreak() {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: 0 };
+
+    const { data, error } = await supabase
+        .from('essays')
+        .select('submitted_at')
+        .eq('student_id', user.id)
+        .not('submitted_at', 'is', null)
+        .order('submitted_at', { ascending: false });
+
+    if (error || !data || data.length === 0) return { data: 0 };
+
+    const dates = [...new Set(data.map(e => new Date(e.submitted_at!).toDateString()))]
+        .map(d => new Date(d));
+
+    if (dates.length === 0) return { data: 0 };
+    
+    let streak = 0;
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    const isToday = dates[0].toDateString() === today.toDateString();
+    const isYesterday = dates[0].toDateString() === yesterday.toDateString();
+
+    if(isToday || isYesterday) {
+        streak = 1;
+        for (let i = 1; i < dates.length; i++) {
+            const current = dates[i-1];
+            const previous = dates[i];
+            const diffTime = current.getTime() - previous.getTime();
+            const diffDays = diffTime / (1000 * 3600 * 24);
+            if (diffDays <= 1) {
+                streak++;
+            } else {
+                break;
+            }
         }
-    };
+    }
+    
+    return { data: streak };
+}
+
+
+/**
+ * Calcula o ranking do aluno em seu estado com base na média.
+ */
+export async function getUserStateRank() {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null };
+
+    // 1. Pega o estado do usuário atual
+    const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('address_state')
+        .eq('id', user.id)
+        .single();
+
+    if (profileError || !userProfile || !userProfile.address_state) {
+        return { data: { rank: null, state: null } };
+    }
+    
+    const userState = userProfile.address_state;
+
+    // 2. Chama uma função no DB para calcular o ranking (mais eficiente)
+    const { data, error } = await supabase.rpc('get_user_rank_in_state', {
+        p_user_id: user.id,
+        p_state: userState
+    });
+
+    if (error) {
+        console.error('Erro ao chamar RPC get_user_rank_in_state:', error);
+        return { data: { rank: null, state: userState } };
+    }
+
+    return { data: { rank: data, state: userState } };
+}
+
+
+/**
+ * Busca a última redação do usuário para o widget do dashboard.
+ */
+export async function getLatestEssayForDashboard() {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { data: null, error: 'Usuário não autenticado.' };
+
+  const { data, error } = await supabase
+    .from('essays')
+    .select('id, title, status')
+    .eq('student_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+  
+  if(error && error.code !== 'PGRST116') return { data: null, error: error.message }; // Ignora erro de "nenhuma linha"
+  return { data };
 }
