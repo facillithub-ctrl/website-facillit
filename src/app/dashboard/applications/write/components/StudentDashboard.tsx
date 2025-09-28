@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from 'react';
-import { Essay, EssayPrompt } from '../actions';
+// Adicione a nova função getEssaysForStudent ao import
+import { Essay, EssayPrompt, getEssaysForStudent } from '../actions';
 import EssayEditor from './EssayEditor';
+import EssayCorrectionView from './EssayCorrectionView';
 
 type Props = {
   initialEssays: Partial<Essay>[];
@@ -10,26 +12,44 @@ type Props = {
 };
 
 export default function StudentDashboard({ initialEssays, prompts }: Props) {
+  // O estado 'essays' agora será a fonte da verdade para a lista
   const [essays, setEssays] = useState(initialEssays);
-  const [selectedEssay, setSelectedEssay] = useState<Partial<Essay> | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  
+  const [view, setView] = useState<'list' | 'edit' | 'view_correction'>('list');
+  const [currentEssay, setCurrentEssay] = useState<Partial<Essay> | null>(null);
+
   const handleSelectEssay = (essay: Partial<Essay>) => {
-    setSelectedEssay(essay);
-    setIsCreating(false);
+    setCurrentEssay(essay);
+    if (essay.status === 'draft') {
+      setView('edit');
+    } else {
+      setView('view_correction');
+    }
   };
 
   const handleCreateNew = () => {
-    setSelectedEssay(null);
-    setIsCreating(true);
+    setCurrentEssay(null);
+    setView('edit');
+  };
+
+  // Função ATUALIZADA para recarregar os dados
+  const handleBackToList = async () => {
+    const result = await getEssaysForStudent();
+    if (result.data) {
+      setEssays(result.data); // Atualiza a lista com os dados mais recentes
+    }
+    setView('list');
+    setCurrentEssay(null);
+  };
+
+  if (view === 'edit') {
+    // Passamos a função atualizada para o editor
+    return <EssayEditor essay={currentEssay} prompts={prompts} onBack={handleBackToList} />;
   }
 
-  // Se um ensaio foi selecionado ou está sendo criado, mostre o editor
-  if (selectedEssay || isCreating) {
-    return <EssayEditor essay={selectedEssay} prompts={prompts} onBack={() => { setSelectedEssay(null); setIsCreating(false); }} />;
+  if (view === 'view_correction' && currentEssay?.id) {
+    return <EssayCorrectionView essayId={currentEssay.id} onBack={handleBackToList} />;
   }
-  
-  // Tela principal
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -46,13 +66,15 @@ export default function StudentDashboard({ initialEssays, prompts }: Props) {
               <div>
                 <p className="font-bold text-dark-text dark:text-white">{essay.title || "Redação sem título"}</p>
                 <p className="text-sm text-gray-500">
-                  {essay.submitted_at ? `Enviada em: ${new Date(essay.submitted_at).toLocaleDateString()}` : 'Rascunho'}
+                  {essay.status === 'draft' ? 'Rascunho' : `Enviada em: ${new Date(essay.submitted_at!).toLocaleDateString()}`}
                 </p>
               </div>
               <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
                   essay.status === 'corrected' ? 'bg-green-100 text-green-800' : 
                   essay.status === 'submitted' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
-              }`}>{essay.status}</span>
+              }`}>
+                {essay.status === 'corrected' ? 'Corrigida' : essay.status === 'submitted' ? 'Enviada' : 'Rascunho'}
+              </span>
             </li>
           )) : (
             <p className="p-4 text-center text-gray-500">Você ainda não tem nenhuma redação. Comece uma nova!</p>
