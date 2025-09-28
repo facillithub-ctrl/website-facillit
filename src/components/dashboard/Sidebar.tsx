@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { createClient } from '@/utils/supabase/client';
+import createClient from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import type { UserProfile } from '@/app/dashboard/layout'; // Importando o tipo
+import type { UserProfile } from '@/app/dashboard/layout';
 
 const navLinks = [
   { href: '/dashboard', icon: 'fa-home', label: 'Dashboard', roles: ['gestor', 'professor', 'aluno', 'vestibulando'] },
@@ -13,8 +13,7 @@ const navLinks = [
   { href: '/dashboard/day', icon: 'fa-calendar-check', label: 'Agenda & Tarefas', roles: ['gestor', 'professor', 'aluno', 'vestibulando'] },
   { href: '/dashboard/test', icon: 'fa-file-alt', label: 'Simulados', roles: ['aluno', 'vestibulando'] },
   { href: '/dashboard/connect', icon: 'fa-users', label: 'Comunidade', roles: ['gestor', 'professor', 'aluno', 'vestibulando'] },
-  { href: '/dashboard/admin', icon: 'fa-user-shield', label: 'Painel Admin', roles: ['gestor'] }, // Apenas para Gestores
-  // Adicione outros links aqui
+  { href: '/dashboard/admin', icon: 'fa-user-shield', label: 'Painel Admin', roles: ['gestor'] },
 ];
 
 export default function Sidebar({ userProfile }: { userProfile: UserProfile }) {
@@ -29,7 +28,11 @@ export default function Sidebar({ userProfile }: { userProfile: UserProfile }) {
   };
 
   return (
-    <aside className={`bg-dark-text text-white p-4 flex flex-col transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
+    <aside 
+      className={`text-white p-4 flex flex-col transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}
+      // Aplicando o mesmo gradiente da página Hero
+      style={{ background: 'linear-gradient(180deg, #1a237e, #2e14ed, #4a148c)' }}
+    >
       <div className="flex items-center gap-3 mb-8 h-8">
         <Image src="/assets/images/LOGO/png/logoazul.svg" alt="Facillit Hub Logo" width={32} height={32} className="brightness-0 invert flex-shrink-0" />
         <span className={`font-bold text-xl transition-opacity duration-200 ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}>Facillit</span>

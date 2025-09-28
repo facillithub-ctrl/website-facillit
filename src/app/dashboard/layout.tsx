@@ -2,8 +2,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import createSupabaseServerClient from '@/utils/supabase/server';
 
-import Sidebar from '@/components/dashboard/Sidebar
-import Topbar from '@/components/dashboard/Topbar
+import Sidebar from '@/components/dashboard/Sidebar';
+import Topbar from '@/components/dashboard/Topbar';
 
 // Definindo um tipo para o perfil do usuário para maior clareza
 export type UserProfile = {
@@ -29,7 +29,6 @@ export default async function DashboardLayout({
   }
 
   // 2. Buscar o perfil do usuário logado na tabela 'profiles'
-  //    (com base no seu schema e na página de registro)
   const { data: profile, error } = await supabase
     .from('profiles')
     .select(`id, full_name, user_category, avatar_url`)
@@ -37,8 +36,7 @@ export default async function DashboardLayout({
     .single();
 
   if (error || !profile) {
-    // Se não encontrar o perfil, pode ser um erro ou um estado inconsistente.
-    // Deslogar o usuário é uma opção segura.
+    // Se não encontrar o perfil, deslogar o usuário é uma opção segura.
     redirect('/login');
   }
 
@@ -50,7 +48,7 @@ export default async function DashboardLayout({
   };
 
   return (
-    <div className="flex h-screen bg-background-light">
+    <div className="flex h-screen bg-background-light dark:bg-gray-900">
       <Sidebar userProfile={userProfile} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar userProfile={userProfile} />

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import createSupabaseClient from '@/utils/supabase/client'; // ATUALIZADO
+import createSupabaseClient from '@/utils/supabase/client';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createSupabaseClient(); // ATUALIZADO
+  const supabase = createSupabaseClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,12 +28,11 @@ export default function LoginPage() {
       setError('E-mail ou senha inválidos. Por favor, tente novamente.');
       setIsLoading(false);
     } else {
-      router.push('/src/app/dashboard'); 
+      router.push('/dashboard'); 
     }
   };
 
   return (
-    // ... O resto do seu JSX continua exatamente o mesmo
     <div className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center" style={{ backgroundImage: "linear-gradient(135deg, #2e14ed 0%, #0c0082 100%)" }}>
       <Link href="/" className="fixed top-6 left-6 z-10 flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg border border-white/20 backdrop-blur-sm hover:bg-white/20 transition-colors">
         <i className="fas fa-arrow-left"></i> Voltar
