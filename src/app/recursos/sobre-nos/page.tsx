@@ -38,7 +38,7 @@ export default function SobreNosPage() {
                             <p className="text-text-muted">O foco não está nos módulos individuais, mas na sinergia criada pela sua interconexão, transformando dados em insights práticos que ajudam o usuário a alcançar seus objetivos de forma mais eficaz.</p>
                         </div>
                         <div className="flex justify-center">
-                           <Image src="/assets/images/LOGO/png/isologo.png" alt="Ecossistema Facillit Hub" width={400} height={400} />
+                           <Image src="/assets/images/marcas/ecossistema.png" alt="Ecossistema Facillit Hub" width={400} height={400} />
                         </div>
                     </div>
                 </section>
@@ -55,15 +55,37 @@ export default function SobreNosPage() {
                 </section>
                 
                 <section className="py-20 lg:py-24 bg-background-light">
-                    <div className="container mx-auto px-6 text-center">
-                        <h2 className="text-3xl md:text-4xl font-bold text-dark-text mb-12">Nossa Equipe</h2>
-                        <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-                           <TeamMember name="Carlos Silva" role="CEO & Fundador" img="https://i.pravatar.cc/150?img=1" />
-                           <TeamMember name="Ana Oliveira" role="CTO" img="https://i.pravatar.cc/150?img=2" />
-                           <TeamMember name="Pedro Martins" role="Head de Produto" img="https://i.pravatar.cc/150?img=3" />
-                           <TeamMember name="Juliana Costa" role="Head de Design" img="https://i.pravatar.cc/150?img=4" />
+                <div className="container mx-auto px-6 text-center">
+                    <h2 className="text-3xl md:text-4xl font-bold text-dark-text mb-12">
+                    Nossa Equipe
+                    </h2>
+
+                    <div className="grid sm:grid-cols-2 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <div className="text-center">
+                        <div className="w-32 h-32 md:w-40 md:h-40 mx-auto mb-4">
+                        <img
+                            src="/assets/images/time/pedro.JPG"
+                            alt="Pedro Maia"
+                            className="w-full h-full object-cover rounded-full shadow-md"
+                        />
                         </div>
+                        <h3 className="text-lg font-semibold">Pedro Maia</h3>
+                        <p className="text-gray-500">CEO & Fundador</p>
                     </div>
+
+                    <div className="text-center">
+                        <div className="w-32 h-32 md:w-40 md:h-40 mx-auto mb-4">
+                        <img
+                            src="/assets/images/time/igor.jpg"
+                            alt="Igor Santos"
+                            className="w-full h-full object-cover rounded-full shadow-md"
+                        />
+                        </div>
+                        <h3 className="text-lg font-semibold">Igor Santos</h3>
+                        <p className="text-gray-500">Head de Produto</p>
+                    </div>
+                    </div>
+                </div>
                 </section>
             </main>
             <Footer />
