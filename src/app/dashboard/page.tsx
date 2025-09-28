@@ -1,7 +1,7 @@
-import { cookies } from 'next/headers';
 import createSupabaseServerClient from '@/utils/supabase/server';
 
 const getWelcomeMessage = (pronoun: string | null | undefined): string => {
+  // ... (função continua igual)
   switch (pronoun) {
     case 'Ela/Dela':
       return 'Bem-vinda de volta ao seu Hub.';
@@ -15,10 +15,10 @@ const getWelcomeMessage = (pronoun: string | null | undefined): string => {
 };
 
 export default async function DashboardPage() {
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient(); // <-- CORREÇÃO: Adicionado 'await'
 
     const { data: { user } } = await supabase.auth.getUser();
-
+    
     const { data: profile } = await supabase
       .from('profiles')
       .select('full_name, pronoun')

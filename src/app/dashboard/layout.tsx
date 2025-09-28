@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import createSupabaseServerClient from '@/utils/supabase/server';
 import type { UserProfile } from './types';
@@ -9,14 +8,14 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient(); // <-- CORREÇÃO: Adicionado 'await'
 
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) {
     redirect('/login');
   }
-
+  
   const { data: profile, error } = await supabase
     .from('profiles')
     .select(`id, full_name, user_category, avatar_url, pronoun`)
@@ -24,7 +23,6 @@ export default async function DashboardLayout({
     .single();
 
   if (error || !profile) {
-    // Para segurança, se o perfil não for encontrado, deslogue o usuário
     redirect('/login');
   }
 
