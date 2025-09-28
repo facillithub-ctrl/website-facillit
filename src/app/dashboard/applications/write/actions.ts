@@ -35,7 +35,7 @@ export type EssayPrompt = {
     source: string;
 };
 
-// Funções existentes (com a atualização no saveOrUpdateEssay)
+// ATUALIZADO: para incluir 'consent_to_ai_training'
 export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -58,10 +58,11 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
   if (error) return { error: `Erro ao salvar: ${error.message}` };
   
   revalidatePath('/dashboard/applications/write');
-  revalidatePath('/dashboard'); // Adicionado para atualizar o widget
+  revalidatePath('/dashboard'); 
   return { data };
 }
 
+// ... o resto do arquivo permanece o mesmo
 export async function getPrompts(): Promise<{ data?: EssayPrompt[]; error?: string }> {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
@@ -195,13 +196,6 @@ export async function getStudentStatistics() {
     return { data: { totalCorrections, averages, pointToImprove, progression } };
 }
 
-// ===================================================================
-// NOVAS FUNÇÕES ADICIONADAS
-// ===================================================================
-
-/**
- * Calcula os dias consecutivos que o aluno escreveu redações.
- */
 export async function calculateWritingStreak() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -247,16 +241,10 @@ export async function calculateWritingStreak() {
     return { data: streak };
 }
 
-
-/**
- * Calcula o ranking do aluno em seu estado com base na média.
- */
 export async function getUserStateRank() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null };
-
-    // 1. Pega o estado do usuário atual
     const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
         .select('address_state')
@@ -269,7 +257,6 @@ export async function getUserStateRank() {
     
     const userState = userProfile.address_state;
 
-    // 2. Chama uma função no DB para calcular o ranking (mais eficiente)
     const { data, error } = await supabase.rpc('get_user_rank_in_state', {
         p_user_id: user.id,
         p_state: userState
@@ -283,10 +270,6 @@ export async function getUserStateRank() {
     return { data: { rank: data, state: userState } };
 }
 
-
-/**
- * Busca a última redação do usuário para o widget do dashboard.
- */
 export async function getLatestEssayForDashboard() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -301,6 +284,6 @@ export async function getLatestEssayForDashboard() {
     .limit(1)
     .single();
   
-  if(error && error.code !== 'PGRST116') return { data: null, error: error.message }; // Ignora erro de "nenhuma linha"
+  if(error && error.code !== 'PGRST116') return { data: null, error: error.message };
   return { data };
 }

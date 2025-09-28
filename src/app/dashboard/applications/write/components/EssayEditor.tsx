@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { Essay, EssayPrompt, saveOrUpdateEssay } from '../actions';
 import PromptSelector from './PromptSelector';
+import { useToast } from '@/contexts/ToastContext'; // NOVO: Importar o hook
 
 type Props = {
   essay: Partial<Essay> | null;
@@ -12,17 +14,18 @@ type Props = {
 
 export default function EssayEditor({ essay, prompts, onBack }: Props) {
   const [currentEssay, setCurrentEssay] = useState(essay || {});
-  const [consent, setConsent] = useState(false); // Novo estado para o consentimento
+  const [consent, setConsent] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const { addToast } = useToast(); // NOVO: Inicializar o hook
   const [selectedPrompt, setSelectedPrompt] = useState<EssayPrompt | null>(
     prompts.find(p => p.id === essay?.prompt_id) || null
   );
 
   const handleSave = (status: 'draft' | 'submitted') => {
-    // Validação do consentimento ao enviar para correção
     if (status === 'submitted' && !consent) {
-        alert('Você precisa autorizar o uso da redação para fins de melhoria da IA antes de enviar.');
-        return;
+      // ATUALIZADO: Usando a nova notificação de erro
+      addToast({ type: 'error', message: 'Você precisa concordar com os termos antes de enviar.' });
+      return;
     }
 
     startTransition(async () => {
@@ -30,15 +33,17 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
         ...currentEssay,
         status,
         prompt_id: selectedPrompt?.id,
-        // Inclui o novo campo
         consent_to_ai_training: consent,
       };
       const result = await saveOrUpdateEssay(updatedData);
+      
+      // ATUALIZADO: Usando as novas notificações
       if (!result.error) {
-        alert(`Redação ${status === 'draft' ? 'salva' : 'enviada'} com sucesso!`);
+        const successMessage = status === 'draft' ? 'Rascunho salvo com sucesso!' : 'Redação enviada com sucesso!';
+        addToast({ type: 'success', message: successMessage });
         onBack();
       } else {
-        alert(`Erro: ${result.error}`);
+        addToast({ type: 'error', message: `Erro: ${result.error}` });
       }
     });
   };
@@ -47,6 +52,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
     return <PromptSelector prompts={prompts} onSelect={setSelectedPrompt} onBack={onBack} />;
   }
 
+  // O resto do JSX do componente permanece o mesmo...
   return (
     <div className="relative">
         <button onClick={onBack} className="mb-4 text-sm text-royal-blue font-bold">
@@ -74,7 +80,6 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                 className="w-full h-96 p-4 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-royal-blue"
             />
 
-            {/* Checkbox de Consentimento */}
             <div className="mt-6">
                 <label className="flex items-center gap-3 cursor-pointer">
                     <input 
@@ -84,7 +89,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                         className="h-5 w-5 rounded border-gray-300 text-royal-blue focus:ring-royal-blue"
                     />
                     <span className="text-sm text-gray-600 dark:text-gray-300">
-                        Autorizo o uso anônimo desta redação para o treinamento e aprimoramento da inteligência artificial do Facillit Hub.
+                        Li e concordo com os <Link href="/recursos/uso" target="_blank" className="underline font-bold">Termos de Uso</Link>. Autorizo o uso anônimo desta redação para o treinamento da inteligência artificial, fins publicitários e demais atividades do Facillit Hub.
                     </span>
                 </label>
             </div>

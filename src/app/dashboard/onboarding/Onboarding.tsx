@@ -23,10 +23,13 @@ const modulesData = [
 export default function Onboarding({ userProfile }: { userProfile: UserProfile }) {
     const supabase = createClient();
     const router = useRouter();
-    const [selectedModules, setSelectedModules] = useState<string[]>([]);
+    const [selectedModules, setSelectedModules] = useState<string[]>(['write']); // Módulo 'write' pré-selecionado
     const [isLoading, setIsLoading] = useState(false);
 
     const toggleModule = (slug: string) => {
+        // Permite apenas a seleção/deseleção do módulo 'write'
+        if (slug !== 'write') return;
+        
         setSelectedModules(prev =>
             prev.includes(slug) ? prev.filter(m => m !== slug) : [...prev, slug]
         );
@@ -46,8 +49,6 @@ export default function Onboarding({ userProfile }: { userProfile: UserProfile }
                 .eq('id', user.id);
 
             if (!error) {
-                // CORREÇÃO DEFINITIVA: Força um recarregamento da página para o dashboard.
-                // Isso garante que o layout do servidor busque os novos dados e exiba a interface correta.
                 window.location.assign('/dashboard');
             } else {
                 console.error("Erro ao salvar módulos:", error);
@@ -66,24 +67,38 @@ export default function Onboarding({ userProfile }: { userProfile: UserProfile }
         <div className="min-h-screen bg-background-light flex items-center justify-center p-4">
             <div className="w-full max-w-2xl bg-white p-8 rounded-xl shadow-lg">
                 <h1 className="text-3xl font-bold text-dark-text mb-2">Bem-vindo(a) ao Facillit Hub!</h1>
-                <p className="text-text-muted mb-8">Personalize sua experiência. Selecione os módulos que você mais usará no seu dia a dia.</p>
+                <p className="text-text-muted mb-8">Personalize sua experiência. Comece com nosso módulo de Redação. Os outros serão liberados em breve!</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-                    {availableModules.map(module => (
-                        <button
-                            key={module.slug}
-                            onClick={() => toggleModule(module.slug)}
-                            className={`p-4 border rounded-lg text-center transition-all duration-200
-                                ${selectedModules.includes(module.slug) ? 'bg-royal-blue text-white border-royal-blue ring-2 ring-blue-300' : 'hover:border-royal-blue hover:bg-blue-50'}`}
-                        >
-                            <i className={`fas ${module.icon} text-3xl mb-2 ${selectedModules.includes(module.slug) ? 'text-white' : 'text-royal-blue'}`}></i>
-                            <h3 className="font-bold">{module.title}</h3>
-                            <p className="text-xs opacity-80">{module.description}</p>
-                        </button>
-                    ))}
+                    {availableModules.map(module => {
+                        const isWriteModule = module.slug === 'write';
+                        const isSelected = selectedModules.includes(module.slug);
+
+                        return (
+                            <button
+                                key={module.slug}
+                                onClick={() => toggleModule(module.slug)}
+                                disabled={!isWriteModule}
+                                className={`relative p-4 border rounded-lg text-center transition-all duration-200
+                                    ${isSelected ? 'bg-royal-blue text-white border-royal-blue ring-2 ring-blue-300' 
+                                                : isWriteModule ? 'hover:border-royal-blue hover:bg-blue-50' 
+                                                                : 'bg-gray-100 opacity-60 cursor-not-allowed'}
+                                `}
+                            >
+                                <i className={`fas ${module.icon} text-3xl mb-2 ${isSelected ? 'text-white' : isWriteModule ? 'text-royal-blue' : 'text-gray-400'}`}></i>
+                                <h3 className="font-bold">{module.title}</h3>
+                                <p className="text-xs opacity-80">{module.description}</p>
+                                {!isWriteModule && (
+                                    <span className="absolute top-2 right-2 bg-gray-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                        Em Breve
+                                    </span>
+                                )}
+                            </button>
+                        )
+                    })}
                 </div>
                 <button
                     onClick={handleContinue}
-                    disabled={isLoading || selectedModules.length === 0}
+                    disabled={isLoading || !selectedModules.includes('write')}
                     className="w-full py-3 bg-royal-blue text-white font-bold rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed hover:bg-opacity-90"
                 >
                     {isLoading ? 'Salvando...' : 'Continuar para o Dashboard'}

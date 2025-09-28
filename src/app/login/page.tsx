@@ -60,7 +60,13 @@ export default function LoginPage() {
                   <input type="email" name="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 border rounded-lg" />
                 </div>
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-dark-text mb-1">Senha</label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label htmlFor="password" className="block text-sm font-medium text-dark-text">Senha</label>
+                    {/* ATUALIZADO: Link "Esqueci minha senha" */}
+                    <Link href="#" className="text-xs text-royal-blue hover:underline">
+                      Esqueci minha senha
+                    </Link>
+                  </div>
                   <input type="password" name="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full p-3 border rounded-lg" />
                 </div>
                 {error && (<p className="text-red-500 text-sm text-center">{error}</p>)}
