@@ -6,13 +6,21 @@ import createClient from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import type { UserProfile } from '@/app/dashboard/types';
 
-const navLinks = [
-  { href: '/dashboard', icon: 'fa-home', label: 'Dashboard', roles: ['gestor', 'professor', 'aluno', 'vestibulando'] },
-  { href: '/dashboard/edu', icon: 'fa-graduation-cap', label: 'Facillit Edu', roles: ['gestor', 'professor', 'aluno'] },
-  { href: '/dashboard/day', icon: 'fa-calendar-check', label: 'Agenda & Tarefas', roles: ['gestor', 'professor', 'aluno', 'vestibulando'] },
-  { href: '/dashboard/test', icon: 'fa-file-alt', label: 'Simulados', roles: ['aluno', 'vestibulando'] },
-  { href: '/dashboard/connect', icon: 'fa-users', label: 'Comunidade', roles: ['gestor', 'professor', 'aluno', 'vestibulando'] },
-  { href: '/dashboard/admin', icon: 'fa-user-shield', label: 'Painel Admin', roles: ['gestor'] },
+const allNavLinks = [
+  { href: '/dashboard', slug: 'dashboard', icon: 'fa-home', label: 'Dashboard' },
+  { href: '/dashboard/edu', slug: 'edu', icon: 'fa-graduation-cap', label: 'Facillit Edu' },
+  { href: '/dashboard/games', slug: 'games', icon: 'fa-gamepad', label: 'Facillit Games' },
+  { href: '/dashboard/write', slug: 'write', icon: 'fa-pencil-alt', label: 'Facillit Write' },
+  { href: '/dashboard/day', slug: 'day', icon: 'fa-calendar-check', label: 'Facillit Day' },
+  { href: '/dashboard/play', slug: 'play', icon: 'fa-play-circle', label: 'Facillit Play' },
+  { href: '/dashboard/library', slug: 'library', icon: 'fa-book-open', label: 'Facillit Library' },
+  { href: '/dashboard/connect', slug: 'connect', icon: 'fa-users', label: 'Facillit Connect' },
+  { href: '/dashboard/coach-career', slug: 'coach-career', icon: 'fa-bullseye', label: 'Facillit Coach' },
+  { href: '/dashboard/lab', slug: 'lab', icon: 'fa-flask', label: 'Facillit Lab' },
+  { href: '/dashboard/test', slug: 'test', icon: 'fa-file-alt', label: 'Facillit Test' },
+  { href: '/dashboard/task', slug: 'task', icon: 'fa-tasks', label: 'Facillit Task' },
+  { href: '/dashboard/create', slug: 'create', icon: 'fa-lightbulb', label: 'Facillit Create' },
+  { href: '/dashboard/admin', slug: 'admin', icon: 'fa-user-shield', label: 'Painel Admin' }, // Específico para gestor
 ];
 
 type SidebarProps = {
@@ -33,9 +41,13 @@ export default function Sidebar({ userProfile, isMobileOpen, setIsMobileOpen, is
     router.refresh();
   };
 
+  // Filtra os links para mostrar apenas o Dashboard + os módulos ativos no perfil do usuário
+  const activeNavLinks = allNavLinks.filter(link => 
+    link.slug === 'dashboard' || userProfile.active_modules?.includes(link.slug)
+  );
+
   return (
     <>
-      {/* Overlay para fechar o menu em telas pequenas */}
       <div
         onClick={() => setIsMobileOpen(false)}
         className={`fixed inset-0 bg-black/50 z-30 lg:hidden transition-opacity ${
@@ -45,7 +57,7 @@ export default function Sidebar({ userProfile, isMobileOpen, setIsMobileOpen, is
 
       <aside 
         className={`fixed lg:relative top-0 left-0 h-full text-white p-4 flex flex-col z-40 transition-all duration-300
-          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
+          ${isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'}
           lg:translate-x-0 ${isDesktopCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
         style={{ background: 'linear-gradient(180deg, #1a237e, #2e14ed, #4a148c)' }}
       >
@@ -61,9 +73,7 @@ export default function Sidebar({ userProfile, isMobileOpen, setIsMobileOpen, is
         
         <nav className="flex-1">
           <ul>
-            {navLinks
-              .filter(link => userProfile.userCategory && link.roles.includes(userProfile.userCategory))
-              .map((link) => (
+            {activeNavLinks.map((link) => (
               <li key={link.href}>
                 <Link href={link.href} title={link.label} className={`flex items-center gap-4 p-3 rounded-lg hover:bg-white/10 transition-colors ${isDesktopCollapsed ? 'lg:justify-center' : ''}`}>
                   <i className={`fas ${link.icon} w-6 text-center text-lg`}></i>
@@ -75,7 +85,6 @@ export default function Sidebar({ userProfile, isMobileOpen, setIsMobileOpen, is
         </nav>
         
         <div className="pt-4 border-t border-white/10">
-            {/* Botão de Recolher/Expandir para Desktop */}
             <button 
                 onClick={() => setIsDesktopCollapsed(!isDesktopCollapsed)} 
                 title={isDesktopCollapsed ? 'Expandir' : 'Recolher'} 
@@ -84,7 +93,6 @@ export default function Sidebar({ userProfile, isMobileOpen, setIsMobileOpen, is
                 <i className={`fas ${isDesktopCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'} w-6 text-center`}></i>
                 <span className={isDesktopCollapsed ? 'hidden' : ''}>Recolher</span>
             </button>
-
             <button onClick={handleLogout} title="Sair" className={`flex items-center gap-4 p-3 rounded-lg hover:bg-white/10 transition-colors w-full text-left mt-2 ${isDesktopCollapsed ? 'lg:justify-center' : ''}`}>
                 <i className="fas fa-sign-out-alt w-6 text-center"></i>
                 <span className={isDesktopCollapsed ? 'hidden' : ''}>Sair</span>

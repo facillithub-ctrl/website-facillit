@@ -7,18 +7,18 @@ import type { UserProfile } from '@/app/dashboard/types';
 import { useTheme } from '@/components/ThemeProvider';
 
 const modulesData = [
-  { slug: 'facillit-edu', icon: 'fa-graduation-cap', title: 'Edu' },
-  { slug: 'facillit-games', icon: 'fa-gamepad', title: 'Games' },
-  { slug: 'facillit-write', icon: 'fa-pencil-alt', title: 'Write' },
-  { slug: 'facillit-day', icon: 'fa-calendar-check', title: 'Day' },
-  { slug: 'facillit-play', icon: 'fa-play-circle', title: 'Play' },
-  { slug: 'facillit-library', icon: 'fa-book-open', title: 'Library' },
-  { slug: 'facillit-connect', icon: 'fa-users', title: 'Connect' },
-  { slug: 'facillit-coach-career', icon: 'fa-bullseye', title: 'Coach' },
-  { slug: 'facillit-lab', icon: 'fa-flask', title: 'Lab' },
-  { slug: 'facillit-test', icon: 'fa-file-alt', title: 'Test' },
-  { slug: 'facillit-task', icon: 'fa-tasks', title: 'Task' },
-  { slug: 'facillit-create', icon: 'fa-lightbulb', title: 'Create' },
+  { slug: 'edu', icon: 'fa-graduation-cap', title: 'Edu' },
+  { slug: 'games', icon: 'fa-gamepad', title: 'Games' },
+  { slug: 'write', icon: 'fa-pencil-alt', title: 'Write' },
+  { slug: 'day', icon: 'fa-calendar-check', title: 'Day' },
+  { slug: 'play', icon: 'fa-play-circle', title: 'Play' },
+  { slug: 'library', icon: 'fa-book-open', title: 'Library' },
+  { slug: 'connect', icon: 'fa-users', title: 'Connect' },
+  { slug: 'coach-career', icon: 'fa-bullseye', title: 'Coach' },
+  { slug: 'lab', icon: 'fa-flask', title: 'Lab' },
+  { slug: 'test', icon: 'fa-file-alt', title: 'Test' },
+  { slug: 'task', icon: 'fa-tasks', title: 'Task' },
+  { slug: 'create', icon: 'fa-lightbulb', title: 'Create' },
 ];
 
 type TopbarProps = {
@@ -77,16 +77,30 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
             {isGridOpen && (
                 <div className="absolute top-full right-0 mt-4 w-[90vw] max-w-sm md:w-80 bg-white rounded-xl shadow-xl border z-10 p-4 dark:bg-gray-700 dark:border-gray-600">
                     <div className="grid grid-cols-3 gap-4">
-                        {modulesData.map((module) => (
-                            <Link 
-                                key={module.slug} 
-                                href={`/modulos/${module.slug}`}
-                                className="flex flex-col items-center justify-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                            >
-                                <i className={`fas ${module.icon} text-2xl text-royal-blue mb-2`}></i>
-                                <span className="text-xs font-medium text-center text-dark-text dark:text-white">{module.title}</span>
-                            </Link>
-                        ))}
+                        {modulesData.map((module) => {
+                            const isActive = userProfile.active_modules?.includes(module.slug);
+                            const content = (
+                                <>
+                                    <i className={`fas ${module.icon} text-2xl mb-2 ${isActive ? 'text-royal-blue' : 'text-gray-400'}`}></i>
+                                    <span className={`text-xs font-medium text-center ${isActive ? 'text-dark-text dark:text-white' : 'text-gray-500'}`}>{module.title}</span>
+                                    {!isActive && <i className="fas fa-lock text-xs text-gray-400 absolute top-2 right-2"></i>}
+                                </>
+                            );
+
+                            if (isActive) {
+                                return (
+                                    <Link key={module.slug} href={`/modulos/${module.slug}`} className="relative flex flex-col items-center justify-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                        {content}
+                                    </Link>
+                                );
+                            } else {
+                                return (
+                                    <div key={module.slug} className="relative flex flex-col items-center justify-center p-3 rounded-lg bg-gray-50 dark:bg-gray-800 cursor-not-allowed opacity-70" title={`${module.title} (inativo)`}>
+                                        {content}
+                                    </div>
+                                );
+                            }
+                        })}
                     </div>
                 </div>
             )}
