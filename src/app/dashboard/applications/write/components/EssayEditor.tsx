@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { Essay, EssayPrompt, saveOrUpdateEssay } from '../actions';
 import PromptSelector from './PromptSelector';
-import { useToast } from '@/contexts/ToastContext'; // NOVO: Importar o hook
+// import { useToast } from '@/contexts/ToastContext'; // 1. REMOVA esta linha
 
 type Props = {
   essay: Partial<Essay> | null;
@@ -16,15 +16,15 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
   const [currentEssay, setCurrentEssay] = useState(essay || {});
   const [consent, setConsent] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const { addToast } = useToast(); // NOVO: Inicializar o hook
+  // const { addToast } = useToast(); // 2. REMOVA esta linha
   const [selectedPrompt, setSelectedPrompt] = useState<EssayPrompt | null>(
     prompts.find(p => p.id === essay?.prompt_id) || null
   );
 
   const handleSave = (status: 'draft' | 'submitted') => {
     if (status === 'submitted' && !consent) {
-      // ATUALIZADO: Usando a nova notificação de erro
-      addToast({ type: 'error', message: 'Você precisa concordar com os termos antes de enviar.' });
+      // 3. SUBSTITUA a notificação por um alert()
+      alert('Você precisa concordar com os termos antes de enviar.');
       return;
     }
 
@@ -37,13 +37,13 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
       };
       const result = await saveOrUpdateEssay(updatedData);
       
-      // ATUALIZADO: Usando as novas notificações
+      // 4. SUBSTITUA as notificações por alerts()
       if (!result.error) {
         const successMessage = status === 'draft' ? 'Rascunho salvo com sucesso!' : 'Redação enviada com sucesso!';
-        addToast({ type: 'success', message: successMessage });
+        alert(successMessage);
         onBack();
       } else {
-        addToast({ type: 'error', message: `Erro: ${result.error}` });
+        alert(`Erro: ${result.error}`);
       }
     });
   };
