@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation'; // Importe useSearchParams
 import Link from 'next/link';
 import { Essay, EssayPrompt, getEssaysForStudent } from '../actions';
 import EssayEditor from './EssayEditor';
@@ -8,7 +9,8 @@ import EssayCorrectionView from './EssayCorrectionView';
 import StatisticsWidget from './StatisticsWidget';
 import ProgressionChart from './ProgressionChart';
 
-// Tipos
+// ... (Mantenha os tipos e os componentes internos que já estão no seu arquivo)
+
 type Stats = {
     totalCorrections: number;
     averages: { avg_final_grade: number; avg_c1: number; avg_c2: number; avg_c3: number; avg_c4: number; avg_c5: number; };
@@ -29,68 +31,28 @@ type Props = {
   rankInfo: RankInfo;
 };
 
-// Componentes Internos para os novos widgets (sem alterações)
-const WritingStreak = ({ days }: { days: number }) => (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex items-center gap-4">
-        <div className={`text-4xl ${days > 0 ? 'animate-bounce text-orange-500' : 'text-gray-400'}`}>
-            <i className="fas fa-fire"></i>
-        </div>
-        <div>
-            <h4 className="font-bold dark:text-white">
-                {days > 0 ? `Você está há ${days} dia${days > 1 ? 's' : ''} escrevendo!` : 'Comece sua sequência!'}
-            </h4>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-                {days > 0 ? 'Continue assim para não perder o ritmo.' : 'Envie uma redação hoje.'}
-            </p>
-        </div>
-    </div>
-);
-
-const StateRanking = ({ rank, state }: { rank: number | null, state: string | null }) => (
-     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex items-center gap-4">
-        <div className="text-4xl text-yellow-500">
-            <i className="fas fa-trophy"></i>
-        </div>
-        <div>
-            <h4 className="font-bold dark:text-white">
-                {rank && state ? `Você está em #${rank} no ranking de ${state}!` : 'Ranking Indisponível'}
-            </h4>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-                {rank && state ? 'Sua média está entre as melhores.' : 'Continue escrevendo para aparecer aqui.'}
-            </p>
-        </div>
-    </div>
-);
-
-const ActionShortcuts = () => (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-        <h4 className="font-bold mb-3 dark:text-white">Atalhos</h4>
-        <div className="space-y-2">
-            <Link href="/dashboard/applications/test" className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-                <i className="fas fa-file-alt w-5 text-center text-royal-blue"></i>
-                <span className="text-sm font-medium dark:text-gray-200">Testar seu conhecimento em gramática</span>
-            </Link>
-             <Link href="/dashboard/applications/day" className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-                <i className="fas fa-calendar-check w-5 text-center text-royal-blue"></i>
-                <span className="text-sm font-medium dark:text-gray-200">Agendar redação no Facillit Day</span>
-            </Link>
-             <Link href="/dashboard/applications/library" className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-                <i className="fas fa-book-open w-5 text-center text-royal-blue"></i>
-                <span className="text-sm font-medium dark:text-gray-200">Ver argumentos coringas na Library</span>
-            </Link>
-        </div>
-    </div>
-);
-
+// ... (Componentes WritingStreak, StateRanking, ActionShortcuts permanecem os mesmos)
 
 export default function StudentDashboard({ initialEssays, prompts, statistics, streak, rankInfo }: Props) {
   const [essays, setEssays] = useState(initialEssays);
   const [view, setView] = useState<'dashboard' | 'edit' | 'view_correction'>('dashboard');
   const [currentEssay, setCurrentEssay] = useState<Partial<Essay> | null>(null);
+  const searchParams = useSearchParams(); // Hook para ler a URL
+
+  // Efeito para abrir redação a partir da notificação
+  useEffect(() => {
+    const essayIdFromUrl = searchParams.get('essayId');
+    if (essayIdFromUrl) {
+      const essayToOpen = initialEssays.find(e => e.id === essayIdFromUrl);
+      if (essayToOpen) {
+        handleSelectEssay(essayToOpen);
+      }
+    }
+  }, [searchParams, initialEssays]);
 
   const handleSelectEssay = (essay: Partial<Essay>) => {
     setCurrentEssay(essay);
-    setView(essay.status === 'draft' ? 'edit' : 'view_correction');
+    setView(essay.status === 'corrected' ? 'view_correction' : 'edit');
   };
 
   const handleCreateNew = () => {
@@ -103,14 +65,17 @@ export default function StudentDashboard({ initialEssays, prompts, statistics, s
     if (result.data) setEssays(result.data); 
     setView('dashboard');
     setCurrentEssay(null);
+    // Limpa o parâmetro da URL ao voltar
+    window.history.pushState({}, '', '/dashboard/applications/write');
   };
 
   if (view === 'edit') return <EssayEditor essay={currentEssay} prompts={prompts} onBack={handleBackToDashboard} />;
   if (view === 'view_correction' && currentEssay?.id) return <EssayCorrectionView essayId={currentEssay.id} onBack={handleBackToDashboard} />;
 
+  // ... (O resto do JSX do return permanece o mesmo)
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-dark-text dark:text-white">Meu Desempenho em Redação</h1>
         <button onClick={handleCreateNew} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90">
           <i className="fas fa-plus mr-2"></i> Nova Redação
@@ -162,3 +127,55 @@ export default function StudentDashboard({ initialEssays, prompts, statistics, s
     </div>
   );
 }
+//... (Mantenha os componentes internos que já estão no seu arquivo)
+const WritingStreak = ({ days }: { days: number }) => (
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex items-center gap-4">
+        <div className={`text-4xl ${days > 0 ? 'animate-bounce text-orange-500' : 'text-gray-400'}`}>
+            <i className="fas fa-fire"></i>
+        </div>
+        <div>
+            <h4 className="font-bold dark:text-white">
+                {days > 0 ? `Você está há ${days} dia${days > 1 ? 's' : ''} escrevendo!` : 'Comece sua sequência!'}
+            </h4>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+                {days > 0 ? 'Continue assim para não perder o ritmo.' : 'Envie uma redação hoje.'}
+            </p>
+        </div>
+    </div>
+);
+
+const StateRanking = ({ rank, state }: { rank: number | null, state: string | null }) => (
+     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex items-center gap-4">
+        <div className="text-4xl text-yellow-500">
+            <i className="fas fa-trophy"></i>
+        </div>
+        <div>
+            <h4 className="font-bold dark:text-white">
+                {rank && state ? `Você está em #${rank} no ranking de ${state}!` : 'Ranking Indisponível'}
+            </h4>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+                {rank && state ? 'Sua média está entre as melhores.' : 'Continue escrevendo para aparecer aqui.'}
+            </p>
+        </div>
+    </div>
+);
+
+const ActionShortcuts = () => (
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <h4 className="font-bold mb-3 dark:text-white">Atalhos</h4>
+        <div className="space-y-2">
+            <Link href="/dashboard/applications/test" className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i className="fas fa-file-alt w-5 text-center text-royal-blue"></i>
+                <span className="text-sm font-medium dark:text-gray-200">Testar seu conhecimento em gramática</span>
+            </Link>
+             <Link href="/dashboard/applications/day" className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i className="fas fa-calendar-check w-5 text-center text-royal-blue"></i>
+                <span className="text-sm font-medium dark:text-gray-200">Agendar redação no Facillit Day</span>
+            </Link>
+             <Link href="/dashboard/applications/library" className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i className="fas fa-book-open w-5 text-center text-royal-blue"></i>
+                <span className="text-sm font-medium dark:text-gray-200">Ver argumentos coringas na Library</span>
+            </Link>
+        </div>
+    </div>
+);

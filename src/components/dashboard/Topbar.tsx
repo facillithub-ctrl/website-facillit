@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useTransition } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { UserProfile } from '@/app/dashboard/types';
@@ -42,6 +42,7 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
   const [isGridOpen, setGridOpen] = useState(false);
   const [isNotificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isPending, startTransition] = useTransition();
   
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
@@ -90,14 +91,16 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [gridRef, profileRef, notificationsRef]);
+  }, []);
 
   const hasUnread = notifications.some(n => !n.is_read);
 
-  const handleNotificationClick = async (notification: Notification) => {
+  const handleNotificationClick = (notification: Notification) => {
     if (!notification.is_read) {
+      startTransition(async () => {
         await supabase.from('notifications').update({ is_read: true }).eq('id', notification.id);
         setNotifications(current => current.map(n => n.id === notification.id ? { ...n, is_read: true } : n));
+      });
     }
     if (notification.link) {
         router.push(notification.link);
@@ -105,6 +108,17 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
     setNotificationsOpen(false);
   };
 
+  const handleMarkAllAsRead = () => {
+    startTransition(async () => {
+      const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+      if (unreadIds.length > 0) {
+        const { error } = await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
+        if (!error) {
+          setNotifications(current => current.map(n => ({ ...n, is_read: true })));
+        }
+      }
+    });
+  };
 
   return (
     <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0 dark:bg-gray-800 dark:border-gray-700">
@@ -140,7 +154,6 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
                                 </>
                             );
                             if (isActive) {
-                                // CORREÇÃO: O caminho correto para as aplicações do dashboard é /dashboard/applications/
                                 return (<Link key={module.slug} href={`/dashboard/applications/${module.slug}`} className="relative flex flex-col items-center justify-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">{content}</Link>);
                             } else {
                                 return (<div key={module.slug} className="relative flex flex-col items-center justify-center p-3 rounded-lg bg-gray-50 dark:bg-gray-800 cursor-not-allowed opacity-70" title={`${module.title} (inativo)`}>{content}</div>);
@@ -158,7 +171,10 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
             </button>
             {isNotificationsOpen && (
                 <div className="absolute top-full right-0 mt-4 w-80 bg-white rounded-xl shadow-xl border z-10 dark:bg-gray-700 dark:border-gray-600">
-                    <div className="p-3 font-bold border-b dark:border-gray-600 dark:text-white">Notificações</div>
+                    <div className="p-3 flex justify-between items-center border-b dark:border-gray-600 dark:text-white">
+                        <span className="font-bold">Notificações</span>
+                        {hasUnread && <button onClick={handleMarkAllAsRead} disabled={isPending} className="text-xs text-royal-blue font-bold disabled:opacity-50">Limpar</button>}
+                    </div>
                     <ul className="max-h-80 overflow-y-auto">
                         {notifications.length > 0 ? notifications.map(n => (
                             <li key={n.id} onClick={() => handleNotificationClick(n)} className={`p-3 border-b dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer ${!n.is_read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>

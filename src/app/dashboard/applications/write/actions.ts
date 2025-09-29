@@ -143,13 +143,26 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
     
     if (correctionError) return { error: `Erro ao salvar correção: ${correctionError.message}` };
 
-    const { error: essayError } = await supabase
+    // Atualiza o status da redação E busca o ID do estudante
+    const { data: essayData, error: essayError } = await supabase
         .from('essays')
         .update({ status: 'corrected' })
-        .eq('id', correctionData.essay_id);
+        .eq('id', correctionData.essay_id)
+        .select('student_id, title')
+        .single();
     
     if (essayError) return { error: `Erro ao atualizar status da redação: ${essayError.message}` };
     
+    // Cria a notificação para o estudante
+    if (essayData && essayData.student_id) {
+        await supabase.from('notifications').insert({
+            user_id: essayData.student_id,
+            title: 'Sua redação foi corrigida!',
+            message: `A redação "${essayData.title || 'sem título'}" já tem um feedback.`,
+            link: `/dashboard/applications/write?essayId=${correctionData.essay_id}`
+        });
+    }
+
     revalidatePath('/dashboard/applications/write');
     return { data: correction };
 }
@@ -303,4 +316,22 @@ export async function getUserStateRank() {
     }
 
     return { data: { rank: data, state: userState } };
+}
+// ADICIONE ESTA NOVA FUNÇÃO NO FINAL DO ARQUIVO actions.ts
+
+export async function createNotification(userId: string, title: string, message: string, link: string | null) {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+            user_id: userId,
+            title,
+            message,
+            link,
+        });
+
+    if (error) {
+        console.error('Erro ao criar notificação:', error);
+    }
+    return { data, error };
 }
