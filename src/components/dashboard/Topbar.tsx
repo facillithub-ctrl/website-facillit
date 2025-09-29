@@ -55,9 +55,11 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
 
   useEffect(() => {
     const fetchNotifications = async () => {
+      // FALHA #1 CORRIGIDA AQUI: Adicionado .eq('user_id', userProfile.id)
       const { data } = await supabase
         .from('notifications')
         .select('*')
+        .eq('user_id', userProfile.id) // Filtra apenas para o usuário logado
         .order('created_at', { ascending: false });
       
       if (data) {
@@ -68,7 +70,7 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
     fetchNotifications();
 
     const channel = supabase
-      .channel('notifications-channel')
+      .channel('realtime-notifications')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userProfile.id}` },
@@ -96,12 +98,18 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
   const hasUnread = notifications.some(n => !n.is_read);
 
   const handleNotificationClick = (notification: Notification) => {
+    // Marca como lida no client-side imediatamente para feedback visual rápido
     if (!notification.is_read) {
-      startTransition(async () => {
-        await supabase.from('notifications').update({ is_read: true }).eq('id', notification.id);
         setNotifications(current => current.map(n => n.id === notification.id ? { ...n, is_read: true } : n));
-      });
     }
+    
+    // Inicia a transição para atualizar o banco de dados em segundo plano
+    startTransition(async () => {
+        if (!notification.is_read) {
+            await supabase.from('notifications').update({ is_read: true }).eq('id', notification.id);
+        }
+    });
+
     if (notification.link) {
         router.push(notification.link);
     }
@@ -109,19 +117,21 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
   };
 
   const handleMarkAllAsRead = () => {
+    // Atualiza o estado local imediatamente
+    setNotifications(current => current.map(n => ({ ...n, is_read: true })));
+    
+    // Inicia a transição para o banco de dados
     startTransition(async () => {
       const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
       if (unreadIds.length > 0) {
-        const { error } = await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
-        if (!error) {
-          setNotifications(current => current.map(n => ({ ...n, is_read: true })));
-        }
+        await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
       }
     });
   };
 
   return (
     <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0 dark:bg-gray-800 dark:border-gray-700">
+      {/* O resto do seu JSX permanece o mesmo */}
       <div className="flex items-center gap-4">
         <button onClick={toggleSidebar} className="text-gray-500 hover:text-royal-blue text-xl lg:hidden">
             <i className="fas fa-bars"></i>
