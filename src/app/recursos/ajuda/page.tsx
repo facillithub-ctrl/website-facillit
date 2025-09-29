@@ -56,9 +56,9 @@ export default function CentralDeAjudaPage() {
                         <div className="md:col-span-2">
                              <h2 className="text-3xl md:text-4xl font-bold text-dark-text mb-12">Últimas Atualizações</h2>
                              <div className="">
-                                <UpdateItem date="20/09/2025" title="Novo Módulo: Facillit Create!" text="Agora você pode criar mapas mentais e infográficos diretamente na plataforma." />
-                                <UpdateItem date="05/09/2025" title="Melhorias no Facillit Write" text="Nossa IA de correção está 15% mais precisa na identificação de erros gramaticais." />
-                                <UpdateItem date="18/08/2025" title="Modo Escuro no Facillit Day" text="Ative o modo escuro em sua agenda para uma melhor visualização à noite." />
+                                <UpdateItem date="20/09/2025" title="Correção" text="Realizamos a correção de bugs, além de melhorias na performance do site e no reforço da segurança, para garantir uma experiência cada vez mais estável e confiável." />
+                                <UpdateItem date="28/09/2025" title="Melhorias no Facillit Write" text="Foram implementadas as funções de correção, feedback e melhoria no envio das redações." />
+                                <UpdateItem date="18/08/2025" title="Inauguração" text="O site está oficalmente no ar." />
                              </div>
                         </div>
                         <div>

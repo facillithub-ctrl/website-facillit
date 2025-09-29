@@ -10,6 +10,13 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      // ATUALIZE O OBJETO DO SUPABASE PARA ESTA VERSÃO
+      {
+        protocol: 'https',
+        hostname: 'dcwmqivwwfzlixquspah.supabase.co',
+        port: '',
+        pathname: '/**', // <-- Use '/**' para permitir qualquer imagem deste host
+      },
     ],
   },
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import createClient from '@/utils/supabase/client';
 import type { UserProfile } from '../types';
@@ -14,7 +14,7 @@ type Stats = {
 type RankInfo = { rank: number | null; state: string | null; } | null;
 
 type ProfileClientProps = {
-  profile: UserProfile; // O tipo UserProfile já foi atualizado para incluir birthDate e schoolName
+  profile: UserProfile;
   userEmail: string | undefined;
   statistics: {
     stats: Stats;
@@ -24,11 +24,27 @@ type ProfileClientProps = {
 };
 
 export default function ProfileClient({ profile: initialProfile, userEmail, statistics }: ProfileClientProps) {
-  const [profile, setProfile] = useState(initialProfile);
+  // Estado para os dados do formulário
+  const [formData, setFormData] = useState(initialProfile);
+  
+  // Estado para controlar o modo de edição
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const supabase = createClient();
+
+  // !! CORREÇÃO PRINCIPAL !!
+  // Este useEffect garante que, se os dados do servidor mudarem (após um refresh),
+  // o estado do nosso formulário seja atualizado com os novos dados.
+  useEffect(() => {
+    setFormData(initialProfile);
+  }, [initialProfile]);
+
+  // Função para lidar com mudanças nos inputs
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,18 +52,18 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
       const { error } = await supabase
         .from('profiles')
         .update({
-          full_name: profile.fullName,
-          nickname: profile.nickname,
-          pronoun: profile.pronoun,
-          birth_date: profile.birthDate,
-          school_name: profile.schoolName,
+          full_name: formData.fullName,
+          nickname: formData.nickname,
+          pronoun: formData.pronoun,
+          birth_date: formData.birthDate,
+          school_name: formData.schoolName,
         })
-        .eq('id', profile.id);
+        .eq('id', formData.id);
 
       if (!error) {
         alert('Perfil atualizado com sucesso!');
         setIsEditing(false);
-        router.refresh();
+        router.refresh(); // Isso vai buscar os dados novos e o useEffect acima vai atualizar o formulário.
       } else {
         alert(`Erro ao atualizar: ${error.message}`);
       }
@@ -55,17 +71,19 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
   };
   
   const handleAvatarUpload = (newUrl: string) => {
-    setProfile(p => ({ ...p, avatarUrl: newUrl }));
-    router.refresh(); // Use router.refresh() para atualizar o layout do servidor também
+    setFormData(p => ({ ...p, avatarUrl: newUrl }));
+    router.refresh(); 
   };
+  
+  const userStats = statistics?.stats;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Coluna Esquerda: Avatar e Estatísticas */}
       <div className="lg:col-span-1 space-y-6">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow text-center">
-             <AvatarUploader profile={profile} onUploadSuccess={handleAvatarUpload} />
-             <h2 className="text-xl font-bold mt-4 dark:text-white">{profile.fullName}</h2>
+             <AvatarUploader profile={formData} onUploadSuccess={handleAvatarUpload} />
+             <h2 className="text-xl font-bold mt-4 dark:text-white">{formData.fullName}</h2>
              <p className="text-sm text-text-muted dark:text-gray-400">{userEmail}</p>
           </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
@@ -73,21 +91,19 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
               <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                       <span className="text-text-muted dark:text-gray-400">Redações Corrigidas</span>
-                      {/* CORREÇÃO APLICADA AQUI */}
-                      <span className="font-bold dark:text-white">{statistics?.stats?.totalCorrections ?? 0}</span>
+                      <span className="font-bold dark:text-white">{userStats?.totalCorrections ?? 0}</span>
                   </div>
                    <div className="flex justify-between text-sm">
                       <span className="text-text-muted dark:text-gray-400">Média Geral</span>
-                      {/* CORREÇÃO APLICADA AQUI */}
-                      <span className="font-bold dark:text-white">{statistics?.stats?.averages.avg_final_grade.toFixed(0) ?? 'N/A'}</span>
+                      <span className="font-bold dark:text-white">{userStats ? userStats.averages.avg_final_grade.toFixed(0) : 'N/A'}</span>
                   </div>
                    <div className="flex justify-between text-sm">
                       <span className="text-text-muted dark:text-gray-400">Sequência de Escrita</span>
-                      <span className="font-bold dark:text-white">{statistics?.streak ?? 0} {statistics?.streak === 1 ? 'dia' : 'dias'}</span>
+                      <span className="font-bold dark:text-white">{statistics.streak} {statistics.streak === 1 ? 'dia' : 'dias'}</span>
                   </div>
                    <div className="flex justify-between text-sm">
                       <span className="text-text-muted dark:text-gray-400">Ranking Estadual</span>
-                      <span className="font-bold dark:text-white">{statistics?.rankInfo?.rank ? `#${statistics.rankInfo.rank}` : 'N/A'}</span>
+                      <span className="font-bold dark:text-white">{statistics.rankInfo?.rank ? `#${statistics.rankInfo.rank}` : 'N/A'}</span>
                   </div>
               </div>
           </div>
@@ -98,44 +114,45 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
         <form onSubmit={handleUpdate}>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-bold text-gray-600 dark:text-gray-400">Nome Completo</label>
+              <label htmlFor="fullName" className="text-sm font-bold text-gray-600 dark:text-gray-400">Nome Completo</label>
               <input
-                type="text"
-                value={profile.fullName || ''}
-                onChange={(e) => setProfile(p => ({ ...p, fullName: e.target.value }))}
+                id="fullName" name="fullName" type="text"
+                value={formData.fullName || ''}
+                onChange={handleChange}
                 disabled={!isEditing}
-                className="w-full p-2 border rounded-md mt-1 bg-transparent disabled:opacity-70 dark:text-white dark:border-gray-600"
+                className="w-full p-2 border rounded-md mt-1 bg-gray-50 disabled:bg-gray-100 dark:bg-gray-700 dark:disabled:bg-gray-800 dark:text-white dark:border-gray-600"
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-bold text-gray-600 dark:text-gray-400">Apelido</label>
+                <label htmlFor="nickname" className="text-sm font-bold text-gray-600 dark:text-gray-400">Apelido</label>
                 <input
-                  type="text"
-                  value={profile.nickname || ''}
-                  onChange={(e) => setProfile(p => ({ ...p, nickname: e.target.value }))}
+                  id="nickname" name="nickname" type="text"
+                  value={formData.nickname || ''}
+                  onChange={handleChange}
                   disabled={!isEditing}
-                  className="w-full p-2 border rounded-md mt-1 bg-transparent disabled:opacity-70 dark:text-white dark:border-gray-600"
+                  className="w-full p-2 border rounded-md mt-1 bg-gray-50 disabled:bg-gray-100 dark:bg-gray-700 dark:disabled:bg-gray-800 dark:text-white dark:border-gray-600"
                 />
               </div>
               <div>
-                <label className="text-sm font-bold text-gray-600 dark:text-gray-400">Data de Nascimento</label>
+                <label htmlFor="birthDate" className="text-sm font-bold text-gray-600 dark:text-gray-400">Data de Nascimento</label>
                 <input
-                  type="date"
-                  value={profile.birthDate?.split('T')[0] || ''}
-                  onChange={(e) => setProfile(p => ({ ...p, birthDate: e.target.value }))}
+                  id="birthDate" name="birthDate" type="date"
+                  value={formData.birthDate?.split('T')[0] || ''}
+                  onChange={handleChange}
                   disabled={!isEditing}
-                  className="w-full p-2 border rounded-md mt-1 bg-transparent disabled:opacity-70 dark:text-white dark:border-gray-600"
+                  className="w-full p-2 border rounded-md mt-1 bg-gray-50 disabled:bg-gray-100 dark:bg-gray-700 dark:disabled:bg-gray-800 dark:text-white dark:border-gray-600"
                 />
               </div>
             </div>
             <div>
-              <label className="text-sm font-bold text-gray-600 dark:text-gray-400">Pronome</label>
+              <label htmlFor="pronoun" className="text-sm font-bold text-gray-600 dark:text-gray-400">Pronome</label>
                <select
-                value={profile.pronoun || ''}
-                onChange={(e) => setProfile(p => ({ ...p, pronoun: e.target.value }))}
+                id="pronoun" name="pronoun"
+                value={formData.pronoun || ''}
+                onChange={handleChange}
                 disabled={!isEditing}
-                className="w-full p-2 border rounded-md mt-1 bg-white disabled:opacity-70 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                className="w-full p-2 border rounded-md mt-1 bg-gray-50 disabled:bg-gray-100 dark:bg-gray-700 dark:disabled:bg-gray-800 dark:text-white dark:border-gray-600"
               >
                 <option>Ele/Dele</option>
                 <option>Ela/Dela</option>
@@ -144,13 +161,13 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
               </select>
             </div>
              <div>
-              <label className="text-sm font-bold text-gray-600 dark:text-gray-400">Escola / Instituição</label>
+              <label htmlFor="schoolName" className="text-sm font-bold text-gray-600 dark:text-gray-400">Escola / Instituição</label>
               <input
-                type="text"
-                value={profile.schoolName || ''}
-                onChange={(e) => setProfile(p => ({ ...p, schoolName: e.target.value }))}
+                id="schoolName" name="schoolName" type="text"
+                value={formData.schoolName || ''}
+                onChange={handleChange}
                 disabled={!isEditing}
-                className="w-full p-2 border rounded-md mt-1 bg-transparent disabled:opacity-70 dark:text-white dark:border-gray-600"
+                className="w-full p-2 border rounded-md mt-1 bg-gray-50 disabled:bg-gray-100 dark:bg-gray-700 dark:disabled:bg-gray-800 dark:text-white dark:border-gray-600"
               />
             </div>
           </div>
@@ -160,7 +177,7 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
                 <button type="submit" disabled={isPending} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 disabled:opacity-50">
                   {isPending ? 'Salvando...' : 'Salvar Alterações'}
                 </button>
-                <button type="button" onClick={() => { setIsEditing(false); setProfile(initialProfile); }} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">
+                <button type="button" onClick={() => { setIsEditing(false); setFormData(initialProfile); }} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">
                   Cancelar
                 </button>
               </>

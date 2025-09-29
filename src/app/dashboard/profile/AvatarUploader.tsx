@@ -26,7 +26,6 @@ export default function AvatarUploader({ profile, onUploadSuccess }: AvatarUploa
     setUploading(true);
     const filePath = `${profile.id}/${Date.now()}`;
 
-    // Faz o upload para o Supabase Storage
     const { error: uploadError } = await supabase.storage
       .from('avatars')
       .upload(filePath, file);
@@ -37,14 +36,12 @@ export default function AvatarUploader({ profile, onUploadSuccess }: AvatarUploa
       return;
     }
 
-    // Obtém a URL pública da nova imagem
     const { data } = supabase.storage
       .from('avatars')
       .getPublicUrl(filePath);
 
     const newAvatarUrl = data.publicUrl;
 
-    // Atualiza a URL no perfil do usuário
     const { error: updateError } = await supabase
       .from('profiles')
       .update({ avatar_url: newAvatarUrl })
@@ -53,7 +50,7 @@ export default function AvatarUploader({ profile, onUploadSuccess }: AvatarUploa
     if (updateError) {
       alert(`Erro ao atualizar perfil: ${updateError.message}`);
     } else {
-      onUploadSuccess(newAvatarUrl); // Notifica o componente pai sobre a nova URL
+      onUploadSuccess(newAvatarUrl);
     }
 
     setUploading(false);
@@ -61,17 +58,19 @@ export default function AvatarUploader({ profile, onUploadSuccess }: AvatarUploa
 
   return (
     <div className="flex flex-col items-center">
+      {/* CORREÇÃO APLICADA AQUI: Tamanho fixo w-32 h-32 */}
       <div 
         className="relative w-32 h-32 rounded-full mb-4 cursor-pointer group"
         onClick={handleAvatarClick}
       >
         {profile.avatarUrl ? (
           <Image
+            key={profile.avatarUrl} // Adiciona uma key para forçar o re-render
             src={profile.avatarUrl}
             alt="Avatar do usuário"
-            layout="fill"
-            objectFit="cover"
-            className="rounded-full"
+            fill
+            sizes="128px"
+            className="rounded-full object-cover"
           />
         ) : (
           <div className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center font-bold text-4xl text-royal-blue dark:bg-gray-600">
