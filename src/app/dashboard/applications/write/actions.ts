@@ -2,8 +2,9 @@
 
 import { revalidatePath } from 'next/cache';
 import createSupabaseServerClient from '@/utils/supabase/server';
+import type { Json } from '@supabase/supabase-js'; // Importação adicionada
 
-// --- TIPOS DE DADOS --- (sem alterações)
+// --- TIPOS DE DADOS ---
 
 export type Essay = {
   id: string;
@@ -28,9 +29,9 @@ export type EssayCorrection = {
     grade_c4: number;
     grade_c5: number;
     final_grade: number;
-    paragraph_comments?: any;
+    paragraph_comments?: Json; // Corrigido
     support_links?: string[];
-    annotations?: any;
+    annotations?: Json; // Corrigido
     audio_feedback_url?: string | null;
 };
 

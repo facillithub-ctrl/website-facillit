@@ -23,8 +23,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
     const [isSubmitting, startTransition] = useTransition();
 
     // Novos estados para funcionalidades do professor
-    const [paragraphComments, setParagraphComments] = useState<Record<number, string>>({});
-    const [supportLinks, setSupportLinks] = useState<string[]>(['']);
     const [commonErrors, setCommonErrors] = useState<CommonError[]>([]);
     const [selectedErrors, setSelectedErrors] = useState<Set<string>>(new Set());
     
@@ -52,8 +50,12 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 } else if (result.error) {
                     setError(result.error);
                 }
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err: unknown) { // Corrigido
+                if (err instanceof Error) {
+                    setError(err.message);
+                } else {
+                    setError("Ocorreu um erro desconhecido.");
+                }
             } finally {
                 setIsLoading(false);
             }
@@ -153,7 +155,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 grade_c5: grades.c5,
                 final_grade,
                 audio_feedback_url: uploadedAudioUrl,
-                // Aqui você também enviaria os outros dados como paragraph_comments, etc.
             });
             
             if (!result.error && result.data) {
