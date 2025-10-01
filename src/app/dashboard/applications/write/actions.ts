@@ -368,3 +368,21 @@ export async function getCurrentEvents() {
     if (error) return { error: error.message };
     return { data };
 }
+// ... (no final do ficheiro actions.ts)
+
+export async function getCorrectedEssaysForTeacher() {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Usuário não autenticado.' };
+  
+  // Aqui você pode adicionar uma verificação de role/categoria se necessário
+
+  const { data, error } = await supabase
+    .from('essays')
+    .select('id, title, submitted_at, profiles(full_name), essay_corrections(final_grade)')
+    .eq('status', 'corrected')
+    .order('submitted_at', { ascending: false });
+
+  if (error) return { error: error.message };
+  return { data };
+}
