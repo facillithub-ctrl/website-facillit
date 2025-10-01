@@ -8,10 +8,10 @@ import EssayEditor from './EssayEditor';
 import EssayCorrectionView from './EssayCorrectionView';
 import StatisticsWidget from './StatisticsWidget';
 import ProgressionChart from './ProgressionChart';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 // --- TIPOS E PROPS ---
-
+// (O restante dos tipos permanece o mesmo)
 type Stats = {
     totalCorrections: number;
     averages: { avg_final_grade: number; avg_c1: number; avg_c2: number; avg_c3: number; avg_c4: number; avg_c5: number; };
@@ -31,7 +31,9 @@ type Props = {
   rankInfo: RankInfo;
   frequentErrors: FrequentError[];
   currentEvents: CurrentEvent[];
+  targetExam?: string | null; // Adicionado para contagem regressiva
 };
+
 
 // --- WIDGETS E SUB-COMPONENTES ---
 
@@ -75,25 +77,51 @@ const ActionShortcuts = () => (
     </div>
 );
 
+// NOVO GRÁFICO DE PIZZA
 const FrequentErrorsChart = ({ data }: { data: FrequentError[] }) => {
   if (!data || data.length === 0) return null;
+  
+  const COLORS = ['#2E14ED', '#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F', '#FFBB28'];
+
   return (
     <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border col-span-1 lg:col-span-2">
       <h3 className="font-bold text-lg mb-4 dark:text-white-text">Seus Erros Frequentes</h3>
       <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
-          <XAxis type="number" hide />
-          <YAxis type="category" dataKey="error_type" width={100} tick={{ fill: '#a0a0a0', fontSize: 12 }} />
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="count"
+            nameKey="error_type"
+            cx="50%"
+            cy="50%"
+            outerRadius={100}
+            fill="#8884d8"
+            labelLine={false}
+            label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+              const radius = innerRadius + (outerRadius - innerRadius) * 1.2;
+              const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+              const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+              return (
+                <text x={x} y={y} fill="currentColor" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs text-text-muted dark:text-dark-text-muted">
+                  {`${(percent * 100).toFixed(0)}%`}
+                </text>
+              );
+            }}
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
           <Tooltip 
-            cursor={{ fill: 'rgba(46, 20, 237, 0.1)' }} 
-            contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#2f2f2f', borderRadius: '0.5rem' }} 
+             contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#2f2f2f', borderRadius: '0.5rem' }} 
           />
-          <Bar dataKey="count" name="Ocorrências" fill="#2E14ED" barSize={20} />
-        </BarChart>
+          <Legend iconType="circle" />
+        </PieChart>
       </ResponsiveContainer>
     </div>
   );
 };
+
 
 const CurrentEventsWidget = ({ events }: { events: CurrentEvent[] }) => {
   if (!events || events.length === 0) return null;

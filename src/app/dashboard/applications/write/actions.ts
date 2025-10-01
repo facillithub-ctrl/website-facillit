@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import createSupabaseServerClient from '@/utils/supabase/server';
 
-// --- TIPOS DE DADOS ---
+// --- TIPOS DE DADOS --- (sem alterações)
 
 export type Essay = {
   id: string;
@@ -14,7 +14,7 @@ export type Essay = {
   prompt_id: string | null;
   student_id: string;
   consent_to_ai_training?: boolean;
-  image_submission_url?: string | null; // Adicionado para envio de foto
+  image_submission_url?: string | null;
 };
 
 export type EssayCorrection = {
@@ -28,10 +28,10 @@ export type EssayCorrection = {
     grade_c4: number;
     grade_c5: number;
     final_grade: number;
-    paragraph_comments?: any; // Adicionado para comentários por parágrafo
-    support_links?: string[]; // Adicionado para links de apoio
-    annotations?: any; // Adicionado para anotações em texto/imagem
-    audio_feedback_url?: string | null; // Adicionado para feedback em áudio
+    paragraph_comments?: any;
+    support_links?: string[];
+    annotations?: any;
+    audio_feedback_url?: string | null;
 };
 
 export type EssayPrompt = {
@@ -39,19 +39,24 @@ export type EssayPrompt = {
     title: string;
     description: string;
     source: string;
-    image_url?: string | null; // Adicionado para imagem do tema
-    motivational_text?: string | null; // Adicionado para texto de apoio
-    category?: string | null; // Adicionado para categoria do tema
+    image_url?: string | null;
+    motivational_text?: string | null;
+    category?: string | null;
 };
 
 
-// --- FUNÇÕES CRUD DE REDAÇÃO ---
+// --- FUNÇÃO ATUALIZADA ---
 
 export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return { error: 'Usuário não autenticado.' };
+  
+  // VALIDAÇÃO ADICIONADA NO BACKEND
+  if (essayData.status === 'submitted' && !essayData.consent_to_ai_training) {
+    return { error: 'É obrigatório consentir com os termos para enviar a redação.' };
+  }
 
   const dataToUpsert = {
     id: essayData.id,
@@ -73,6 +78,10 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
   revalidatePath('/dashboard');
   return { data };
 }
+
+
+// --- O RESTANTE DO ARQUIVO actions.ts CONTINUA IGUAL ---
+// (getPrompts, getEssayDetails, etc. não precisam de alteração)
 
 export async function getPrompts(): Promise<{ data?: EssayPrompt[]; error?: string }> {
     const supabase = await createSupabaseServerClient();

@@ -24,12 +24,13 @@ type ProfileClientProps = {
 };
 
 export default function ProfileClient({ profile: initialProfile, userEmail, statistics }: ProfileClientProps) {
-  // Estado para os dados do formulário
   const [formData, setFormData] = useState(initialProfile);
-  
-  // Estado para controlar o modo de edição
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
+  
+  // NOVO ESTADO: para rastrear se houve mudanças no formulário
+  const [hasChanges, setHasChanges] = useState(false);
+  
   const router = useRouter();
   const supabase = createClient();
 
@@ -37,7 +38,18 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
     setFormData(initialProfile);
   }, [initialProfile]);
 
-  // Função para lidar com mudanças nos inputs
+  // NOVO useEffect: Compara os dados iniciais com os dados do formulário
+  // e atualiza o estado 'hasChanges'
+  useEffect(() => {
+    // Compara a versão em string dos objetos para ver se há diferença
+    if (JSON.stringify(formData) !== JSON.stringify(initialProfile)) {
+      setHasChanges(true);
+    } else {
+      setHasChanges(false);
+    }
+  }, [formData, initialProfile]);
+
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -54,7 +66,7 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
           pronoun: formData.pronoun,
           birth_date: formData.birthDate,
           school_name: formData.schoolName,
-          target_exam: formData.target_exam, // Campo novo
+          target_exam: formData.target_exam,
         })
         .eq('id', formData.id);
 
@@ -188,7 +200,12 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
           <div className="mt-6 border-t pt-4 dark:border-gray-700 flex gap-4">
             {isEditing ? (
               <>
-                <button type="submit" disabled={isPending} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 disabled:opacity-50">
+                {/* BOTÃO SALVAR ATUALIZADO */}
+                <button
+                  type="submit"
+                  disabled={isPending || !hasChanges}
+                  className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 disabled:opacity-50"
+                >
                   {isPending ? 'Salvando...' : 'Salvar Alterações'}
                 </button>
                 <button type="button" onClick={() => { setIsEditing(false); setFormData(initialProfile); }} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">
