@@ -95,7 +95,9 @@ export default function EssayCorrectionView({ essayId, onBack }: Props) {
                                             <i className="fas fa-info-circle"></i>
                                         </button>
                                     </div>
-                                    <span className="font-bold text-sm dark:text-white-text">{correction[`grade_c${i + 1}` as keyof EssayCorrection]}</span>
+                                    <span className="font-bold text-sm dark:text-white-text">
+                                        {correction[`grade_c${i + 1}` as keyof EssayCorrection] as React.ReactNode}
+                                    </span>
                                 </div>
                             ))}
                             <div>
