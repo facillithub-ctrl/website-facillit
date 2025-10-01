@@ -36,8 +36,9 @@ export default async function ProfilePage() {
     nickname: profileData.nickname,
     has_completed_onboarding: profileData.has_completed_onboarding,
     active_modules: profileData.active_modules,
-    birthDate: profileData.birth_date, // Adicionado
-    schoolName: profileData.school_name, // Adicionado
+    birthDate: profileData.birth_date,
+    schoolName: profileData.school_name,
+    target_exam: profileData.target_exam, // Adicionado
   };
 
   const statistics = {

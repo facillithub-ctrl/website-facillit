@@ -7,6 +7,7 @@ export type UserProfile = {
   nickname: string | null;
   has_completed_onboarding: boolean | null;
   active_modules: string[] | null;
-  birthDate?: string | null;   // Adicionado
-  schoolName?: string | null;  // Adicionado
+  birthDate?: string | null;
+  schoolName?: string | null;
+  target_exam?: string | null; // Adicionado
 };

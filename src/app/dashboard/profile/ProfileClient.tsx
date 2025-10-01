@@ -33,9 +33,6 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
   const router = useRouter();
   const supabase = createClient();
 
-  // !! CORREÇÃO PRINCIPAL !!
-  // Este useEffect garante que, se os dados do servidor mudarem (após um refresh),
-  // o estado do nosso formulário seja atualizado com os novos dados.
   useEffect(() => {
     setFormData(initialProfile);
   }, [initialProfile]);
@@ -57,13 +54,14 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
           pronoun: formData.pronoun,
           birth_date: formData.birthDate,
           school_name: formData.schoolName,
+          target_exam: formData.target_exam, // Campo novo
         })
         .eq('id', formData.id);
 
       if (!error) {
         alert('Perfil atualizado com sucesso!');
         setIsEditing(false);
-        router.refresh(); // Isso vai buscar os dados novos e o useEffect acima vai atualizar o formulário.
+        router.refresh(); 
       } else {
         alert(`Erro ao atualizar: ${error.message}`);
       }
@@ -169,6 +167,22 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
                 disabled={!isEditing}
                 className="w-full p-2 border rounded-md mt-1 bg-gray-50 disabled:bg-gray-100 dark:bg-gray-700 dark:disabled:bg-gray-800 dark:text-white dark:border-gray-600"
               />
+            </div>
+            <div>
+              <label htmlFor="target_exam" className="text-sm font-bold text-gray-600 dark:text-gray-400">Meu foco é o vestibular:</label>
+              <select
+                id="target_exam" name="target_exam"
+                value={formData.target_exam || ''}
+                onChange={handleChange}
+                disabled={!isEditing}
+                className="w-full p-2 border rounded-md mt-1 bg-gray-50 disabled:bg-gray-100 dark:bg-gray-700 dark:disabled:bg-gray-800 dark:text-white dark:border-gray-600"
+              >
+                <option value="">Nenhum</option>
+                <option value="ENEM">ENEM</option>
+                <option value="FUVEST">FUVEST</option>
+                <option value="UNICAMP">UNICAMP</option>
+                <option value="UNESP">UNESP</option>
+              </select>
             </div>
           </div>
           <div className="mt-6 border-t pt-4 dark:border-gray-700 flex gap-4">

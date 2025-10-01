@@ -1,4 +1,3 @@
-// next.config.ts
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -10,12 +9,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
-      // ATUALIZE COM O SEU HOSTNAME DO SUPABASE
+      // Configuração correta para o Supabase Storage
       {
         protocol: 'https',
-        hostname: 'https://dcwmqivwwfzlixquspah.supabase.co', // <-- Substitua pelo ID do seu projeto
+        hostname: 'dcwmqivwwfzlixquspah.supabase.co',
         port: '',
-        pathname: 'https://dcwmqivwwfzlixquspah.storage.supabase.co/storage/v1/s3**', // <-- Caminho completo para os buckets públicos
+        pathname: '/storage/v1/object/public/**',
       },
     ],
   },
