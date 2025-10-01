@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import createSupabaseServerClient from '@/utils/supabase/server';
 import StudentDashboard from './components/StudentDashboard';
 import TeacherDashboard from './components/TeacherDashboard';
+import AdminDashboard from './components/AdminDashboard'; // Importa o novo componente
 import { 
   getPrompts, 
   getStudentStatistics, 
@@ -9,7 +10,8 @@ import {
   getUserStateRank, 
   getFrequentErrors, 
   getCurrentEvents,
-  getCorrectedEssaysForTeacher // Importar a nova função
+  getCorrectedEssaysForTeacher,
+  getAdminDashboardData // Importa a nova action
 } from './actions';
 
 export default async function WritePage() {
@@ -30,6 +32,17 @@ export default async function WritePage() {
     redirect('/login');
   }
 
+  // ROTA PARA ADMINISTRADOR
+  if (profile.user_category === 'administrator') {
+    const adminDataResult = await getAdminDashboardData();
+    if (adminDataResult.error || !adminDataResult.data) {
+       return <div>Erro: {adminDataResult.error || 'Não foi possível carregar os dados do administrador.'}</div>;
+    }
+    // Passa os dados iniciais para o componente cliente
+    return <AdminDashboard initialData={adminDataResult.data} />;
+  }
+
+  // ROTA PARA ALUNO
   if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
     const [
         essaysResult, 
@@ -66,6 +79,7 @@ export default async function WritePage() {
     );
   }
 
+  // ROTA PARA PROFESSOR/GESTOR
   if (['professor', 'gestor'].includes(profile.user_category || '')) {
      const [pendingEssaysResult, correctedEssaysResult] = await Promise.all([
         supabase
