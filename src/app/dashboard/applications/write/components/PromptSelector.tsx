@@ -9,6 +9,63 @@ type Props = {
   onBack: () => void;
 };
 
+// NOVO: Componente para o card de tema
+const PromptCard = ({ prompt, onSelect }: { prompt: EssayPrompt, onSelect: (p: EssayPrompt) => void }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    // Formata a data de publicação
+    const publicationDate = prompt.publication_date 
+        ? new Date(prompt.publication_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) 
+        : null;
+
+    // Formata o prazo
+    const deadlineDate = prompt.deadline 
+        ? new Date(prompt.deadline).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : null;
+
+    return (
+        <div className="bg-white dark:bg-dark-card rounded-lg shadow-md border dark:border-dark-border flex flex-col transition-all hover:shadow-xl hover:-translate-y-1">
+            {prompt.image_url && (
+                <div className="relative h-40 w-full">
+                    <img src={prompt.image_url} alt={prompt.title} className="w-full h-full object-cover rounded-t-lg" />
+                    {prompt.cover_image_source && (
+                        <span className="absolute bottom-1 right-1 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
+                            Fonte: {prompt.cover_image_source}
+                        </span>
+                    )}
+                </div>
+            )}
+            <div className="p-5 flex flex-col flex-grow">
+                {prompt.category && (
+                    <span className="text-xs font-semibold bg-royal-blue/10 text-royal-blue px-2 py-1 rounded-full self-start mb-2">{prompt.category}</span>
+                )}
+                <h2 className="text-lg font-bold dark:text-white-text mb-1">{prompt.title}</h2>
+                <p className="text-sm text-gray-500 mb-3">{prompt.source}</p>
+                
+                <p className={`text-gray-600 dark:text-dark-text-muted text-sm flex-grow mb-4 transition-all duration-300 ${isExpanded ? 'line-clamp-none' : 'line-clamp-3'}`}>
+                    {prompt.description}
+                </p>
+
+                {prompt.description && prompt.description.length > 150 && (
+                     <button onClick={() => setIsExpanded(!isExpanded)} className="text-xs text-royal-blue font-bold self-start mb-4">
+                        {isExpanded ? 'Ler menos' : 'Ler mais...'}
+                    </button>
+                )}
+
+                <div className="text-xs text-gray-500 mt-auto space-y-1">
+                    {publicationDate && <p><i className="fas fa-calendar-alt mr-2"></i>Publicado em: {publicationDate}</p>}
+                    {deadlineDate && <p><i className="fas fa-hourglass-end mr-2"></i>Prazo: {deadlineDate}</p>}
+                </div>
+
+                <button onClick={() => onSelect(prompt)} className="mt-4 bg-royal-blue text-white font-bold py-2 px-4 rounded-lg self-start hover:bg-opacity-90">
+                    Escrever sobre este tema
+                </button>
+            </div>
+        </div>
+    );
+};
+
+
 export default function PromptSelector({ prompts, onSelect, onBack }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,7 +94,6 @@ export default function PromptSelector({ prompts, onSelect, onBack }: Props) {
         <p className="text-text-muted dark:text-dark-text-muted">Explore nossos temas e comece a praticar sua escrita.</p>
       </div>
       
-      {/* Filtros */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="relative flex-grow">
           <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
@@ -60,28 +116,9 @@ export default function PromptSelector({ prompts, onSelect, onBack }: Props) {
         </div>
       </div>
 
-      {/* Grid de Temas */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredPrompts.map(prompt => (
-          <div key={prompt.id} className="p-6 bg-white dark:bg-dark-card rounded-lg shadow-md border dark:border-dark-border flex flex-col transition-transform hover:-translate-y-1">
-            {prompt.image_url && (
-              <img src={prompt.image_url} alt={prompt.title} className="w-full h-32 object-cover rounded-md mb-4" />
-            )}
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-bold dark:text-white-text">{prompt.title}</h2>
-              {prompt.category && <span className="text-xs font-semibold bg-royal-blue/10 text-royal-blue px-2 py-1 rounded-full">{prompt.category}</span>}
-            </div>
-            <p className="text-sm text-gray-500 mb-3">{prompt.source}</p>
-            {prompt.motivational_text && (
-                <p className="text-sm text-text-muted dark:text-dark-text-muted mb-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-md border-l-4 border-royal-blue">
-                    {prompt.motivational_text}
-                </p>
-            )}
-            <p className="text-gray-600 dark:text-dark-text-muted text-sm flex-grow mb-4">{prompt.description}</p>
-            <button onClick={() => onSelect(prompt)} className="mt-auto bg-royal-blue text-white font-bold py-2 px-4 rounded-lg self-start hover:bg-opacity-90">
-              Escrever sobre este tema
-            </button>
-          </div>
+          <PromptCard key={prompt.id} prompt={prompt} onSelect={onSelect} />
         ))}
         {filteredPrompts.length === 0 && (
             <p className="text-center text-text-muted dark:text-dark-text-muted md:col-span-2 lg:col-span-3 py-8">Nenhum tema encontrado com os filtros selecionados.</p>

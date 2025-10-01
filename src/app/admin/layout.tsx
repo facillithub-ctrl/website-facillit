@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation';
 import createSupabaseServerClient from '@/utils/supabase/server';
-import { UserProfile } from '@/app/dashboard/types';
-import DashboardClientLayout from '@/app/dashboard/DashboardClientLayout';
-import AdminSidebar from './AdminSidebar';
+import type { UserProfile } from '@/app/dashboard/types';
+import AdminClientLayout from './AdminClientLayout'; // CORREÇÃO: Garanta que a importação está sem chaves {}
 
 export default async function AdminLayout({
   children,
@@ -16,17 +15,19 @@ export default async function AdminLayout({
     redirect('/login');
   }
 
+  // Busca o perfil completo do usuário
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single();
 
-  // Proteção: Redireciona para o dashboard se o usuário não for um administrador
+  // Verificação de segurança: garante que o usuário é um administrador
   if (!profile || profile.user_category !== 'administrator') {
     redirect('/dashboard');
   }
   
+  // Constrói o objeto UserProfile para passar como prop
   const userProfile: UserProfile = {
     id: profile.id,
     fullName: profile.full_name,
@@ -36,19 +37,15 @@ export default async function AdminLayout({
     nickname: profile.nickname,
     has_completed_onboarding: profile.has_completed_onboarding,
     active_modules: profile.active_modules,
+    birthDate: profile.birth_date,
+    schoolName: profile.school_name,
+    target_exam: profile.target_exam,
   };
 
-  // Este layout envolve toda a seção /admin
+  // Renderiza o Client Layout e passa o userProfile buscado como prop
   return (
-    <DashboardClientLayout userProfile={userProfile}>
-        <div className="flex h-full">
-            {/* O menu lateral específico do admin */}
-            <AdminSidebar />
-            {/* O conteúdo da página (ex: /admin/write) será renderizado aqui */}
-            <main className="flex-1 p-6 overflow-y-auto">
-                {children}
-            </main>
-        </div>
-    </DashboardClientLayout>
+    <AdminClientLayout userProfile={userProfile}>
+      {children}
+    </AdminClientLayout>
   );
 }

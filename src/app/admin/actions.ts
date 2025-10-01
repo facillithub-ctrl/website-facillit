@@ -2,7 +2,21 @@
 
 import { revalidatePath } from 'next/cache';
 import createSupabaseServerClient from '@/utils/supabase/server';
-import { EssayPrompt } from '@/app/dashboard/applications/write/actions'; // Reutilizando o tipo
+
+// NOVO: Tipo EssayPrompt atualizado para incluir os novos campos
+export type EssayPrompt = {
+    id: string;
+    title: string;
+    description: string | null;
+    source: string | null;
+    image_url: string | null;
+    motivational_text: string | null;
+    category: string | null;
+    publication_date: string | null; // NOVO
+    deadline: string | null;         // NOVO
+    cover_image_source: string | null; // NOVO
+};
+
 
 // --- Helper de Segurança ---
 async function isAdmin() {
@@ -72,22 +86,28 @@ export async function updateProfessorVerification(professorId: string, isVerifie
   return { data };
 }
 
-// --- CORREÇÃO APLICADA AQUI ---
 export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
     if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
     const supabase = await createSupabaseServerClient();
 
-    // Usamos o método upsert diretamente, que lida com a criação ou atualização
-    // com base na chave primária (id).
+    // Limpa campos vazios para não salvar strings vazias no banco
+    const cleanedData = { ...promptData };
+    for (const key in cleanedData) {
+        if (cleanedData[key as keyof typeof cleanedData] === '') {
+            cleanedData[key as keyof typeof cleanedData] = null;
+        }
+    }
+    
     const { data, error } = await supabase
         .from('essay_prompts')
-        .upsert(promptData)
+        .upsert(cleanedData)
         .select()
-        .single(); // Garante que esperamos um único objeto de retorno
+        .single();
 
     if (error) return { error: `Erro no upsert: ${error.message}` };
 
     revalidatePath('/admin/write');
+    revalidatePath('/dashboard/applications/write');
     return { data };
 }
 
@@ -99,6 +119,7 @@ export async function deletePrompt(promptId: string) {
     if (error) return { error: error.message };
 
     revalidatePath('/admin/write');
+    revalidatePath('/dashboard/applications/write');
     return { success: true };
 }
 
