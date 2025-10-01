@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import createSupabaseServerClient from '@/utils/supabase/server';
-import type { Json } from '@supabase/supabase-js'; // Importação adicionada
 
 // --- TIPOS DE DADOS ---
 
@@ -29,9 +28,9 @@ export type EssayCorrection = {
     grade_c4: number;
     grade_c5: number;
     final_grade: number;
-    paragraph_comments?: Json; // Corrigido
+    paragraph_comments?: Record<string, any>; // Corrigido
     support_links?: string[];
-    annotations?: Json; // Corrigido
+    annotations?: Record<string, any>; // Corrigido
     audio_feedback_url?: string | null;
 };
 
@@ -82,7 +81,6 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
 
 
 // --- O RESTANTE DO ARQUIVO actions.ts CONTINUA IGUAL ---
-// (getPrompts, getEssayDetails, etc. não precisam de alteração)
 
 export async function getPrompts(): Promise<{ data?: EssayPrompt[]; error?: string }> {
     const supabase = await createSupabaseServerClient();

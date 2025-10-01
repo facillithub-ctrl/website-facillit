@@ -42,7 +42,7 @@ export default function RegisterPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [agreedToTerms, setAgreedToTerms] = useState(false);
-    const router = useRouter();
+    const router = useRouter(); // router é usado em SuccessStep
     const supabase = createClient();
 
     const handleNextStep = (nextStep: string, data: Partial<FormData> = {}) => {
@@ -88,12 +88,11 @@ export default function RegisterPage() {
             return;
         }
         
-        // CORREÇÃO APLICADA AQUI: Usar .upsert() em vez de .update()
         if (user) {
             const { error: profileError } = await supabase
                 .from('profiles')
                 .upsert({
-                    id: user.id, // upsert precisa do id para saber qual linha verificar
+                    id: user.id, 
                     full_name: fullData.fullName,
                     nickname: fullData.nickname,
                     birth_date: fullData.birthDate,
