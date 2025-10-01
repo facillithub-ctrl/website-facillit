@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import createSupabaseServerClient from '@/utils/supabase/server';
 import StudentDashboard from './components/StudentDashboard';
-import TeacherDashboard from './components/TeacherDashboard'; 
+import TeacherDashboard from './components/TeacherDashboard';
 import { 
   getPrompts, 
   getStudentStatistics, 
@@ -9,8 +9,7 @@ import {
   getUserStateRank, 
   getFrequentErrors, 
   getCurrentEvents,
-  getCorrectedEssaysForTeacher,
-  getAdminDashboardData // Importa a nova action
+  getCorrectedEssaysForTeacher
 } from './actions';
 
 export default async function WritePage() {
@@ -29,14 +28,6 @@ export default async function WritePage() {
 
   if (!profile) {
     redirect('/login');
-  }
-
-  // ROTA PARA ADMINISTRADOR
-  if (profile.user_category === 'administrator') {
-    const adminDataResult = await getAdminDashboardData();
-    if (adminDataResult.error || !adminDataResult.data) {
-       return <div>Erro: {adminDataResult.error || 'Não foi possível carregar os dados do administrador.'}</div>;
-    }
   }
 
   // ROTA PARA ALUNO
@@ -95,6 +86,7 @@ export default async function WritePage() {
     );
   }
 
+  // Fallback para qualquer outro perfil
   return (
     <div>
         <h1 className="text-2xl font-bold">Módulo de Redação</h1>

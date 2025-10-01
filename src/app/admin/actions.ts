@@ -27,27 +27,19 @@ export async function getWriteModuleData() {
 
   const supabase = await createSupabaseServerClient();
   
-  const [studentsResult, professorsResult, promptsResult, eventsResult, examsResult] = await Promise.all([
+  const [studentsResult, professorsResult] = await Promise.all([
     supabase.from('profiles').select('id, full_name, user_category, created_at').or('user_category.eq.aluno,user_category.eq.vestibulando'),
-    supabase.from('profiles').select('id, full_name, user_category, is_verified, created_at').eq('user_category', 'professor'),
-    supabase.from('essay_prompts').select('*').order('created_at', { ascending: false }),
-    supabase.from('current_events').select('*').order('created_at', { ascending: false }),
-    supabase.from('exam_dates').select('*').order('exam_date', { ascending: true })
+    supabase.from('profiles').select('id, full_name, user_category, is_verified, created_at').eq('user_category', 'professor')
   ]);
 
-  const error = studentsResult.error || professorsResult.error || promptsResult.error || eventsResult.error || examsResult.error;
-
-  if (error) {
-    return { error: error.message };
+  if (studentsResult.error || professorsResult.error) {
+    return { error: studentsResult.error?.message || professorsResult.error?.message };
   }
 
   return {
     data: {
       students: studentsResult.data,
       professors: professorsResult.data,
-      prompts: promptsResult.data,
-      currentEvents: eventsResult.data,
-      examDates: examsResult.data,
     }
   };
 }
