@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Essay, EssayCorrection, getEssayDetails, getCorrectionForEssay } from '../actions';
+import Image from 'next/image';
 
 type Props = {
   essayId: string;
@@ -9,13 +10,37 @@ type Props = {
 };
 
 type FullEssayDetails = Essay & {
-  correction: (EssayCorrection & { profiles: { full_name: string | null } }) | null;
+  correction: (EssayCorrection & { profiles: { full_name: string | null, is_verified: boolean } }) | null;
   profiles: { full_name: string | null } | null;
+};
+
+const competencyDetails = [
+  { title: "Competência 1: Domínio da Escrita Formal", description: "Avalia o domínio da modalidade escrita formal da língua portuguesa e da norma-padrão." },
+  { title: "Competência 2: Compreensão do Tema e Estrutura", description: "Avalia a compreensão da proposta de redação e a aplicação de conceitos de várias áreas do conhecimento para desenvolver o tema, dentro da estrutura do texto dissertativo-argumentativo." },
+  { title: "Competência 3: Argumentação", description: "Avalia a capacidade de selecionar, relacionar, organizar e interpretar informações, fatos e opiniões em defesa de um ponto de vista." },
+  { title: "Competência 4: Coesão e Coerência", description: "Avalia o uso de mecanismos linguísticos (conjunções, preposições, etc.) para construir uma argumentação coesa e coerente." },
+  { title: "Competência 5: Proposta de Intervenção", description: "Avalia a elaboração de uma proposta de intervenção para o problema abordado, que respeite os direitos humanos." },
+];
+
+const CompetencyModal = ({ competencyIndex, onClose }: { competencyIndex: number | null, onClose: () => void }) => {
+    if (competencyIndex === null) return null;
+    const { title, description } = competencyDetails[competencyIndex];
+
+    return (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center" onClick={onClose}>
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-bold mb-2 dark:text-white-text">{title}</h3>
+                <p className="text-sm text-text-muted dark:text-dark-text-muted">{description}</p>
+                <button onClick={onClose} className="mt-4 bg-royal-blue text-white py-2 px-4 rounded-lg text-sm font-bold">Entendi</button>
+            </div>
+        </div>
+    );
 };
 
 export default function EssayCorrectionView({ essayId, onBack }: Props) {
     const [details, setDetails] = useState<FullEssayDetails | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [modalCompetency, setModalCompetency] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -32,46 +57,70 @@ export default function EssayCorrectionView({ essayId, onBack }: Props) {
         fetchDetails();
     }, [essayId]);
 
-    if (isLoading) return <div>Carregando sua redação...</div>;
-    if (!details) return <div>Não foi possível carregar os detalhes da redação.</div>;
+    if (isLoading) return <div className="text-center p-8">A carregar a sua redação...</div>;
+    if (!details) return <div className="text-center p-8">Não foi possível carregar os detalhes da redação.</div>;
 
-    const { title, content, correction } = details;
+    const { title, content, correction, image_submission_url } = details;
 
     return (
         <div>
+            <CompetencyModal competencyIndex={modalCompetency} onClose={() => setModalCompetency(null)} />
             <button onClick={onBack} className="mb-4 text-sm text-royal-blue font-bold">
                 <i className="fas fa-arrow-left mr-2"></i> Voltar
             </button>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Coluna da Redação */}
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                    <h2 className="font-bold text-xl mb-4">{title}</h2>
-                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{content}</p>
+                <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
+                    <h2 className="font-bold text-xl mb-4 dark:text-white-text">{title}</h2>
+                    {image_submission_url ? (
+                        <div className="relative w-full h-auto">
+                            <Image src={image_submission_url} alt="Redação enviada" width={800} height={1100} className="rounded-lg object-contain"/>
+                        </div>
+                    ) : (
+                        <p className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed">{content}</p>
+                    )}
                 </div>
-                {/* Coluna da Correção */}
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="font-bold text-xl">Correção</h2>
-                        {correction && <div className="text-xl font-bold">Nota Final: {correction.final_grade}</div>}
+                        <h2 className="font-bold text-xl dark:text-white-text">Correção</h2>
+                        {correction && <div className="text-2xl font-bold dark:text-white-text">{correction.final_grade}</div>}
                     </div>
 
                     {correction ? (
                         <div className="space-y-4">
-                            {[1, 2, 3, 4, 5].map(i => (
-                                <div key={i} className="flex justify-between items-center p-2 rounded-md bg-gray-50 dark:bg-gray-700">
-                                    <span className="font-medium text-sm">Competência {i}</span>
-                                    {/* A CORREÇÃO FOI FEITA AQUI */}
-                                    <span className="font-bold text-sm">{correction[`grade_c${i}` as keyof EssayCorrection]}</span>
+                            {competencyDetails.map((_, i) => (
+                                <div key={i} className="flex justify-between items-center p-3 rounded-md bg-gray-50 dark:bg-gray-700/50">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-medium text-sm dark:text-white-text">Competência {i + 1}</span>
+                                        <button onClick={() => setModalCompetency(i)} className="text-xs text-royal-blue">
+                                            <i className="fas fa-info-circle"></i>
+                                        </button>
+                                    </div>
+                                    <span className="font-bold text-sm dark:text-white-text">{correction[`grade_c${i + 1}` as keyof EssayCorrection]}</span>
                                 </div>
                             ))}
                             <div>
-                                <h3 className="font-bold mt-6 mb-2">Feedback do Corretor</h3>
-                                <div className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 p-4 rounded-md whitespace-pre-wrap">{correction.feedback}</div>
-                                <p className="text-xs text-gray-400 mt-2">Corrigido por: {correction.profiles?.full_name}</p>
+                                <h3 className="font-bold mt-6 mb-2 dark:text-white-text">Feedback do Corretor</h3>
+                                {correction.audio_feedback_url && (
+                                    <div className="mb-4">
+                                        <audio controls className="w-full">
+                                            <source src={correction.audio_feedback_url} type="audio/webm" />
+                                            O seu navegador não suporta o elemento de áudio.
+                                        </audio>
+                                    </div>
+                                )}
+                                <div className="text-sm text-gray-700 dark:text-dark-text-muted bg-gray-50 dark:bg-gray-700/50 p-4 rounded-md whitespace-pre-wrap">{correction.feedback}</div>
+                                <div className="text-xs text-gray-400 mt-2 flex items-center gap-2">
+                                    <span>Corrigido por: {correction.profiles?.full_name}</span>
+                                    {correction.profiles?.is_verified && (
+                                        <span className="flex items-center gap-1 text-royal-blue bg-royal-blue/10 px-2 py-0.5 rounded-full font-bold text-xs">
+                                            <i className="fas fa-check-circle"></i> Professor Verificado
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ) : (
-                        <p className="text-center text-gray-500 py-8">Sua redação ainda está na fila para ser corrigida.</p>
+                        <p className="text-center text-gray-500 py-8">A sua redação ainda está na fila para ser corrigida.</p>
                     )}
                 </div>
             </div>

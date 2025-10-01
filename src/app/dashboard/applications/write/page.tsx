@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import createSupabaseServerClient from '@/utils/supabase/server';
 import StudentDashboard from './components/StudentDashboard';
 import TeacherDashboard from './components/TeacherDashboard';
-import { getPrompts, getStudentStatistics, calculateWritingStreak, getUserStateRank } from './actions';
+import { getPrompts, getStudentStatistics, calculateWritingStreak, getUserStateRank, getFrequentErrors, getCurrentEvents } from './actions';
 
 export default async function WritePage() {
   const supabase = await createSupabaseServerClient();
@@ -22,13 +22,16 @@ export default async function WritePage() {
     redirect('/login');
   }
 
+  // Se for aluno, busca todos os dados necessários para o dashboard de uma vez
   if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
     const [
         essaysResult, 
         promptsResult, 
         statsResult, 
         streakResult, 
-        rankResult
+        rankResult,
+        frequentErrorsResult, // Novo
+        currentEventsResult,  // Novo
     ] = await Promise.all([
       supabase
         .from('essays')
@@ -39,20 +42,24 @@ export default async function WritePage() {
       getStudentStatistics(),
       calculateWritingStreak(),
       getUserStateRank(),
+      getFrequentErrors(),     // Novo
+      getCurrentEvents(),      // Novo
     ]);
 
     return (
       <StudentDashboard 
         initialEssays={essaysResult.data || []} 
         prompts={promptsResult.data || []}
-        // CORREÇÃO: Usamos 'statsResult.data ?? null' para garantir que nunca seja undefined
         statistics={statsResult.data ?? null}
         streak={streakResult.data || 0}
         rankInfo={rankResult.data}
+        frequentErrors={frequentErrorsResult.data || []} // Novo
+        currentEvents={currentEventsResult.data || []}  // Novo
       />
     );
   }
 
+  // Se for professor, busca as redações pendentes
   if (['professor', 'gestor'].includes(profile.user_category || '')) {
      const { data: pendingEssays } = await supabase
         .from('essays')
@@ -66,7 +73,7 @@ export default async function WritePage() {
   return (
     <div>
         <h1 className="text-2xl font-bold">Módulo de Redação</h1>
-        <p>Seu perfil não tem acesso a este módulo.</p>
+        <p>O seu perfil não tem acesso a este módulo.</p>
     </div>
   );
 }

@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import createSupabaseServerClient from '@/utils/supabase/server';
 
-// Tipos para facilitar
+// --- TIPOS DE DADOS ---
+
 export type Essay = {
   id: string;
   title: string;
@@ -13,6 +14,7 @@ export type Essay = {
   prompt_id: string | null;
   student_id: string;
   consent_to_ai_training?: boolean;
+  image_submission_url?: string | null; // Adicionado para envio de foto
 };
 
 export type EssayCorrection = {
@@ -26,6 +28,10 @@ export type EssayCorrection = {
     grade_c4: number;
     grade_c5: number;
     final_grade: number;
+    paragraph_comments?: any; // Adicionado para comentários por parágrafo
+    support_links?: string[]; // Adicionado para links de apoio
+    annotations?: any; // Adicionado para anotações em texto/imagem
+    audio_feedback_url?: string | null; // Adicionado para feedback em áudio
 };
 
 export type EssayPrompt = {
@@ -33,9 +39,13 @@ export type EssayPrompt = {
     title: string;
     description: string;
     source: string;
+    image_url?: string | null; // Adicionado para imagem do tema
+    motivational_text?: string | null; // Adicionado para texto de apoio
+    category?: string | null; // Adicionado para categoria do tema
 };
 
-// --- Funções Principais (CRUD) ---
+
+// --- FUNÇÕES CRUD DE REDAÇÃO ---
 
 export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
   const supabase = await createSupabaseServerClient();
@@ -52,6 +62,7 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
     prompt_id: essayData.prompt_id,
     submitted_at: essayData.status === 'submitted' ? new Date().toISOString() : essayData.submitted_at,
     consent_to_ai_training: essayData.consent_to_ai_training,
+    image_submission_url: essayData.image_submission_url,
   };
 
   const { data, error } = await supabase.from('essays').upsert(dataToUpsert).select().single();
@@ -67,7 +78,7 @@ export async function getPrompts(): Promise<{ data?: EssayPrompt[]; error?: stri
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
         .from('essay_prompts')
-        .select('id, title, description, source');
+        .select('id, title, description, source, image_url, motivational_text, category');
     if (error) return { error: error.message };
     return { data: data || [] };
 }
@@ -116,13 +127,13 @@ export async function getLatestEssayForDashboard() {
 }
 
 
-// --- Funções de Correção ---
+// --- FUNÇÕES DE CORREÇÃO ---
 
-export async function getCorrectionForEssay(essayId: string): Promise<{ data?: EssayCorrection & { profiles: { full_name: string | null } }; error?: string }> {
+export async function getCorrectionForEssay(essayId: string): Promise<{ data?: EssayCorrection & { profiles: { full_name: string | null, is_verified: boolean } }; error?: string }> {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
         .from('essay_corrections')
-        .select(`*, profiles (full_name)`)
+        .select(`*, profiles (full_name, is_verified)`)
         .eq('essay_id', essayId)
         .single();
 
@@ -143,7 +154,6 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
     
     if (correctionError) return { error: `Erro ao salvar correção: ${correctionError.message}` };
 
-    // Atualiza o status da redação E busca o ID do estudante
     const { data: essayData, error: essayError } = await supabase
         .from('essays')
         .update({ status: 'corrected' })
@@ -153,14 +163,13 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
     
     if (essayError) return { error: `Erro ao atualizar status da redação: ${essayError.message}` };
     
-    // Cria a notificação para o estudante
     if (essayData && essayData.student_id) {
-        await supabase.from('notifications').insert({
-            user_id: essayData.student_id,
-            title: 'Sua redação foi corrigida!',
-            message: `A redação "${essayData.title || 'sem título'}" já tem um feedback.`,
-            link: `/dashboard/applications/write?essayId=${correctionData.essay_id}`
-        });
+        await createNotification(
+            essayData.student_id,
+            'Sua redação foi corrigida!',
+            `A redação "${essayData.title || 'sem título'}" já tem um feedback.`,
+            `/dashboard/applications/write?essayId=${correctionData.essay_id}`
+        );
     }
 
     revalidatePath('/dashboard/applications/write');
@@ -168,42 +177,29 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
 }
 
 
-// --- Funções de Estatísticas e Ranking ---
+// --- FUNÇÕES DE ESTATÍSTICAS E RANKING ---
 
-/**
- * CORRIGIDO: Esta função agora busca as correções de forma eficiente e correta,
- * consultando primeiro as redações do aluno e depois as correções associadas.
- */
 export async function getStudentStatistics() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Usuário não autenticado.' };
     
-    // Passo 1: Buscar todas as redações corrigidas do aluno com suas correções.
     const { data: correctedEssays, error } = await supabase
         .from('essays')
-        .select(`
-            submitted_at,
-            essay_corrections (
-                final_grade, grade_c1, grade_c2, grade_c3, grade_c4, grade_c5
-            )
-        `)
+        .select(`submitted_at, essay_corrections (final_grade, grade_c1, grade_c2, grade_c3, grade_c4, grade_c5)`)
         .eq('student_id', user.id)
         .eq('status', 'corrected')
-        .not('essay_corrections', 'is', null); // Garante que só venham redações com correção
+        .not('essay_corrections', 'is', null);
 
     if (error || !correctedEssays || correctedEssays.length === 0) {
         return { data: null, error: error?.message };
     }
 
-    // Filtra para garantir que cada redação tenha de fato uma correção (array não vazio)
     const validCorrections = correctedEssays
         .map(essay => ({ ...essay.essay_corrections[0], submitted_at: essay.submitted_at }))
         .filter(correction => correction && correction.final_grade !== undefined);
 
-    if (validCorrections.length === 0) {
-        return { data: null };
-    }
+    if (validCorrections.length === 0) return { data: null };
 
     const totalCorrections = validCorrections.length;
     const initialStats = { sum_final_grade: 0, sum_c1: 0, sum_c2: 0, sum_c3: 0, sum_c4: 0, sum_c5: 0 };
@@ -234,7 +230,7 @@ export async function getStudentStatistics() {
     const pointToImprove = competencyAverages.sort((a, b) => a.average - b.average)[0];
     
     const progression = validCorrections
-        .sort((a, b) => new Date(a.submitted_at!).getTime() - new Date(b.submitted_at!).getTime()) // Ordena por data
+        .sort((a, b) => new Date(a.submitted_at!).getTime() - new Date(b.submitted_at!).getTime())
         .map(c => ({
             date: c.submitted_at ? new Date(c.submitted_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '',
             grade: c.final_grade,
@@ -317,7 +313,8 @@ export async function getUserStateRank() {
 
     return { data: { rank: data, state: userState } };
 }
-// ADICIONE ESTA NOVA FUNÇÃO NO FINAL DO ARQUIVO actions.ts
+
+// --- FUNÇÕES DE NOTIFICAÇÃO E NOVAS FUNÇÕES ---
 
 export async function createNotification(userId: string, title: string, message: string, link: string | null) {
     const supabase = await createSupabaseServerClient();
@@ -334,4 +331,31 @@ export async function createNotification(userId: string, title: string, message:
         console.error('Erro ao criar notificação:', error);
     }
     return { data, error };
+}
+
+export async function getFrequentErrors() {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Usuário não autenticado.' };
+
+    const { data, error } = await supabase.rpc('get_frequent_errors_for_student', { p_student_id: user.id });
+    
+    if (error) {
+        console.error("Erro ao buscar erros frequentes:", error);
+        return { error: error.message };
+    }
+
+    return { data };
+}
+
+export async function getCurrentEvents() {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase
+        .from('current_events')
+        .select('id, title, summary, link')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+    if (error) return { error: error.message };
+    return { data };
 }
