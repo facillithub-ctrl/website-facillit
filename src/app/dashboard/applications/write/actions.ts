@@ -28,9 +28,9 @@ export type EssayCorrection = {
     grade_c4: number;
     grade_c5: number;
     final_grade: number;
-    paragraph_comments?: Record<string, any>; // Corrigido
+    paragraph_comments?: Record<string, unknown>; // Corrigido
     support_links?: string[];
-    annotations?: Record<string, any>; // Corrigido
+    annotations?: Record<string, unknown>; // Corrigido
     audio_feedback_url?: string | null;
 };
 
