@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -8,7 +7,7 @@ type EssayListItem = {
   id: string;
   title: string | null;
   submitted_at: string | null;
-  profiles: { full_name: string | null; } | null; // Alterado para objeto, não array
+  profiles: { full_name: string | null; }[] | null; // Alterado para objeto, não array
   essay_corrections?: { final_grade: number }[] | null; // Adicionado para notas
 };
 
@@ -57,7 +56,7 @@ export default function TeacherDashboard({ pendingEssays, correctedEssays }: Tea
                 <div>
                   <p className="font-bold text-dark-text dark:text-white">{essay.title || "Redação sem título"}</p>
                   <p className="text-sm text-gray-500">
-                    Enviada por {essay.profiles?.full_name || 'Aluno desconhecido'} em {new Date(essay.submitted_at!).toLocaleDateString()}
+                    Enviada por {essay.profiles?.[0]?.full_name || 'Aluno desconhecido'} em {new Date(essay.submitted_at!).toLocaleDateString()}
                   </p>
                 </div>
                 {activeTab === 'corrected' && (
