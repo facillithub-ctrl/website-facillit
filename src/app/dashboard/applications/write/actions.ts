@@ -52,7 +52,7 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return { error: 'Usuário não autenticado.' };
-  
+
   // VALIDAÇÃO ADICIONADA NO BACKEND
   if (essayData.status === 'submitted' && !essayData.consent_to_ai_training) {
     return { error: 'É obrigatório consentir com os termos para enviar a redação.' };
@@ -73,7 +73,7 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
   const { data, error } = await supabase.from('essays').upsert(dataToUpsert).select().single();
 
   if (error) return { error: `Erro ao salvar: ${error.message}` };
-  
+
   revalidatePath('/dashboard/applications/write');
   revalidatePath('/dashboard');
   return { data };
@@ -129,7 +129,7 @@ export async function getLatestEssayForDashboard() {
     .order('created_at', { ascending: false })
     .limit(1)
     .single();
-  
+
   if(error && error.code !== 'PGRST116') return { data: null, error: error.message };
   return { data };
 }
@@ -159,7 +159,7 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
         .from('essay_corrections')
         .insert({ ...correctionData, corrector_id: user.id })
         .select().single();
-    
+
     if (correctionError) return { error: `Erro ao salvar correção: ${correctionError.message}` };
 
     const { data: essayData, error: essayError } = await supabase
@@ -168,9 +168,9 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
         .eq('id', correctionData.essay_id)
         .select('student_id, title')
         .single();
-    
+
     if (essayError) return { error: `Erro ao atualizar status da redação: ${essayError.message}` };
-    
+
     if (essayData && essayData.student_id) {
         await createNotification(
             essayData.student_id,
@@ -191,7 +191,7 @@ export async function getStudentStatistics() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Usuário não autenticado.' };
-    
+
     const { data: correctedEssays, error } = await supabase
         .from('essays')
         .select(`submitted_at, essay_corrections (final_grade, grade_c1, grade_c2, grade_c3, grade_c4, grade_c5)`)
@@ -211,7 +211,7 @@ export async function getStudentStatistics() {
 
     const totalCorrections = validCorrections.length;
     const initialStats = { sum_final_grade: 0, sum_c1: 0, sum_c2: 0, sum_c3: 0, sum_c4: 0, sum_c5: 0 };
-    
+
     const sums = validCorrections.reduce((acc, current) => {
         acc.sum_final_grade += current.final_grade;
         acc.sum_c1 += current.grade_c1;
@@ -228,7 +228,7 @@ export async function getStudentStatistics() {
         avg_c3: sums.sum_c3 / totalCorrections, avg_c4: sums.sum_c4 / totalCorrections,
         avg_c5: sums.sum_c5 / totalCorrections,
     };
-    
+
     const competencyAverages = [
         { name: 'Competência 1', average: averages.avg_c1 }, { name: 'Competência 2', average: averages.avg_c2 },
         { name: 'Competência 3', average: averages.avg_c3 }, { name: 'Competência 4', average: averages.avg_c4 },
@@ -236,7 +236,7 @@ export async function getStudentStatistics() {
     ];
 
     const pointToImprove = competencyAverages.sort((a, b) => a.average - b.average)[0];
-    
+
     const progression = validCorrections
         .sort((a, b) => new Date(a.submitted_at!).getTime() - new Date(b.submitted_at!).getTime())
         .map(c => ({
@@ -265,7 +265,7 @@ export async function calculateWritingStreak() {
         .map(d => new Date(d));
 
     if (dates.length === 0) return { data: 0 };
-    
+
     let streak = 0;
     const today = new Date();
     const yesterday = new Date();
@@ -288,7 +288,7 @@ export async function calculateWritingStreak() {
             }
         }
     }
-    
+
     return { data: streak };
 }
 
@@ -306,7 +306,7 @@ export async function getUserStateRank() {
     if (profileError || !userProfile || !userProfile.address_state) {
         return { data: { rank: null, state: null } };
     }
-    
+
     const userState = userProfile.address_state;
 
     const { data, error } = await supabase.rpc('get_user_rank_in_state', {
@@ -347,7 +347,7 @@ export async function getFrequentErrors() {
     if (!user) return { error: 'Usuário não autenticado.' };
 
     const { data, error } = await supabase.rpc('get_frequent_errors_for_student', { p_student_id: user.id });
-    
+
     if (error) {
         console.error("Erro ao buscar erros frequentes:", error);
         return { error: error.message };
@@ -373,7 +373,7 @@ export async function getCorrectedEssaysForTeacher() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Usuário não autenticado.' };
-  
+
   // Aqui você pode adicionar uma verificação de role/categoria se necessário
 
   const { data, error } = await supabase
