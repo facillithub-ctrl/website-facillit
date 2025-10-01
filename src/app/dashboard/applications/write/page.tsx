@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation';
 import createSupabaseServerClient from '@/utils/supabase/server';
 import StudentDashboard from './components/StudentDashboard';
-import TeacherDashboard from './components/TeacherDashboard';
-import AdminDashboard from './components/AdminDashboard'; // Importa o novo componente
+import TeacherDashboard from './components/TeacherDashboard'; 
 import { 
   getPrompts, 
   getStudentStatistics, 
@@ -38,8 +37,6 @@ export default async function WritePage() {
     if (adminDataResult.error || !adminDataResult.data) {
        return <div>Erro: {adminDataResult.error || 'Não foi possível carregar os dados do administrador.'}</div>;
     }
-    // Passa os dados iniciais para o componente cliente
-    return <AdminDashboard initialData={adminDataResult.data} />;
   }
 
   // ROTA PARA ALUNO

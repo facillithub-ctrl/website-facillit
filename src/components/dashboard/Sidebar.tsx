@@ -20,8 +20,8 @@ const allNavLinks = [
   { href: '/dashboard/applications/test', slug: 'test', icon: 'fa-file-alt', label: 'Facillit Test' },
   { href: '/dashboard/applications/task', slug: 'task', icon: 'fa-tasks', label: 'Facillit Task' },
   { href: '/dashboard/applications/create', slug: 'create', icon: 'fa-lightbulb', label: 'Facillit Create' },
-  // O link do admin já existe, apenas a lógica de exibição mudará
-  { href: '/dashboard/applications/write', slug: 'admin', icon: 'fa-user-shield', label: 'Painel Admin' },
+  // ROTA ATUALIZADA para o novo painel de admin
+  { href: '/admin', slug: 'admin', icon: 'fa-user-shield', label: 'Painel Admin' },
 ];
 
 type SidebarProps = {
@@ -42,7 +42,6 @@ export default function Sidebar({ userProfile, isMobileOpen, setIsMobileOpen, is
     router.refresh();
   };
 
-  // Lógica de filtragem atualizada para incluir a verificação de administrador
   const activeNavLinks = allNavLinks.filter(link => {
     // Sempre mostrar o dashboard
     if (link.slug === 'dashboard') {
@@ -52,11 +51,11 @@ export default function Sidebar({ userProfile, isMobileOpen, setIsMobileOpen, is
     if (link.slug === 'admin') {
       return userProfile.userCategory === 'administrator';
     }
-    // Ocultar o link do Facillit Write para administradores para evitar duplicidade
-    if (link.slug === 'write' && userProfile.userCategory === 'administrator') {
+    // Ocultar os links de módulos regulares para o administrador, se desejado
+    if (userProfile.userCategory === 'administrator') {
       return false;
     }
-    // Para outros links, verificar se estão nos módulos ativos do usuário
+    // Para outros usuários, verificar se o módulo está ativo
     return userProfile.active_modules?.includes(link.slug);
   });
 
