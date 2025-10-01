@@ -13,7 +13,7 @@ export default function CountdownWidget({ targetExam, examDate }: Props) {
   useEffect(() => {
     if (!targetExam || !examDate) return;
 
-    const interval = setInterval(() => {
+    const calculateTimeLeft = () => {
       const now = new Date();
       const target = new Date(examDate);
       const difference = target.getTime() - now.getTime();
@@ -27,36 +27,38 @@ export default function CountdownWidget({ targetExam, examDate }: Props) {
         });
       } else {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        clearInterval(interval);
       }
-    }, 1000);
+    };
+
+    const interval = setInterval(calculateTimeLeft, 1000);
+    calculateTimeLeft(); // Calcula imediatamente
 
     return () => clearInterval(interval);
   }, [targetExam, examDate]);
 
-  if (!targetExam || !examDate || timeLeft.days <= 0) {
+  if (!targetExam || !examDate || (timeLeft.days === 0 && timeLeft.hours === 0 && timeLeft.minutes === 0)) {
     return null;
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow col-span-1 md:col-span-2 lg:col-span-1">
       <h2 className="font-bold mb-2 dark:text-white">Contagem Regressiva: {targetExam}</h2>
       <div className="grid grid-cols-4 text-center">
         <div>
           <p className="text-3xl font-bold text-royal-blue">{timeLeft.days}</p>
-          <p className="text-xs text-text-muted">Dias</p>
+          <p className="text-xs text-text-muted dark:text-gray-400">Dias</p>
         </div>
         <div>
           <p className="text-3xl font-bold text-royal-blue">{timeLeft.hours}</p>
-          <p className="text-xs text-text-muted">Horas</p>
+          <p className="text-xs text-text-muted dark:text-gray-400">Horas</p>
         </div>
         <div>
           <p className="text-3xl font-bold text-royal-blue">{timeLeft.minutes}</p>
-          <p className="text-xs text-text-muted">Min</p>
+          <p className="text-xs text-text-muted dark:text-gray-400">Min</p>
         </div>
         <div>
           <p className="text-3xl font-bold text-royal-blue">{timeLeft.seconds}</p>
-          <p className="text-xs text-text-muted">Seg</p>
+          <p className="text-xs text-text-muted dark:text-gray-400">Seg</p>
         </div>
       </div>
     </div>

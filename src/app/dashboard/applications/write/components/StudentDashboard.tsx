@@ -8,10 +8,11 @@ import EssayEditor from './EssayEditor';
 import EssayCorrectionView from './EssayCorrectionView';
 import StatisticsWidget from './StatisticsWidget';
 import ProgressionChart from './ProgressionChart';
+// Importações atualizadas para o gráfico de pizza
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 // --- TIPOS E PROPS ---
-// (O restante dos tipos permanece o mesmo)
+
 type Stats = {
     totalCorrections: number;
     averages: { avg_final_grade: number; avg_c1: number; avg_c2: number; avg_c3: number; avg_c4: number; avg_c5: number; };
@@ -31,9 +32,7 @@ type Props = {
   rankInfo: RankInfo;
   frequentErrors: FrequentError[];
   currentEvents: CurrentEvent[];
-  targetExam?: string | null; // Adicionado para contagem regressiva
 };
-
 
 // --- WIDGETS E SUB-COMPONENTES ---
 
@@ -77,7 +76,7 @@ const ActionShortcuts = () => (
     </div>
 );
 
-// NOVO GRÁFICO DE PIZZA
+// GRÁFICO DE PIZZA ATUALIZADO
 const FrequentErrorsChart = ({ data }: { data: FrequentError[] }) => {
   if (!data || data.length === 0) return null;
   
@@ -97,16 +96,6 @@ const FrequentErrorsChart = ({ data }: { data: FrequentError[] }) => {
             outerRadius={100}
             fill="#8884d8"
             labelLine={false}
-            label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-              const radius = innerRadius + (outerRadius - innerRadius) * 1.2;
-              const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-              const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-              return (
-                <text x={x} y={y} fill="currentColor" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs text-text-muted dark:text-dark-text-muted">
-                  {`${(percent * 100).toFixed(0)}%`}
-                </text>
-              );
-            }}
           >
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

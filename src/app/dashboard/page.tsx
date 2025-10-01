@@ -1,7 +1,8 @@
 import createSupabaseServerClient from '@/utils/supabase/server';
 import Link from 'next/link';
 import { getLatestEssayForDashboard } from '@/app/dashboard/applications/write/actions';
-import CountdownWidget from './components/CountdownWidget'; // Importe o novo componente
+// O caminho correto usa o alias '@'
+import CountdownWidget from '@/components/dashboard/CountdownWidget'; 
 
 const getWelcomeMessage = (pronoun: string | null | undefined): string => {
   switch (pronoun) {
@@ -44,10 +45,12 @@ const WriteDashboardWidget = ({ lastEssay }: { lastEssay: { id: string, title: s
 export default async function DashboardPage() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) { return null; }
     
     // Busca de dados em paralelo
     const [profileResult, lastEssayResult] = await Promise.all([
-        supabase.from('profiles').select('full_name, pronoun, target_exam').eq('id', user?.id).single(),
+        supabase.from('profiles').select('full_name, pronoun, target_exam').eq('id', user.id).single(),
         getLatestEssayForDashboard()
     ]);
     
@@ -70,7 +73,7 @@ export default async function DashboardPage() {
 
     return (
         <div>
-            <h1 className="text-3xl font-bold text-dark-text mb-4 dark:text-white">Olá, {fullName}!</h1>
+            <h1 className="text-3xl font-bold text-dark-text dark:text-white mb-4">Olá, {fullName}!</h1>
             <p className="text-text-muted dark:text-gray-400">{welcomeMessage}</p>
             
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -51,13 +51,16 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
   };
 
   const handleSave = (status: 'draft' | 'submitted') => {
-    if (status === 'submitted' && !currentEssay.content && !currentEssay.image_submission_url) {
-      alert('Você precisa de escrever um texto ou enviar uma imagem da sua redação para submeter.');
-      return;
-    }
-    if (status === 'submitted' && !consent) {
-      alert('Você precisa de concordar com os termos antes de enviar.');
-      return;
+    // Validação aprimorada
+    if (status === 'submitted') {
+        if (!currentEssay.content && !currentEssay.image_submission_url) {
+            alert('Você precisa de escrever um texto ou enviar uma imagem da sua redação para submeter.');
+            return;
+        }
+        if (!consent) {
+            alert('Você precisa de concordar com os termos antes de enviar.');
+            return;
+        }
     }
 
     startTransition(async () => {
@@ -150,7 +153,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                 <button onClick={() => handleSave('draft')} disabled={isPending} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 disabled:opacity-50">
                     {isPending ? 'A salvar...' : 'Salvar Rascunho'}
                 </button>
-                <button onClick={() => handleSave('submitted')} disabled={isPending} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 disabled:opacity-50">
+                <button onClick={() => handleSave('submitted')} disabled={isPending || (isPending && !consent)} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 disabled:opacity-50">
                     {isPending ? 'A enviar...' : 'Enviar para Correção'}
                 </button>
             </div>
