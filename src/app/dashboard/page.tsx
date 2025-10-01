@@ -2,7 +2,7 @@ import createSupabaseServerClient from '@/utils/supabase/server';
 import Link from 'next/link';
 import { getLatestEssayForDashboard } from '@/app/dashboard/applications/write/actions';
 // O caminho correto usa o alias '@'
-import CountdownWidget from '@/components/dashboard/CountdownWidget'; 
+import CountdownWidget from '@/components/dashboard/CountdownWidget';
 
 const getWelcomeMessage = (pronoun: string | null | undefined): string => {
   switch (pronoun) {
@@ -47,16 +47,16 @@ export default async function DashboardPage() {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) { return null; }
-    
+
     // Busca de dados em paralelo
     const [profileResult, lastEssayResult] = await Promise.all([
         supabase.from('profiles').select('full_name, pronoun, target_exam').eq('id', user.id).single(),
         getLatestEssayForDashboard()
     ]);
-    
+
     const profile = profileResult.data;
     const lastEssay = lastEssayResult.data;
-    
+
     // Busca a data do vestibular se o usuário tiver um selecionado
     let examDate: { name: string, exam_date: string } | null = null;
     if (profile?.target_exam) {
@@ -75,12 +75,32 @@ export default async function DashboardPage() {
         <div>
             <h1 className="text-3xl font-bold text-dark-text dark:text-white mb-4">Olá, {fullName}!</h1>
             <p className="text-text-muted dark:text-gray-400">{welcomeMessage}</p>
-            
+
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Renderiza o Countdown se houver um exame selecionado */}
                 {examDate && <CountdownWidget targetExam={examDate.name} examDate={examDate.exam_date} />}
-                
+
                 <WriteDashboardWidget lastEssay={lastEssay} />
+
+                {/* Aviso de Desenvolvimento e Botão de Feedback */}
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg shadow dark:bg-gray-800 dark:border-yellow-600 md:col-span-2 lg:col-span-1">
+                    <div className="flex">
+                        <div className="flex-shrink-0">
+                            <i className="fas fa-exclamation-triangle text-yellow-500"></i>
+                        </div>
+                        <div className="ml-3">
+                            <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                                Esta plataforma está em desenvolvimento. Bugs podem acontecer.
+                            </p>
+                            <div className="mt-2 text-sm">
+                                <a href="mailto:suporte@facillithub.com.br" className="font-medium text-yellow-700 hover:text-yellow-600 dark:text-yellow-300 dark:hover:text-yellow-200">
+                                    Encontrou algum problema? Envie um feedback.
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
 
                 <div className="bg-white p-6 rounded-lg shadow dark:bg-gray-800">
                     <h2 className="font-bold mb-2 dark:text-white">Próximas Tarefas</h2>
