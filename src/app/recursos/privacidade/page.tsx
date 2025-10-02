@@ -19,12 +19,8 @@ export default function PoliticaDePrivacidadePage() {
                             
                             <div>
                                 <h2 className="text-2xl font-bold text-dark-text mb-4">1. Introdução: Nosso Compromisso com a Sua Privacidade</h2>
-                                <p>
-                                    Este documento, a Política de Privacidade da FACILLIT HUB TECNOLOGIA E EDUCAÇÃO LTDA. ("FACILLIT HUB", "nós"), tem como objetivo informar de maneira clara, transparente e detalhada como coletamos, utilizamos, armazenamos e protegemos os seus dados pessoais. Reconhecemos a importância fundamental da sua privacidade e nos comprometemos a tratar seus dados com o máximo de cuidado, segurança e em estrita conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 - "LGPD") e demais legislações aplicáveis, como o Marco Civil da Internet (Lei nº 12.965/2014) e o Estatuto da Criança e do Adolescente (Lei nº 8.069/1990).
-                                </p>
-                                <p>
-                                    Esta política se aplica a todos os "Usuários" (conforme definido em nossos Termos de Uso) que acessam ou utilizam nossa "Plataforma" o ecossistema digital integrado que inclui os subprodutos Facillit Edu, Facillit Games, Facillit Write e Facillit Day. A leitura atenta e a aceitação desta Política são requisitos indispensáveis para o uso de nossos serviços, sendo este documento parte indissociável dos Termos de Uso.
-                                </p>
+                                <p>Este documento, a Política de Privacidade da FACILLIT HUB TECNOLOGIA E EDUCAÇÃO LTDA. ("FACILLIT HUB", "nós"), tem como objetivo informar de maneira clara, transparente e detalhada como coletamos, utilizamos, armazenamos e protegemos os seus dados pessoais. Reconhecemos a importância fundamental da sua privacidade e nos comprometemos a tratar seus dados com o máximo de cuidado, segurança e em estrita conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 - "LGPD") e demais legislações aplicáveis, como o Marco Civil da Internet (Lei nº 12.965/2014) e o Estatuto da Criança e do Adolescente (Lei nº 8.069/1990).</p>
+                                <p>Esta política se aplica a todos os "Usuários" (conforme definido em nossos Termos de Uso) que acessam ou utilizam nossa "Plataforma" o ecossistema digital integrado que inclui os subprodutos Facillit Edu, Facillit Games, Facillit Write e Facillit Day. A leitura atenta e a aceitação desta Política são requisitos indispensáveis para o uso de nossos serviços, sendo este documento parte indissociável dos Termos de Uso.</p>
                             </div>
 
                             <div>
@@ -42,17 +38,11 @@ export default function PoliticaDePrivacidadePage() {
 
                             <div>
                                 <h2 className="text-2xl font-bold text-dark-text mb-4">3. Nosso Papel no Tratamento dos Seus Dados: Controlador ou Operador?</h2>
-                                <p className="mb-4">
-                                    A LGPD define diferentes responsabilidades dependendo do papel que uma entidade desempenha no tratamento de dados. O seu relacionamento com o FACILLIT HUB determina nosso papel, o que tem implicações diretas sobre como você exerce seus direitos.
-                                </p>
+                                <p className="mb-4">A LGPD define diferentes responsabilidades dependendo do papel que uma entidade desempenha no tratamento de dados. O seu relacionamento com o FACILLIT HUB determina nosso papel, o que tem implicações diretas sobre como você exerce seus direitos.</p>
                                 <h3 className="text-xl font-bold text-dark-text mt-6 mb-2">FACILLIT HUB como Controlador</h3>
-                                <p>
-                                    Atuamos como Controlador dos dados pessoais quando você, como Usuário Individual, se cadastra diretamente em nossa Plataforma. Neste cenário, nós tomamos as decisões sobre quais dados coletar, para quais finalidades e por quanto tempo, sendo o ponto de contato direto para o exercício de todos os seus direitos de titular.
-                                </p>
+                                <p>Atuamos como Controlador dos dados pessoais quando você, como Usuário Individual, se cadastra diretamente em nossa Plataforma. Neste cenário, nós tomamos as decisões sobre quais dados coletar, para quais finalidades e por quanto tempo, sendo o ponto de contato direto para o exercício de todos os seus direitos de titular.</p>
                                 <h3 className="text-xl font-bold text-dark-text mt-6 mb-2">FACILLIT HUB como Operador</h3>
-                                <p>
-                                    Atuamos como Operador quando sua conta é criada, fornecida ou gerenciada por um Usuário Institucional (como uma escola, curso ou empresa). Nesse caso, a dinâmica de responsabilidades é diferente: O Usuário Institucional é o Controlador dos dados. É a instituição que determina as finalidades do tratamento e possui a responsabilidade primária de obter o consentimento legalmente válido de cada usuário vinculado, especialmente o consentimento específico dos pais ou responsáveis legais no caso de crianças e adolescentes. Nós, como Operador, tratamos os dados pessoais estritamente de acordo com as instruções lícitas do Controlador (a instituição) e para as finalidades delimitadas no contrato de prestação de serviços.
-                                </p>
+                                <p>Atuamos como Operador quando sua conta é criada, fornecida ou gerenciada por um Usuário Institucional (como uma escola, curso ou empresa). Nesse caso, a dinâmica de responsabilidades é diferente: O Usuário Institucional é o Controlador dos dados. É a instituição que determina as finalidades do tratamento e possui a responsabilidade primária de obter o consentimento legalmente válido de cada usuário vinculado, especialmente o consentimento específico dos pais ou responsáveis legais no caso de crianças e adolescentes. Nós, como Operador, tratamos os dados pessoais estritamente de acordo com as instruções lícitas do Controlador (a instituição) e para as finalidades delimitadas no contrato de prestação de serviços.</p>
                             </div>
 
                             <div>
@@ -90,19 +80,19 @@ export default function PoliticaDePrivacidadePage() {
                                             <tr>
                                                 <td className="px-4 py-2 border">Conteúdo Gerado pelo Usuário</td>
                                                 <td className="px-4 py-2 border">Redações, anotações, planos de aula, tarefas, comentários, imagens e vídeos enviados para a Plataforma.</td>
-                                                <td className="px-4 py-2 border">1. Operação da Plataforma: Permitir o funcionamento dos serviços. <br/> 2. Pesquisa e Desenvolvimento (P&D) e Treinamento de Inteligência Artificial (IA): Utilizar o conteúdo para treinar, validar e aprimorar nossos algoritmos. <br/> 3. Análise: Entender como os usuários interagem com a plataforma para otimizar a experiência.</td>
-                                                <td className="px-4 py-2 border">1. Inciso V: Execução de contrato. <br/> 2. Inciso V: Execução de contrato e Inciso IX: Legítimo interesse. <br/> 3. Inciso IX: Legítimo interesse.</td>
+                                                <td className="px-4 py-2 border" dangerouslySetInnerHTML={{ __html: '1. Operação da Plataforma: Permitir o funcionamento dos serviços. <br/> 2. Pesquisa e Desenvolvimento (P&D) e Treinamento de Inteligência Artificial (IA): Utilizar o conteúdo para treinar, validar e aprimorar nossos algoritmos. <br/> 3. Análise: Entender como os usuários interagem com a plataforma para otimizar a experiência.' }}></td>
+                                                <td className="px-4 py-2 border" dangerouslySetInnerHTML={{ __html: '1. Inciso V: Execução de contrato. <br/> 2. Inciso V: Execução de contrato e Inciso IX: Legítimo interesse. <br/> 3. Inciso IX: Legítimo interesse.' }}></td>
                                             </tr>
                                             <tr>
                                                 <td className="px-4 py-2 border">Dados de Navegação e Uso (Logs)</td>
                                                 <td className="px-4 py-2 border">Endereço de Protocolo de Internet (IP), data e hora de acesso, tipo de navegador, páginas visitadas.</td>
-                                                <td className="px-4 py-2 border">1. Segurança: Monitorar atividades suspeitas e proteger a plataforma. <br/> 2. Obrigação Legal: Cumprir a obrigação de guarda de registros de acesso do Marco Civil da Internet.</td>
-                                                <td className="px-4 py-2 border">1. Inciso IX: Legítimo interesse. <br/> 2. Inciso II: Cumprimento de obrigação legal.</td>
+                                                <td className="px-4 py-2 border" dangerouslySetInnerHTML={{ __html: '1. Segurança: Monitorar atividades suspeitas e proteger a plataforma. <br/> 2. Obrigação Legal: Cumprir a obrigação de guarda de registros de acesso do Marco Civil da Internet.' }}></td>
+                                                <td className="px-4 py-2 border" dangerouslySetInnerHTML={{ __html: '1. Inciso IX: Legítimo interesse. <br/> 2. Inciso II: Cumprimento de obrigação legal.' }}></td>
                                             </tr>
                                             <tr>
                                                 <td className="px-4 py-2 border">Dados de Dispositivo Móvel (com permissão)</td>
                                                 <td className="px-4 py-2 border">Acesso à galeria de fotos e vídeos; Acesso à localização (opcional).</td>
-                                                <td className="px-4 py-2 border">Galeria: Permitir que o usuário realize o upload de arquivos. <br/> Localização: Ativar funcionalidades opcionais baseadas em geolocalização.</td>
+                                                <td className="px-4 py-2 border" dangerouslySetInnerHTML={{ __html: 'Galeria: Permitir que o usuário realize o upload de arquivos. <br/> Localização: Ativar funcionalidades opcionais baseadas em geolocalização.' }}></td>
                                                 <td className="px-4 py-2 border">Inciso I: Consentimento.</td>
                                             </tr>
                                         </tbody>

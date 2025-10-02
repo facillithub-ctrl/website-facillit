@@ -72,7 +72,7 @@ export default function FacillitWritePage() {
                             <p className="text-text-muted mb-6">
                                 Queremos que você entenda exatamente como seus dados são utilizados para potenciar sua experiência de aprendizado neste módulo. Confira os detalhes sobre o tratamento de dados específico do Facillit Write.
                             </p>
-                            <Link href="/recursos/politica-de-dados#write" className="inline-block bg-transparent text-royal-blue py-3 px-8 rounded-full font-bold border-2 border-royal-blue transition-all duration-300 hover:bg-royal-blue hover:text-white">
+                            <Link href="/recursos/politica-de-dado/page.tsx" className="inline-block bg-transparent text-royal-blue py-3 px-8 rounded-full font-bold border-2 border-royal-blue transition-all duration-300 hover:bg-royal-blue hover:text-white">
                                 Confira a Política de Dados do Módulo
                             </Link>
                         </div>
