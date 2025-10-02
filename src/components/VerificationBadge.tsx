@@ -2,7 +2,7 @@ import React from 'react';
 
 type VerificationBadgeProps = {
   badge: string | null | undefined;
-  size?: '10px' | '16px';
+  size?: '10px' | '12px';
 };
 
 const badgeDetails = {

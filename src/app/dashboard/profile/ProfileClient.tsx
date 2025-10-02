@@ -89,7 +89,7 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
              <AvatarUploader profile={formData} onUploadSuccess={handleAvatarUpload} />
              <div className="flex items-center justify-center gap-2 mt-4">
                 <h2 className="text-xl font-bold dark:text-white">{formData.fullName}</h2>
-                <VerificationBadge badge={formData.verification_badge} size="md" />
+                <VerificationBadge badge={formData.verification_badge} size="12px" />
              </div>
              <p className="text-sm text-text-muted dark:text-gray-400">{userEmail}</p>
           </div>
