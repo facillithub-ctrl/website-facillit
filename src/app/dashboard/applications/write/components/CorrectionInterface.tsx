@@ -86,7 +86,9 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
     const audioChunksRef = useRef<Blob[]>([]);
 
     const [annotations, setAnnotations] = useState<Annotation[]>([]);
-    const [popupState, setPopupState] = useState<{ visible: boolean; x: number; y: number; selection?: Selection }>({ visible: false, x: 0, y: 0 });
+    
+    // CORREÇÃO: Alterado para armazenar o texto da seleção, não o objeto 'Selection' ao vivo.
+    const [popupState, setPopupState] = useState<{ visible: boolean; x: number; y: number; selectionText?: string }>({ visible: false, x: 0, y: 0 });
     const imageContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -181,13 +183,14 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
         return data.publicUrl;
     };
     
+    // CORREÇÃO: Captura o texto da seleção (string) em vez do objeto Selection.
     const handleTextMouseUp = () => {
         const selection = window.getSelection();
-        if (selection && !selection.isCollapsed) {
+        if (selection && !selection.isCollapsed && selection.toString().trim() !== '') {
             const range = selection.getRangeAt(0);
             const rect = range.getBoundingClientRect();
-            setPopupState({ visible: true, x: rect.left + window.scrollX, y: rect.bottom + window.scrollY, selection });
-        } else if (popupState.visible && popupState.selection) {
+            setPopupState({ visible: true, x: rect.left + window.scrollX, y: rect.bottom + window.scrollY, selectionText: selection.toString() });
+        } else if (popupState.visible) {
             setPopupState({ visible: false, x: 0, y: 0 });
         }
     };
@@ -197,17 +200,18 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
             setPopupState({ visible: false, x: 0, y: 0});
             return;
         }
-        setPopupState({ visible: true, x: e.pageX, y: e.pageY, selection: undefined });
+        setPopupState({ visible: true, x: e.pageX, y: e.pageY, selectionText: undefined });
     };
 
+    // CORREÇÃO: Usa 'selectionText' que foi salvo no estado, garantindo que o valor correto seja usado.
     const handleSaveAnnotation = (comment: string, marker: Annotation['marker']) => {
         let newAnnotation: Annotation;
 
-        if (popupState.selection) { 
+        if (popupState.selectionText) { 
             newAnnotation = {
                 id: crypto.randomUUID(),
                 type: 'text',
-                selection: popupState.selection.toString(),
+                selection: popupState.selectionText,
                 comment,
                 marker,
             };
@@ -229,7 +233,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
         setPopupState({ visible: false, x: 0, y: 0 });
     };
     
-
     const handleSubmit = async () => {
         const final_grade = Object.values(grades).reduce((a, b) => a + b, 0);
         if (!feedback) {
@@ -288,7 +291,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
 
     const totalGrade = Object.values(grades).reduce((a, b) => a + b, 0);
 
-    // ALTERADO: Mapeamento de cores para os marcadores de bandeira
     const markerFlagColors = {
         erro: 'text-red-500',
         acerto: 'text-green-500',
@@ -314,7 +316,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                         <div ref={imageContainerRef} onClick={handleImageClick} className="relative w-full h-auto cursor-crosshair">
                             <Image src={essay.image_submission_url} alt="Redação enviada" width={800} height={1100} className="rounded-lg object-contain"/>
                             {annotations.filter(a => a.type === 'image').map(a => (
-                                // ALTERADO: Usando ícone de bandeira
                                 <div key={a.id} className="absolute transform -translate-x-1 -translate-y-4 group text-xl" style={{ left: `${a.position?.x}%`, top: `${a.position?.y}%` }}>
                                     <i className={`fas fa-flag ${markerFlagColors[a.marker]}`}></i>
                                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">

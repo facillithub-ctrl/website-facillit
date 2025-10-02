@@ -19,58 +19,85 @@ const competencyDetails = [
   { title: "Competência 5: Proposta de Intervenção", description: "Avalia a elaboração de uma proposta de intervenção para o problema abordado, que respeite os direitos humanos." },
 ];
 
-// ATUALIZADO: Estilos mais fortes e distintos para os marcadores
 const markerStyles = {
     erro: { flag: 'text-red-500', highlight: 'bg-red-200 dark:bg-red-500/30 border-b-2 border-red-400' },
     acerto: { flag: 'text-green-500', highlight: 'bg-green-200 dark:bg-green-500/30' },
     sugestao: { flag: 'text-blue-500', highlight: 'bg-blue-200 dark:bg-blue-500/30' },
 };
 
-const renderAnnotatedText = (text: string, annotations?: Annotation[] | null) => {
+// FUNÇÃO ATUALIZADA E CORRIGIDA
+const renderAnnotatedText = (text: string, annotations?: Annotation[] | null): React.ReactNode => {
     const textAnnotations = annotations?.filter(a => a.type === 'text' && a.selection) || [];
-    if (!text || textAnnotations.length === 0) {
+    
+    if (!text) return null;
+    if (textAnnotations.length === 0) {
         return text.split('\n\n').map((p, i) => <p key={i} className="mb-4">{p}</p>);
     }
 
-    const escapeHtml = (unsafe: string) => unsafe.replace(/[&<"']/g, (match) => {
-        switch (match) {
-            case '&': return '&amp;';
-            case '<': return '&lt;';
-            case '>': return '&gt;';
-            case '"': return '&quot;';
-            case "'": return '&#039;';
-            default: return match;
+    let remainingText = text;
+    const elements: React.ReactNode[] = [];
+    
+    // Mapeia todas as ocorrências de cada seleção para garantir que a correta seja usada
+    const annotationsWithIndices = textAnnotations.reduce((acc, anno) => {
+        const regex = new RegExp(anno.selection!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+            acc.push({ ...anno, index: match.index });
+        }
+        return acc;
+    }, [] as (Annotation & { index: number })[]).sort((a, b) => a.index - b.index);
+
+    let lastIndex = 0;
+    annotationsWithIndices.forEach((a, i) => {
+        if (a.index >= lastIndex) {
+            const before = text.substring(lastIndex, a.index);
+            if (before) {
+                elements.push(before);
+            }
+
+            elements.push(
+                <mark key={`anno-${i}`} className={`${markerStyles[a.marker].highlight} relative group cursor-pointer px-1 rounded-sm`}>
+                    {a.selection}
+                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">{a.comment}</span>
+                </mark>
+            );
+
+            lastIndex = a.index + a.selection!.length;
         }
     });
 
-    let annotatedHtml = escapeHtml(text);
+    if (lastIndex < text.length) {
+        elements.push(text.substring(lastIndex));
+    }
+    
+    // Junta todos os elementos e depois divide por parágrafos
+    const combined = elements.reduce((acc: (string | React.ReactNode)[], curr) => {
+        if (typeof curr === 'string') {
+            const parts = curr.split('\n\n');
+            parts.forEach((part, index) => {
+                acc.push(part);
+                if (index < parts.length - 1) {
+                    acc.push(<br key={`br-${acc.length}`} />); // Marcador de parágrafo
+                }
+            });
+        } else {
+            acc.push(curr);
+        }
+        return acc;
+    }, []);
 
-    textAnnotations.forEach(a => {
-        const highlightClass = markerStyles[a.marker].highlight;
-        const commentHtml = escapeHtml(a.comment);
-        const selectionHtml = escapeHtml(a.selection!);
-
-        const annotatedSpan = `<mark class="${highlightClass} relative group cursor-pointer px-1 rounded-sm">
-            ${selectionHtml}
-            <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">${commentHtml}</span>
-        </mark>`;
-        
-        // Substitui a primeira ocorrência não marcada ainda
-        const regex = new RegExp(selectionHtml.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
-        let replaced = false;
-        annotatedHtml = annotatedHtml.replace(regex, (match) => {
-            if (!replaced) {
-                replaced = true;
-                return annotatedSpan;
-            }
-            return match;
-        });
+    const paragraphs: React.ReactNode[][] = [[]];
+    combined.forEach(el => {
+        if (typeof el !== 'string' && el?.type === 'br') {
+            paragraphs.push([]);
+        } else {
+            paragraphs[paragraphs.length - 1].push(el);
+        }
     });
-
-    return annotatedHtml.split('\n\n').map((p, i) => 
-        <p key={i} className="mb-4" dangerouslySetInnerHTML={{ __html: p.replace(/\n/g, '<br/>') }} />
-    );
+    
+    return paragraphs.map((p, i) => <p key={`p-${i}`} className="mb-4">{p}</p>);
 };
+
 
 const CompetencyModal = ({ competencyIndex, onClose }: { competencyIndex: number | null, onClose: () => void }) => {
     if (competencyIndex === null) return null;
@@ -87,10 +114,8 @@ const CompetencyModal = ({ competencyIndex, onClose }: { competencyIndex: number
     );
 };
 
-
 // --- COMPONENTE PRINCIPAL ---
-
-export default function EssayCorrectionView({ essayId, onBack }: Props) {
+export default function EssayCorrectionView({ essayId, onBack }: {essayId: string, onBack: () => void}) {
     const [details, setDetails] = useState<FullEssayDetails | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [modalCompetency, setModalCompetency] = useState<number | null>(null);
@@ -131,7 +156,6 @@ export default function EssayCorrectionView({ essayId, onBack }: Props) {
                         <div className="relative w-full h-auto">
                             <Image src={image_submission_url} alt="Redação enviada" width={800} height={1100} className="rounded-lg object-contain"/>
                             {annotations?.filter(a => a.type === 'image').map(a => (
-                                // ALTERADO: Usando ícone de bandeira para o aluno também
                                 <div key={a.id} className="absolute transform -translate-x-1 -translate-y-4 group text-xl" style={{ left: `${a.position?.x}%`, top: `${a.position?.y}%` }}>
                                     <i className={`fas fa-flag ${markerStyles[a.marker].flag}`}></i>
                                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">

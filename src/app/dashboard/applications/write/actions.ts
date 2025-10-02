@@ -17,20 +17,15 @@ export type Essay = {
   image_submission_url?: string | null;
 };
 
-// NOVO: Tipo para uma única anotação
 export type Annotation = {
     id: string;
     type: 'text' | 'image';
     comment: string;
     marker: 'erro' | 'acerto' | 'sugestao';
-    // Para texto
     selection?: string;
-    // Para imagem
     position?: { x: number; y: number };
 };
 
-
-// TIPO ATUALIZADO
 export type EssayCorrection = {
     id: string;
     essay_id: string;
@@ -43,7 +38,7 @@ export type EssayCorrection = {
     grade_c5: number;
     final_grade: number;
     audio_feedback_url?: string | null;
-    annotations?: Annotation[] | null; // NOVO
+    annotations?: Annotation[] | null;
 };
 
 export type EssayPrompt = {
@@ -65,7 +60,6 @@ export type EssayPrompt = {
 
 
 // --- FUNÇÕES DE ALUNO E GERAIS ---
-// (Nenhuma alteração nesta seção, o código permanece o mesmo)
 export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -152,13 +146,9 @@ export async function getLatestEssayForDashboard() {
 
 
 // --- FUNÇÕES DE CORREÇÃO ---
-
-// Copie esta função e substitua a versão antiga no seu arquivo actions.ts
-
 export async function getCorrectionForEssay(essayId: string): Promise<{ data?: EssayCorrection & { profiles: { full_name: string | null, is_verified: boolean }, essay_correction_errors: { common_errors: { error_type: string } }[] }; error?: string }> {
     const supabase = await createSupabaseServerClient();
     
-    // ATUALIZADO: O select agora inclui os 'erros comuns' através da tabela de junção.
     const { data, error } = await supabase
         .from('essay_corrections')
         .select(`
@@ -177,7 +167,6 @@ export async function getCorrectionForEssay(essayId: string): Promise<{ data?: E
     return { data: data || undefined };
 }
 
-// FUNÇÃO ATUALIZADA
 export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id' | 'corrector_id' | 'created_at'>) {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -189,7 +178,7 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
         .insert({ 
             ...correctionData, 
             corrector_id: user.id 
-        }) // O 'correctionData' agora inclui as 'annotations'
+        })
         .select().single();
 
     if (correctionError) return { error: `Erro ao salvar correção: ${correctionError.message}` };
@@ -216,7 +205,6 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
     return { data: correction };
 }
 
-// (O resto do arquivo não precisa de alterações)
 // --- FUNÇÕES DE ESTATÍSTICAS E RANKING ---
 export async function getStudentStatistics() {
     const supabase = await createSupabaseServerClient();

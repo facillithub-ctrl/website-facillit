@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import CorrectionInterface from './CorrectionInterface';
 
+// CORREÇÃO: O tipo 'profiles' foi ajustado de um array para um objeto.
 type EssayListItem = {
   id: string;
   title: string | null;
   submitted_at: string | null;
-  profiles: { full_name: string | null; }[] | null; // Alterado para objeto, não array
-  essay_corrections?: { final_grade: number }[] | null; // Adicionado para notas
+  profiles: { full_name: string | null; } | null; // Alterado de array para objeto
+  essay_corrections?: { final_grade: number }[] | null;
 };
 
 type TeacherDashboardProps = {
@@ -30,7 +31,6 @@ export default function TeacherDashboard({ pendingEssays, correctedEssays }: Tea
     <div>
       <h1 className="text-3xl font-bold text-dark-text dark:text-white mb-6">Painel do Corretor</h1>
       
-      {/* Abas de Navegação */}
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
         <nav className="flex space-x-4" aria-label="Tabs">
           <button
@@ -56,7 +56,8 @@ export default function TeacherDashboard({ pendingEssays, correctedEssays }: Tea
                 <div>
                   <p className="font-bold text-dark-text dark:text-white">{essay.title || "Redação sem título"}</p>
                   <p className="text-sm text-gray-500">
-                    Enviada por {essay.profiles?.[0]?.full_name || 'Aluno desconhecido'} em {new Date(essay.submitted_at!).toLocaleDateString()}
+                    {/* CORREÇÃO: Acessando o nome diretamente do objeto 'profiles'. */}
+                    Enviada por {essay.profiles?.full_name || 'Aluno desconhecido'} em {new Date(essay.submitted_at!).toLocaleDateString()}
                   </p>
                 </div>
                 {activeTab === 'corrected' && (
