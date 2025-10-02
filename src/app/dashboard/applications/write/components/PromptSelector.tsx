@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { EssayPrompt } from '../actions';
+import Image from 'next/image'; // Importado
 
 type Props = {
   prompts: EssayPrompt[];
@@ -27,7 +28,7 @@ const PromptCard = ({ prompt, onSelect }: { prompt: EssayPrompt, onSelect: (p: E
         <div className="bg-white dark:bg-dark-card rounded-lg shadow-md border dark:border-dark-border flex flex-col transition-all hover:shadow-xl hover:-translate-y-1">
             {prompt.image_url && (
                 <div className="relative h-40 w-full">
-                    <img src={prompt.image_url} alt={prompt.title} className="w-full h-full object-cover rounded-t-lg" />
+                    <Image src={prompt.image_url} alt={prompt.title} layout="fill" objectFit="cover" className="rounded-t-lg" />
                     {prompt.cover_image_source && (
                         <span className="absolute bottom-1 right-1 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
                             Fonte: {prompt.cover_image_source}

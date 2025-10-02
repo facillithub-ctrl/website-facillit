@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Essay, EssayPrompt, saveOrUpdateEssay } from '../actions';
 import PromptSelector from './PromptSelector';
 import createClient from '@/utils/supabase/client';
+import Image from 'next/image'; // Importado
 
 type Props = {
   essay: Partial<Essay> | null;
@@ -121,7 +122,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                   {selectedPrompt?.motivational_text_3_image_url && (
                     <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                         <h4 className="font-bold text-xs uppercase text-gray-400 mb-2">TEXTO III</h4>
-                        <img src={selectedPrompt.motivational_text_3_image_url} alt="Texto motivador III" className="w-full max-w-md mx-auto rounded-md mb-2" />
+                        <Image src={selectedPrompt.motivational_text_3_image_url} alt="Texto motivador III" width={500} height={300} className="w-full max-w-md mx-auto rounded-md mb-2" />
                         {selectedPrompt.motivational_text_3_description && (
                             <p className="text-sm text-center text-text-muted dark:text-dark-text-muted italic my-2">{selectedPrompt.motivational_text_3_description}</p>
                         )}
@@ -143,7 +144,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
 
             {currentEssay.image_submission_url ? (
               <div className="text-center p-4 border-2 border-dashed rounded-lg">
-                <img src={currentEssay.image_submission_url} alt="Redação enviada" className="max-w-full max-h-96 mx-auto rounded-lg" />
+                <Image src={currentEssay.image_submission_url} alt="Redação enviada" width={500} height={700} className="max-w-full max-h-96 mx-auto rounded-lg" />
                 <button onClick={() => setCurrentEssay(prev => ({...prev, image_submission_url: null}))} className="mt-4 text-sm text-red-500 font-bold">
                   Remover imagem e escrever
                 </button>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import createClient from '@/utils/supabase/client';
 import { upsertPrompt, deletePrompt } from '../../actions';
 import { EssayPrompt } from '../../actions';
+import Image from 'next/image'; // Importado
 
 type Props = {
     prompts: EssayPrompt[];
@@ -160,7 +161,7 @@ export default function ManagePrompts({ prompts }: Props) {
                                         <div>
                                             <label className="block text-xs font-medium mb-1">Upload da Imagem</label>
                                             <input type="file" onChange={handleMotivationalImageChange} accept="image/*" className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-royal-blue hover:file:bg-blue-100" />
-                                            {currentPrompt?.motivational_text_3_image_url && <img src={currentPrompt.motivational_text_3_image_url} alt="Preview" className="mt-2 h-20 w-auto rounded" />}
+                                            {currentPrompt?.motivational_text_3_image_url && <Image src={currentPrompt.motivational_text_3_image_url} alt="Preview" width={200} height={100} className="mt-2 h-20 w-auto rounded" />}
                                         </div>
                                          <div>
                                             <label className="block text-xs font-medium mb-1">Descrição da Imagem</label>
@@ -202,7 +203,7 @@ export default function ManagePrompts({ prompts }: Props) {
                                 <label className="block text-sm font-medium mb-1">Imagem de Capa</label>
                                 <input type="file" onChange={handleCoverImageChange} accept="image/*" className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-royal-blue hover:file:bg-blue-100" />
                                 {(isUploading && <p className="text-sm text-blue-500 mt-2">Enviando...</p>)}
-                                {currentPrompt?.image_url && <img src={currentPrompt.image_url} alt="Preview da capa" className="mt-2 h-24 w-auto rounded" />}
+                                {currentPrompt?.image_url && <Image src={currentPrompt.image_url} alt="Preview da capa" width={200} height={100} className="mt-2 h-24 w-auto rounded" />}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">Fonte da Imagem de Capa (Opcional)</label>
