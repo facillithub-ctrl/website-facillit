@@ -4,3 +4,20 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# Cabeçalhos de Segurança HTTP Adicionados
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Content-Security-Policy (CSP): Controla quais recursos podem ser carregados.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.supabase.co; style-src 'self' 'unsafe-inline' fonts.googleapis.com cdnjs.cloudflare.com; img-src 'self' data: i.pravatar.cc dcwmqivwwfzlixquspah.supabase.co; font-src 'self' fonts.gstatic.com cdnjs.cloudflare.com; connect-src 'self' *.supabase.co vitals.vercel-insights.com;"
+    # X-Frame-Options: Previne que seu site seja incorporado em iframes (clickjacking).
+    X-Frame-Options = "DENY"
+    # X-Content-Type-Options: Previne que o navegador tente adivinhar o tipo de conteúdo.
+    X-Content-Type-Options = "nosniff"
+    # Referrer-Policy: Controla a quantidade de informação de referência enviada.
+    Referrer-Policy = "origin-when-cross-origin"
+    # Permissions-Policy: Controla o acesso a funcionalidades do navegador.
+    Permissions-Policy = "microphone=('self')"
+    # Strict-Transport-Security (HSTS): Garante que a comunicação seja sempre via HTTPS.
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"

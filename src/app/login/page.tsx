@@ -28,13 +28,26 @@ export default function LoginPage() {
       setError('E-mail ou senha inválidos. Por favor, tente novamente.');
       setIsLoading(false);
     } else {
-      // SUCESSO NO LOGIN
-      // 1. Força a revalidação dos Server Components na rota atual e futura
       router.refresh();
-      // 2. Navega para o dashboard
       router.push('/dashboard');
     }
   };
+
+  // Função para login com provedores OAuth
+  const handleOAuthLogin = async (provider: 'google' | 'azure') => {
+    setIsLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${location.origin}/auth/callback`,
+      },
+    });
+    if (error) {
+      setError(`Erro ao fazer login com ${provider}: ${error.message}`);
+      setIsLoading(false);
+    }
+  };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center" style={{ backgroundImage: "linear-gradient(135deg, #2e14ed 0%, #0c0082 100%)" }}>
@@ -53,6 +66,23 @@ export default function LoginPage() {
             <div className="w-full max-w-sm mx-auto">
               <h2 className="text-2xl font-bold text-center mb-2 text-dark-text">Que bom te ver de novo!</h2>
               <p className="text-text-muted text-center mb-6">Faça login para continuar.</p>
+
+              {/* Botões de OAuth adicionados */}
+              <div className="space-y-3 mb-4">
+                  <button onClick={() => handleOAuthLogin('google')} disabled={isLoading} className="w-full flex items-center justify-center gap-3 py-3 px-4 border rounded-lg hover:bg-gray-50 transition">
+                      <Image src="/assets/images/LOGO/corp/Evolução-do-logótipo-da-Google-2016.jpg" alt="Google logo" width={20} height={20} />
+                      <span className="font-medium">Continuar com Google</span>
+                  </button>
+                  <button onClick={() => handleOAuthLogin('azure')} disabled={isLoading} className="w-full flex items-center justify-center gap-3 py-3 px-4 border rounded-lg hover:bg-gray-50 transition">
+                      {/* Adicione um ícone da Microsoft se desejar */}
+                      <span className="font-medium">Continuar com Microsoft</span>
+                  </button>
+              </div>
+
+              <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t"></span></div>
+                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-white/90 px-2 text-text-muted">Ou continue com</span></div>
+              </div>
               
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
@@ -62,7 +92,6 @@ export default function LoginPage() {
                 <div>
                   <div className="flex justify-between items-center mb-1">
                     <label htmlFor="password" className="block text-sm font-medium text-dark-text">Senha</label>
-                    {/* ATUALIZADO: Link "Esqueci minha senha" */}
                     <Link href="#" className="text-xs text-royal-blue hover:underline">
                       Esqueci minha senha
                     </Link>

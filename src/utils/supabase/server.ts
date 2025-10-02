@@ -16,7 +16,14 @@ export default async function createSupabaseServerClient() {
         },
         set(name: string, value: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value, ...options });
+            cookieStore.set({
+              name,
+              value,
+              ...options,
+              secure: true, // Garante que o cookie seja enviado apenas por HTTPS
+              httpOnly: true, // Impede o acesso ao cookie via JavaScript
+              sameSite: 'lax', // Proteção contra CSRF
+            });
           } catch {
             // Ignorar erros em Server Components é seguro
           }
