@@ -1,3 +1,5 @@
+// Caminho: src/app/login/page.tsx
+
 "use client";
 
 import { useState } from 'react';
@@ -33,7 +35,6 @@ export default function LoginPage() {
     }
   };
 
-  // Função para login com provedores OAuth
   const handleOAuthLogin = async (provider: 'google' | 'azure') => {
     setIsLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
@@ -47,7 +48,6 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center" style={{ backgroundImage: "linear-gradient(135deg, #2e14ed 0%, #0c0082 100%)" }}>
@@ -66,23 +66,6 @@ export default function LoginPage() {
             <div className="w-full max-w-sm mx-auto">
               <h2 className="text-2xl font-bold text-center mb-2 text-dark-text">Que bom te ver de novo!</h2>
               <p className="text-text-muted text-center mb-6">Faça login para continuar.</p>
-
-              {/* Botões de OAuth adicionados */}
-              <div className="space-y-3 mb-4">
-                  <button onClick={() => handleOAuthLogin('google')} disabled={isLoading} className="w-full flex items-center justify-center gap-3 py-3 px-4 border rounded-lg hover:bg-gray-50 transition">
-                      <Image src="/assets/images/LOGO/corp/Evolução-do-logótipo-da-Google-2016.jpg" alt="Google logo" width={20} height={20} />
-                      <span className="font-medium">Continuar com Google</span>
-                  </button>
-                  <button onClick={() => handleOAuthLogin('azure')} disabled={isLoading} className="w-full flex items-center justify-center gap-3 py-3 px-4 border rounded-lg hover:bg-gray-50 transition">
-                      {/* Adicione um ícone da Microsoft se desejar */}
-                      <span className="font-medium">Continuar com Microsoft</span>
-                  </button>
-              </div>
-
-              <div className="relative my-4">
-                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t"></span></div>
-                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-white/90 px-2 text-text-muted">Ou continue com</span></div>
-              </div>
               
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
@@ -105,6 +88,13 @@ export default function LoginPage() {
                   </button>
                 </div>
               </form>
+
+              {/* NOVO: Link para Acesso Institucional */}
+              <Link href="/login/institucional" className="w-full flex items-center justify-center gap-3 py-3 px-4 border rounded-lg hover:bg-gray-50 transition font-medium">
+                  <i className="fas fa-school text-royal-blue"></i>
+                  Acesso Institucional
+              </Link>
+
               <div className="text-sm text-text-muted text-center mt-6">
                 Não tem uma conta? <Link href="/register" className="font-bold text-royal-blue">Crie uma agora</Link>
               </div>
