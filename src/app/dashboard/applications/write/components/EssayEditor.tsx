@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useTransition, useRef } from 'react';
+import { useState, useTransition, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Essay, EssayPrompt, saveOrUpdateEssay } from '../actions';
+import { Essay, EssayPrompt, saveOrUpdateEssay, checkForPlagiarism } from '../actions';
 import PromptSelector from './PromptSelector';
 import createClient from '@/utils/supabase/client';
 import Image from 'next/image';
+import VersionHistory from './VersionHistory';
+import Timer from './Timer';
+import PlagiarismResultModal from './PlagiarismResultModal';
 
 type Props = {
   essay: Partial<Essay> | null;
@@ -20,10 +23,42 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
-
   const [selectedPrompt, setSelectedPrompt] = useState<EssayPrompt | null>(
     prompts.find(p => p.id === essay?.prompt_id) || null
   );
+  const [showHistory, setShowHistory] = useState(false);
+
+  // ESTADOS PARA MODO SIMULADO E PLÁGIO
+  const [isSimulado, setIsSimulado] = useState(false);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isCheckingPlagiarism, setIsCheckingPlagiarism] = useState(false);
+  const [plagiarismResult, setPlagiarismResult] = useState<any | null>(null);
+
+  // Efeito para salvamento automático
+  useEffect(() => {
+    if (isSimulado) {
+      autoSaveTimerRef.current = setInterval(() => {
+        setCurrentEssay(prevEssay => {
+          if(prevEssay.content && prevEssay.id) {
+            console.log("Salvando rascunho automaticamente...");
+            startTransition(async () => {
+              await saveOrUpdateEssay({ ...prevEssay, status: 'draft' });
+            });
+          }
+          return prevEssay;
+        });
+      }, 60000); // Salva a cada 1 minuto
+    } else {
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current);
+      }
+    }
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current);
+      }
+    };
+  }, [isSimulado]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -73,12 +108,45 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
       const result = await saveOrUpdateEssay(updatedData);
       
       if (!result.error) {
+        if(status === 'submitted') setIsSimulado(false); // Desativa o simulado ao enviar
         alert(status === 'draft' ? 'Rascunho salvo com sucesso!' : 'Redação enviada com sucesso!');
-        onBack();
+        if(status === 'submitted') onBack();
       } else {
         alert(`Erro: ${result.error}`);
       }
     });
+  };
+
+  const handleRestoreVersion = (content: string) => {
+      if(confirm("Você tem certeza que quer restaurar esta versão? O conteúdo atual no editor será substituído.")) {
+          setCurrentEssay(prev => ({ ...prev, content }));
+          setShowHistory(false);
+      }
+  };
+
+  const handlePlagiarismCheck = async () => {
+    if (!currentEssay.content || currentEssay.content.trim().length < 100) {
+      alert("Escreva pelo menos 100 caracteres para verificar o plágio.");
+      return;
+    }
+    setIsCheckingPlagiarism(true);
+    const result = await checkForPlagiarism(currentEssay.content);
+    if (result.data) {
+      setPlagiarismResult(result.data);
+    } else {
+      alert(result.error);
+    }
+    setIsCheckingPlagiarism(false);
+  };
+  
+  const handleExport = () => {
+      const blob = new Blob([currentEssay.content || ''], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${currentEssay.title || 'redacao'}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
   };
 
   if (!selectedPrompt && !essay) {
@@ -87,47 +155,18 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
 
   return (
     <div className="relative">
-        <button onClick={onBack} className="mb-4 text-sm text-royal-blue font-bold">
-            <i className="fas fa-arrow-left mr-2"></i> Voltar para minhas redações
-        </button>
+        <PlagiarismResultModal result={plagiarismResult} onClose={() => setPlagiarismResult(null)} />
+        <div className="flex justify-between items-center mb-4">
+            <button onClick={onBack} className="text-sm text-royal-blue font-bold">
+                <i className="fas fa-arrow-left mr-2"></i> Voltar para minhas redações
+            </button>
+            {isSimulado && <Timer isRunning={isSimulado} durationInSeconds={5400} onTimeUp={() => alert("O tempo acabou!")} />}
+        </div>
 
         <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
             <div className="mb-6 pb-6 border-b dark:border-dark-border">
                 <h2 className="text-xl font-bold dark:text-white-text">{selectedPrompt?.title}</h2>
                 <p className="text-sm text-gray-500 dark:text-dark-text-muted">{selectedPrompt?.source}</p>
-                
-                <div className="mt-4 space-y-4">
-                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                      <p className="text-sm text-gray-600 dark:text-dark-text-muted whitespace-pre-wrap">{selectedPrompt?.description}</p>
-                  </div>
-
-                  {selectedPrompt?.motivational_text_1 && (
-                    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <h4 className="font-bold text-xs uppercase text-gray-400 mb-2">TEXTO I</h4>
-                        <p className="text-sm text-text-muted dark:text-dark-text-muted whitespace-pre-wrap">{selectedPrompt.motivational_text_1}</p>
-                    </div>
-                  )}
-
-                  {selectedPrompt?.motivational_text_2 && (
-                    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <h4 className="font-bold text-xs uppercase text-gray-400 mb-2">TEXTO II</h4>
-                        <p className="text-sm text-text-muted dark:text-dark-text-muted whitespace-pre-wrap">{selectedPrompt.motivational_text_2}</p>
-                    </div>
-                  )}
-
-                  {selectedPrompt?.motivational_text_3_image_url && (
-                    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <h4 className="font-bold text-xs uppercase text-gray-400 mb-2">TEXTO III</h4>
-                        <Image src={selectedPrompt.motivational_text_3_image_url} alt="Texto motivador III" width={500} height={300} className="w-full max-w-md mx-auto rounded-md mb-2" />
-                        {selectedPrompt.motivational_text_3_description && (
-                            <p className="text-sm text-center text-text-muted dark:text-dark-text-muted italic my-2">{selectedPrompt.motivational_text_3_description}</p>
-                        )}
-                        {selectedPrompt.motivational_text_3_image_source && (
-                             <p className="text-xs text-center text-gray-400">Fonte: {selectedPrompt.motivational_text_3_image_source}</p>
-                        )}
-                    </div>
-                  )}
-                </div>
             </div>
             
             <input
@@ -162,9 +201,34 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                 </button>
               </>
             )}
+            
+            {currentEssay.id && !currentEssay.image_submission_url && (
+                <div>
+                    <div className="flex flex-wrap items-center gap-4 mt-4">
+                        <button onClick={() => setShowHistory(!showHistory)} className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-royal-blue disabled:opacity-50" disabled={!currentEssay.id}>
+                            <i className="fas fa-history mr-2"></i>{showHistory ? 'Ocultar Histórico' : 'Ver Histórico'}
+                        </button>
+                        <button onClick={handlePlagiarismCheck} disabled={isCheckingPlagiarism} className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-royal-blue disabled:opacity-50">
+                            <i className={`fas ${isCheckingPlagiarism ? 'fa-spinner fa-spin' : 'fa-search'} mr-2`}></i>Verificar Plágio
+                        </button>
+                        <button onClick={handleExport} className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-royal-blue">
+                            <i className="fas fa-file-export mr-2"></i>Exportar
+                        </button>
+                    </div>
+                    {showHistory && <VersionHistory essayId={currentEssay.id} onSelectVersion={handleRestoreVersion} />}
+                </div>
+            )}
 
-            <div className="mt-6">
-                <label className="flex items-center gap-3 cursor-pointer">
+            <div className="mt-6 border-t dark:border-dark-border pt-6">
+                 {!isSimulado && (
+                    <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg mb-6">
+                        <p className="text-sm font-medium mb-2">Deseja praticar em condições de prova?</p>
+                        <button onClick={() => setIsSimulado(true)} className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
+                            <i className="fas fa-stopwatch mr-2"></i> Iniciar Modo Simulado (90 min)
+                        </button>
+                    </div>
+                 )}
+                 <label className="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="h-5 w-5 rounded border-gray-300 text-royal-blue focus:ring-royal-blue" />
                     <span className="text-sm text-gray-600 dark:text-dark-text-muted">
                         Eu li e concordo com a <Link href="/recursos/direito-autoral" target="_blank" className="underline font-bold">Política de Direitos Autorais</Link> e consinto com o uso da minha redação para o treinamento da inteligência artificial.
@@ -174,10 +238,10 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
 
             <div className="mt-6 flex justify-end gap-4">
                 <button onClick={() => handleSave('draft')} disabled={isPending} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 disabled:opacity-50">
-                    {isPending ? 'A salvar...' : 'Salvar Rascunho'}
+                    {isPending ? 'Salvando...' : 'Salvar Rascunho'}
                 </button>
                 <button onClick={() => handleSave('submitted')} disabled={isPending || !consent} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 disabled:opacity-50">
-                    {isPending ? 'A enviar...' : 'Enviar para Correção'}
+                    {isPending ? 'Enviando...' : 'Enviar para Correção'}
                 </button>
             </div>
         </div>

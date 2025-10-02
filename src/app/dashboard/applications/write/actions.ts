@@ -23,7 +23,7 @@ export type Annotation = {
     comment: string;
     marker: 'erro' | 'acerto' | 'sugestao';
     selection?: string;
-    position?: { x: number; y: number };
+    position?: { x: number; y: number; width?: number; height?: number };
 };
 
 export type EssayCorrection = {
@@ -39,7 +39,7 @@ export type EssayCorrection = {
     final_grade: number;
     audio_feedback_url?: string | null;
     annotations?: Annotation[] | null;
-    ai_feedback?: AIFeedback | null; // Adicionado para suportar o feedback da IA
+    ai_feedback?: AIFeedback | null; 
 };
 
 export type EssayPrompt = {
@@ -61,7 +61,6 @@ export type EssayPrompt = {
     tags: string[] | null;
 };
 
-// NOVO: Tipo para o feedback estruturado da IA
 export type AIFeedback = {
   detailed_feedback: { competency: string; feedback: string }[];
   rewrite_suggestions: { original: string; suggestion: string }[];
@@ -80,25 +79,48 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
     return { error: 'É obrigatório consentir com os termos para enviar a redação.' };
   }
 
-  const dataToUpsert = {
-    id: essayData.id,
-    student_id: user.id,
-    title: essayData.title,
-    content: essayData.content,
-    status: essayData.status,
-    prompt_id: essayData.prompt_id,
-    submitted_at: essayData.status === 'submitted' ? new Date().toISOString() : essayData.submitted_at,
-    consent_to_ai_training: essayData.consent_to_ai_training,
-    image_submission_url: essayData.image_submission_url,
-  };
+  const { data: upsertedEssay, error: upsertError } = await supabase
+    .from('essays')
+    .upsert({
+      id: essayData.id,
+      student_id: user.id,
+      title: essayData.title,
+      content: essayData.content,
+      status: essayData.status,
+      prompt_id: essayData.prompt_id,
+      submitted_at: essayData.status === 'submitted' ? new Date().toISOString() : essayData.submitted_at,
+      consent_to_ai_training: essayData.consent_to_ai_training,
+      image_submission_url: essayData.image_submission_url,
+    })
+    .select()
+    .single();
 
-  const { data, error } = await supabase.from('essays').upsert(dataToUpsert).select().single();
+  if (upsertError) return { error: `Erro ao salvar: ${upsertError.message}` };
 
-  if (error) return { error: `Erro ao salvar: ${error.message}` };
+  if (upsertedEssay && essayData.status === 'draft' && essayData.content) {
+    const { count, error: countError } = await supabase
+      .from('essay_versions')
+      .select('*', { count: 'exact', head: true })
+      .eq('essay_id', upsertedEssay.id);
+      
+    if (countError) console.error("Erro ao contar versões:", countError.message);
+    
+    const { error: versionError } = await supabase
+      .from('essay_versions')
+      .insert({
+        essay_id: upsertedEssay.id,
+        content: essayData.content,
+        version_number: (count ?? 0) + 1,
+      });
+
+    if (versionError) {
+      console.error("Erro ao salvar versão da redação:", versionError.message);
+    }
+  }
 
   revalidatePath('/dashboard/applications/write');
   revalidatePath('/dashboard');
-  return { data };
+  return { data: upsertedEssay };
 }
 
 export async function getPrompts(): Promise<{ data?: EssayPrompt[]; error?: string }> {
@@ -159,7 +181,6 @@ export async function getLatestEssayForDashboard() {
 export async function getCorrectionForEssay(essayId: string): Promise<{ data?: (EssayCorrection & { profiles: { full_name: string | null, verification_badge: string | null }, ai_feedback: AIFeedback | null, essay_correction_errors: { common_errors: { error_type: string } }[] }); error?: string }> {
     const supabase = await createSupabaseServerClient();
     
-    // ATUALIZADO: Adicionado 'ai_feedback(*)' para buscar os dados da tabela relacionada.
     const { data, error } = await supabase
         .from('essay_corrections')
         .select(`
@@ -197,7 +218,6 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
 
     if (correctionError) return { error: `Erro ao salvar correção: ${correctionError.message}` };
 
-    // Salva o feedback da IA na tabela 'ai_feedback' se ele existir
     if (ai_feedback) {
         const { error: aiError } = await supabase
             .from('ai_feedback')
@@ -443,10 +463,38 @@ export async function getAIFeedbackForEssay(essayId: string) {
         .eq('essay_id', essayId)
         .single();
     
-    if (error && error.code !== 'PGRST116') { // 'PGRST116' = 'single row not found'
+    if (error && error.code !== 'PGRST116') {
         console.error("Erro ao buscar feedback da IA:", error);
         return { data: null, error: error.message };
     }
 
     return { data };
+}
+
+export async function checkForPlagiarism(text: string): Promise<{ data?: { similarity_percentage: number; matches: { source: string; text: string }[] }; error?: string }> {
+    try {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const hasPlagiarism = Math.random() > 0.5;
+        if (hasPlagiarism) {
+            return {
+                data: {
+                    similarity_percentage: Math.random() * (30 - 5) + 5,
+                    matches: [
+                        { source: "Artigo online 'Exemplo.com'", text: "um trecho simulado encontrado na internet que se parece com o texto do aluno." },
+                        { source: "Redação de outro aluno (ID: XXX)", text: "outro trecho que se assemelha a uma redação já enviada na plataforma." }
+                    ]
+                }
+            };
+        } else {
+            return {
+                data: {
+                    similarity_percentage: Math.random() * 4,
+                    matches: []
+                }
+            };
+        }
+    } catch (error) {
+        return { error: "Não foi possível conectar ao serviço de verificação de plágio." };
+    }
 }

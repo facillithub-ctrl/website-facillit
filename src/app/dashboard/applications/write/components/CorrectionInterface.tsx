@@ -65,7 +65,6 @@ const AnnotationPopup = ({ position, onSave, onClose }: AnnotationPopupProps) =>
 
 
 // --- COMPONENTE PRINCIPAL ---
-
 export default function CorrectionInterface({ essayId, onBack }: { essayId: string; onBack: () => void }) {
     const [essay, setEssay] = useState<EssayWithProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -88,11 +87,15 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
 
     const [annotations, setAnnotations] = useState<Annotation[]>([]);
     
-    const [popupState, setPopupState] = useState<{ visible: boolean; x: number; y: number; selectionText?: string }>({ visible: false, x: 0, y: 0 });
+    const [popupState, setPopupState] = useState<{ visible: boolean; x: number; y: number; selectionText?: string; position?: Annotation['position'] }>({ visible: false, x: 0, y: 0 });
     const imageContainerRef = useRef<HTMLDivElement>(null);
 
     const [aiFeedback, setAIFeedback] = useState<AIFeedback | null>(null);
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [selectionBox, setSelectionBox] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+    const startCoords = useRef<{ x: number, y: number }>({ x: 0, y: 0 });
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -203,18 +206,49 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
         }
     };
 
-    const handleImageClick = (e: MouseEvent<HTMLDivElement>) => {
+    const handleImageMouseDown = (e: MouseEvent<HTMLDivElement>) => {
         if (popupState.visible) {
-            setPopupState({ visible: false, x: 0, y: 0});
+            setPopupState({ visible: false, x: 0, y: 0 });
             return;
         }
-        setPopupState({ visible: true, x: e.pageX, y: e.pageY, selectionText: undefined });
+        setIsDrawing(true);
+        const rect = imageContainerRef.current!.getBoundingClientRect();
+        startCoords.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        setSelectionBox({ x: e.clientX - rect.left, y: e.clientY - rect.top, width: 0, height: 0 });
+    };
+
+    const handleImageMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+        if (!isDrawing) return;
+        const rect = imageContainerRef.current!.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+
+        const x = Math.min(startCoords.current.x, currentX);
+        const y = Math.min(startCoords.current.y, currentY);
+        const width = Math.abs(currentX - startCoords.current.x);
+        const height = Math.abs(currentY - startCoords.current.y);
+        setSelectionBox({ x, y, width, height });
+    };
+
+    const handleImageMouseUp = (e: MouseEvent<HTMLDivElement>) => {
+        setIsDrawing(false);
+        if (selectionBox && (selectionBox.width > 5 || selectionBox.height > 5)) {
+            const rect = imageContainerRef.current!.getBoundingClientRect();
+            const position = {
+                x: (selectionBox.x / rect.width) * 100,
+                y: (selectionBox.y / rect.height) * 100,
+                width: (selectionBox.width / rect.width) * 100,
+                height: (selectionBox.height / rect.height) * 100,
+            };
+            setPopupState({ visible: true, x: e.pageX, y: e.pageY, position });
+        }
+        setSelectionBox(null);
     };
 
     const handleSaveAnnotation = (comment: string, marker: Annotation['marker']) => {
         let newAnnotation: Annotation;
 
-        if (popupState.selectionText) { 
+        if (popupState.selectionText) {
             newAnnotation = {
                 id: crypto.randomUUID(),
                 type: 'text',
@@ -222,31 +256,26 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 comment,
                 marker,
             };
-        } else {
-             if (!imageContainerRef.current) return;
-             const rect = imageContainerRef.current.getBoundingClientRect();
-             const x = ((popupState.x - rect.left - window.scrollX) / rect.width) * 100;
-             const y = ((popupState.y - rect.top - window.scrollY) / rect.height) * 100;
+        } else if (popupState.position) {
             newAnnotation = {
                 id: crypto.randomUUID(),
                 type: 'image',
-                position: { x, y },
+                position: popupState.position,
                 comment,
                 marker,
             };
-        }
+        } else { return; }
         
         setAnnotations(prev => [...prev, newAnnotation]);
         setPopupState({ visible: false, x: 0, y: 0 });
     };
 
     const handleGenerateAIFeedback = async () => {
-        // CORREÇÃO: Verificação mais robusta para conteúdo vazio ou apenas com espaços.
         if (!essay?.content?.trim()) {
             alert("A redação não tem conteúdo de texto para ser analisado. A análise de imagens (OCR) será implementada em breve.");
             return;
         }
-        
+
         setIsGeneratingAI(true);
         try {
             const response = await fetch('/api/generate-feedback', {
@@ -254,15 +283,14 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: essay.content }),
             });
-
+            
             const responseBody = await response.json();
 
             if (!response.ok) {
-                // CORREÇÃO: Exibe a mensagem de erro vinda da API se disponível.
                 const errorMessage = responseBody.error || "Falha ao gerar o feedback da IA.";
                 throw new Error(errorMessage);
             }
-
+            
             setAIFeedback(responseBody);
         } catch (error: any) {
             alert(error.message);
@@ -330,10 +358,10 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
 
     const totalGrade = Object.values(grades).reduce((a, b) => a + b, 0);
 
-    const markerFlagColors = {
-        erro: 'text-red-500',
-        acerto: 'text-green-500',
-        sugestao: 'text-blue-500',
+    const markerStyles = {
+        erro: 'border-red-500',
+        acerto: 'border-green-500',
+        sugestao: 'border-blue-500',
     };
 
     return (
@@ -352,12 +380,23 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                     <p className="text-sm text-gray-500 dark:text-dark-text-muted mb-4">Enviada por: {essay.profiles?.full_name || 'Aluno desconhecido'}</p>
                     
                     {essay.image_submission_url ? (
-                        <div ref={imageContainerRef} onClick={handleImageClick} className="relative w-full h-auto cursor-crosshair">
-                            <Image src={essay.image_submission_url} alt="Redação enviada" width={800} height={1100} className="rounded-lg object-contain"/>
-                            {annotations.filter(a => a.type === 'image').map(a => (
-                                <div key={a.id} className="absolute transform -translate-x-1 -translate-y-4 group text-xl" style={{ left: `${a.position?.x}%`, top: `${a.position?.y}%` }}>
-                                    <i className={`fas fa-flag ${markerFlagColors[a.marker]}`}></i>
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        <div 
+                            ref={imageContainerRef} 
+                            onMouseDown={handleImageMouseDown}
+                            onMouseMove={handleImageMouseMove}
+                            onMouseUp={handleImageMouseUp}
+                            onMouseLeave={() => {setIsDrawing(false); setSelectionBox(null);}}
+                            className="relative w-full h-auto cursor-crosshair"
+                        >
+                            <Image src={essay.image_submission_url} alt="Redação enviada" width={800} height={1100} className="rounded-lg object-contain select-none pointer-events-none" draggable="false" />
+                            
+                            {isDrawing && selectionBox && (
+                                <div className="absolute border-2 border-dashed border-royal-blue bg-royal-blue/20 pointer-events-none" style={{ left: selectionBox.x, top: selectionBox.y, width: selectionBox.width, height: selectionBox.height }} />
+                            )}
+                            
+                            {annotations.filter(a => a.type === 'image' && a.position?.width).map(a => (
+                                <div key={a.id} className={`absolute border-2 bg-yellow-400/20 group pointer-events-none ${markerStyles[a.marker]}`} style={{ left: `${a.position!.x}%`, top: `${a.position!.y}%`, width: `${a.position!.width}%`, height: `${a.position!.height}%` }}>
+                                    <div className="absolute -top-7 left-0 w-max px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
                                         {a.comment}
                                     </div>
                                 </div>
