@@ -18,6 +18,8 @@ export type EssayPrompt = {
     motivational_text_3_description: string | null;
     motivational_text_3_image_url: string | null;
     motivational_text_3_image_source: string | null;
+    difficulty: number | null; // NOVO
+    tags: string[] | null; // NOVO
 };
 
 
@@ -76,7 +78,6 @@ export async function updateUserVerification(userId: string, badge: string | nul
   }
   
   const supabase = await createSupabaseServerClient();
-  // CORREÇÃO: Removido o .single() para evitar o erro de coerção de JSON.
   const { data, error } = await supabase
     .from('profiles')
     .update({ verification_badge: badge, verification_status: badge ? 'approved' : null })
@@ -113,10 +114,14 @@ export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
     if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
     const supabase = await createSupabaseServerClient();
 
-    const cleanedData: { [key: string]: string | boolean | string[] | null | undefined } = {};
+    const cleanedData: { [key: string]: any } = {};
     for (const key in promptData) {
         const value = promptData[key as keyof typeof promptData];
-        cleanedData[key] = value === '' ? null : value;
+        if (key === 'tags' && typeof value === 'string') {
+            cleanedData[key] = value.split(',').map(tag => tag.trim()).filter(Boolean);
+        } else {
+            cleanedData[key] = value === '' ? null : value;
+        }
     }
     
     let result;

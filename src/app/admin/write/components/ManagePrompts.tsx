@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import createClient from '@/utils/supabase/client';
 import { upsertPrompt, deletePrompt } from '../../actions';
 import { EssayPrompt } from '../../actions';
-import Image from 'next/image'; // Importado
+import Image from 'next/image';
 
 type Props = {
     prompts: EssayPrompt[];
@@ -14,6 +14,40 @@ type Props = {
 const categories = [
     'Ciência e Tecnologia', 'Sociedade', 'Meio Ambiente', 'Cultura', 'Educação', 'Saúde', 'Economia', 'Política'
 ];
+
+// NOVO: Componente para o seletor de dificuldade
+const DifficultySelector = ({ value, onChange }: { value: number, onChange: (value: number) => void }) => {
+    const difficulties = [
+        { level: 1, label: 'Muito Fácil' },
+        { level: 2, label: 'Fácil' },
+        { level: 3, label: 'Médio' },
+        { level: 4, label: 'Difícil' },
+        { level: 5, label: 'Muito Difícil' }
+    ];
+    return (
+        <div>
+            <label className="block text-sm font-medium mb-2">Dificuldade</label>
+            <div className="flex space-x-2">
+                {difficulties.map(({ level, label }) => (
+                    <button
+                        key={level}
+                        type="button"
+                        onClick={() => onChange(level)}
+                        className={`w-full text-center px-2 py-1.5 border rounded-md text-xs font-semibold transition-colors ${
+                            value === level
+                                ? 'bg-royal-blue text-white border-royal-blue'
+                                : 'bg-transparent hover:border-royal-blue'
+                        }`}
+                        title={label}
+                    >
+                        {level}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 
 export default function ManagePrompts({ prompts }: Props) {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,12 +58,12 @@ export default function ManagePrompts({ prompts }: Props) {
     const supabase = createClient();
 
     const handleOpenModal = (prompt: Partial<EssayPrompt> | null) => {
-        // Garante que as datas sejam formatadas corretamente para os inputs
         const promptData = prompt ? {
             ...prompt,
             publication_date: prompt.publication_date ? prompt.publication_date.split('T')[0] : '',
             deadline: prompt.deadline ? prompt.deadline.slice(0, 16) : '',
-        } : {};
+            tags: Array.isArray(prompt.tags) ? prompt.tags.join(', ') : '',
+        } : { difficulty: 3, tags: '' };
         setCurrentPrompt(promptData);
         setIsModalOpen(true);
     };
@@ -134,7 +168,7 @@ export default function ManagePrompts({ prompts }: Props) {
                             <button onClick={handleCloseModal} className="text-gray-500">&times;</button>
                         </div>
                         <form id="prompt-form" onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-                            {/* CAMPOS REINTEGRADOS */}
+                            {/* Título e Descrição */}
                             <div>
                                 <label className="block text-sm font-medium mb-1">Título</label>
                                 <input type="text" value={currentPrompt?.title || ''} onChange={e => setCurrentPrompt(p => ({ ...p, title: e.target.value }))} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
@@ -144,7 +178,7 @@ export default function ManagePrompts({ prompts }: Props) {
                                 <textarea rows={4} value={currentPrompt?.description || ''} onChange={e => setCurrentPrompt(p => ({ ...p, description: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
                             </div>
 
-                             {/* SEÇÃO DE TEXTOS MOTIVADORES ATUALIZADA */}
+                             {/* Textos Motivadores */}
                             <div className="space-y-4 rounded-md border dark:border-gray-600 p-4">
                                 <h4 className="font-bold text-md mb-2">Textos Motivadores</h4>
                                 <div>
@@ -175,7 +209,7 @@ export default function ManagePrompts({ prompts }: Props) {
                                 </div>
                             </div>
                             
-                            {/* CAMPOS REINTEGRADOS */}
+                            {/* Fonte e Categoria */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Fonte do Tema (Ex: ENEM 2023)</label>
@@ -183,12 +217,26 @@ export default function ManagePrompts({ prompts }: Props) {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Categoria</label>
-                                    <select value={currentPrompt?.category || ''} onChange={e => setCurrentPrompt(p => ({ ...p, category: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 bg-white dark:bg-gray-700">
+                                    <select value={currentPrompt?.category || ''} onChange={e => setCurrentPrompt(p => ({ ...p, category: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 bg-white">
                                         <option value="">Selecione uma categoria</option>
                                         {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                     </select>
                                 </div>
                             </div>
+                            
+                            {/* Dificuldade e Tags */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                                <DifficultySelector 
+                                    value={currentPrompt?.difficulty || 3}
+                                    onChange={value => setCurrentPrompt(p => ({...p, difficulty: value}))}
+                                />
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Tags (separadas por vírgula)</label>
+                                    <input type="text" value={(currentPrompt?.tags as any) || ''} onChange={e => setCurrentPrompt(p => ({ ...p, tags: e.target.value as any }))} placeholder="Ex: Atualidades, Filosofia" className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                                </div>
+                            </div>
+
+                            {/* Datas */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Data de Publicação</label>
@@ -199,6 +247,8 @@ export default function ManagePrompts({ prompts }: Props) {
                                     <input type="datetime-local" value={currentPrompt?.deadline || ''} onChange={e => setCurrentPrompt(p => ({ ...p, deadline: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
                                 </div>
                             </div>
+                            
+                            {/* Imagem de Capa */}
                              <div>
                                 <label className="block text-sm font-medium mb-1">Imagem de Capa</label>
                                 <input type="file" onChange={handleCoverImageChange} accept="image/*" className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-royal-blue hover:file:bg-blue-100" />

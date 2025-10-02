@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import createClient from '@/utils/supabase/client';
 import type { UserProfile } from '../types';
 import AvatarUploader from './AvatarUploader';
-import { VerificationBadge } from '@/components/VerificationBadge'; // Alterado
+import { VerificationBadge } from '@/components/VerificationBadge';
 
 type Stats = {
     totalCorrections: number;
@@ -24,7 +24,6 @@ type ProfileClientProps = {
 };
 
 export default function ProfileClient({ profile: initialProfile, userEmail, statistics }: ProfileClientProps) {
-  // O resto do código permanece o mesmo, pois a alteração foi apenas na linha de importação.
   const [formData, setFormData] = useState(initialProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -178,7 +177,7 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
               />
             </div>
             <div>
-              <label htmlFor="target_exam" className="text-sm font-bold text-gray-600 dark:text-gray-300">Meu foco é o vestibular:</label>
+              <label htmlFor="target_exam" className="text-sm font-bold text-gray-600 dark:text-gray-300">Meu foco é:</label>
               <select
                 id="target_exam" name="target_exam"
                 value={formData.target_exam || ''}
@@ -191,6 +190,7 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
                 <option value="FUVEST">FUVEST</option>
                 <option value="UNICAMP">UNICAMP</option>
                 <option value="UNESP">UNESP</option>
+                <option value="Concursos">Concursos</option>
               </select>
             </div>
           </div>
