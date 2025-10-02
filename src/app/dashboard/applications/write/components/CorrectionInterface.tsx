@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useTransition, useRef, MouseEvent } from 'react';
-import { Essay, getEssayDetails, submitCorrection, Annotation } from '../actions';
+import { Essay, getEssayDetails, submitCorrection, Annotation, getAIFeedbackForEssay, AIFeedback } from '../actions';
 import Image from 'next/image';
 import createClient from '@/utils/supabase/client';
+import FeedbackTabs from './FeedbackTabs';
 
 // --- SUB-COMPONENTES E TIPOS ---
 
@@ -90,6 +91,9 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
     const [popupState, setPopupState] = useState<{ visible: boolean; x: number; y: number; selectionText?: string }>({ visible: false, x: 0, y: 0 });
     const imageContainerRef = useRef<HTMLDivElement>(null);
 
+    const [aiFeedback, setAIFeedback] = useState<AIFeedback | null>(null);
+    const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+
     useEffect(() => {
         const fetchInitialData = async () => {
             setIsLoading(true);
@@ -104,6 +108,12 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 } else if (result.error) {
                     setError(result.error);
                 }
+                
+                const { data: existingAIFeedback } = await getAIFeedbackForEssay(essayId);
+                if (existingAIFeedback) {
+                    setAIFeedback(existingAIFeedback as AIFeedback);
+                }
+
             } catch (err: unknown) {
                 if (err instanceof Error) {
                     setError(err.message);
@@ -229,6 +239,37 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
         setAnnotations(prev => [...prev, newAnnotation]);
         setPopupState({ visible: false, x: 0, y: 0 });
     };
+
+    const handleGenerateAIFeedback = async () => {
+        // CORREÇÃO: Verificação mais robusta para conteúdo vazio ou apenas com espaços.
+        if (!essay?.content?.trim()) {
+            alert("A redação não tem conteúdo de texto para ser analisado. A análise de imagens (OCR) será implementada em breve.");
+            return;
+        }
+        
+        setIsGeneratingAI(true);
+        try {
+            const response = await fetch('/api/generate-feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: essay.content }),
+            });
+
+            const responseBody = await response.json();
+
+            if (!response.ok) {
+                // CORREÇÃO: Exibe a mensagem de erro vinda da API se disponível.
+                const errorMessage = responseBody.error || "Falha ao gerar o feedback da IA.";
+                throw new Error(errorMessage);
+            }
+
+            setAIFeedback(responseBody);
+        } catch (error: any) {
+            alert(error.message);
+        } finally {
+            setIsGeneratingAI(false);
+        }
+    };
     
     const handleSubmit = async () => {
         const final_grade = Object.values(grades).reduce((a, b) => a + b, 0);
@@ -258,6 +299,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 final_grade,
                 audio_feedback_url: uploadedAudioUrl,
                 annotations,
+                ai_feedback: aiFeedback,
             });
             
             if (!result.error && result.data) {
@@ -353,19 +395,34 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                     </div>
                     
                     <div>
-                        <h3 className="font-bold mb-2 dark:text-white-text">Feedback Geral</h3>
-                        <textarea rows={6} value={feedback} onChange={e => setFeedback(e.target.value)} className="w-full p-2 border rounded-md dark:bg-dark-card dark:border-dark-border dark:text-white-text"></textarea>
-                        <div className="mt-2 flex items-center gap-4">
-                            {!isRecording && !audioUrl && <button onClick={startRecording} className="flex items-center gap-2 text-sm text-royal-blue font-bold"><i className="fas fa-microphone"></i> Gravar áudio de feedback</button>}
-                            {isRecording && <button onClick={stopRecording} className="flex items-center gap-2 text-sm text-red-500 font-bold"><i className="fas fa-stop-circle animate-pulse"></i> A gravar... (clique para parar)</button>}
-                            {audioUrl && (
-                                <div className="flex items-center gap-2 w-full">
-                                    <audio src={audioUrl} controls className="flex-grow"></audio>
-                                    <button onClick={() => { setAudioBlob(null); setAudioUrl(null); }} className="text-red-500"><i className="fas fa-trash"></i></button>
-                                </div>
-                            )}
-                        </div>
+                        <h3 className="font-bold mb-2 dark:text-white-text">Análise com Inteligência Artificial</h3>
+                        {aiFeedback ? (
+                             <div className="p-4 bg-green-50 dark:bg-green-900/20 text-center rounded-lg">
+                                <p className="text-sm text-green-700 dark:text-green-300 font-medium">Análise da IA já foi gerada para esta redação.</p>
+                            </div>
+                        ) : (
+                            <button onClick={handleGenerateAIFeedback} disabled={isGeneratingAI} className="w-full flex items-center justify-center gap-2 py-2 px-4 border-2 border-dashed rounded-lg text-text-muted hover:border-royal-blue hover:text-royal-blue transition disabled:opacity-50">
+                                <i className={`fas ${isGeneratingAI ? 'fa-spinner fa-spin' : 'fa-robot'}`}></i>
+                                {isGeneratingAI ? 'Analisando...' : 'Gerar Análise com IA'}
+                            </button>
+                        )}
                     </div>
+                    
+                    <div className="border-t dark:border-gray-700 pt-4">
+                         <h3 className="font-bold mb-2 dark:text-white-text">Feedback Geral (Humano)</h3>
+                         <textarea rows={6} value={feedback} onChange={e => setFeedback(e.target.value)} className="w-full p-2 border rounded-md dark:bg-dark-card dark:border-dark-border dark:text-white-text"></textarea>
+                         <div className="mt-2 flex items-center gap-4">
+                             {!isRecording && !audioUrl && <button onClick={startRecording} className="flex items-center gap-2 text-sm text-royal-blue font-bold"><i className="fas fa-microphone"></i> Gravar áudio</button>}
+                             {isRecording && <button onClick={stopRecording} className="flex items-center gap-2 text-sm text-red-500 font-bold"><i className="fas fa-stop-circle animate-pulse"></i> A gravar...</button>}
+                             {audioUrl && (
+                                 <div className="flex items-center gap-2 w-full">
+                                     <audio src={audioUrl} controls className="flex-grow"></audio>
+                                     <button onClick={() => { setAudioBlob(null); setAudioUrl(null); }} className="text-red-500"><i className="fas fa-trash"></i></button>
+                                 </div>
+                             )}
+                         </div>
+                    </div>
+
 
                     <button onClick={handleSubmit} disabled={isSubmitting || isUploadingAudio} className="w-full py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-400">
                         {isSubmitting ? 'A enviar...' : isUploadingAudio ? 'A processar áudio...' : 'Enviar Correção'}

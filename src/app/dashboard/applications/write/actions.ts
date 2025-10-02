@@ -39,6 +39,7 @@ export type EssayCorrection = {
     final_grade: number;
     audio_feedback_url?: string | null;
     annotations?: Annotation[] | null;
+    ai_feedback?: AIFeedback | null; // Adicionado para suportar o feedback da IA
 };
 
 export type EssayPrompt = {
@@ -56,6 +57,15 @@ export type EssayPrompt = {
     motivational_text_3_description: string | null;
     motivational_text_3_image_url: string | null;
     motivational_text_3_image_source: string | null;
+    difficulty: number | null;
+    tags: string[] | null;
+};
+
+// NOVO: Tipo para o feedback estruturado da IA
+export type AIFeedback = {
+  detailed_feedback: { competency: string; feedback: string }[];
+  rewrite_suggestions: { original: string; suggestion: string }[];
+  actionable_items: string[];
 };
 
 
@@ -146,14 +156,16 @@ export async function getLatestEssayForDashboard() {
 
 
 // --- FUNÇÕES DE CORREÇÃO ---
-export async function getCorrectionForEssay(essayId: string): Promise<{ data?: EssayCorrection & { profiles: { full_name: string | null, verification_badge: string | null }, essay_correction_errors: { common_errors: { error_type: string } }[] }; error?: string }> {
+export async function getCorrectionForEssay(essayId: string): Promise<{ data?: (EssayCorrection & { profiles: { full_name: string | null, verification_badge: string | null }, ai_feedback: AIFeedback | null, essay_correction_errors: { common_errors: { error_type: string } }[] }); error?: string }> {
     const supabase = await createSupabaseServerClient();
     
+    // ATUALIZADO: Adicionado 'ai_feedback(*)' para buscar os dados da tabela relacionada.
     const { data, error } = await supabase
         .from('essay_corrections')
         .select(`
             *, 
             profiles (full_name, verification_badge),
+            ai_feedback (*), 
             essay_correction_errors (
                 common_errors (error_type)
             )
@@ -163,7 +175,7 @@ export async function getCorrectionForEssay(essayId: string): Promise<{ data?: E
 
     if (error && error.code !== 'PGRST116') return { error: error.message };
     
-    return { data: data || undefined };
+    return { data: data as any || undefined };
 }
 
 export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id' | 'corrector_id' | 'created_at'>) {
@@ -172,15 +184,34 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
 
     if (!user) return { error: 'Usuário não autenticado.' };
 
+    const { ai_feedback, ...humanCorrectionData } = correctionData;
+
     const { data: correction, error: correctionError } = await supabase
         .from('essay_corrections')
         .insert({ 
-            ...correctionData, 
+            ...humanCorrectionData, 
             corrector_id: user.id 
         })
-        .select().single();
+        .select()
+        .single();
 
     if (correctionError) return { error: `Erro ao salvar correção: ${correctionError.message}` };
+
+    // Salva o feedback da IA na tabela 'ai_feedback' se ele existir
+    if (ai_feedback) {
+        const { error: aiError } = await supabase
+            .from('ai_feedback')
+            .insert({
+                essay_id: correctionData.essay_id,
+                detailed_feedback: ai_feedback.detailed_feedback,
+                rewrite_suggestions: ai_feedback.rewrite_suggestions,
+                actionable_items: ai_feedback.actionable_items
+            });
+        
+        if (aiError) {
+            console.error("Erro ao salvar feedback da IA:", aiError);
+        }
+    }
 
     const { data: essayData, error: essayError } = await supabase
         .from('essays')
@@ -398,4 +429,24 @@ export async function getCorrectedEssaysForTeacher() {
 
   if (error) return { error: error.message };
   return { data };
+}
+
+// =============================================================================
+// == NOVAS FUNÇÕES SERÃO ADICIONADAS ABAIXO DESTA LINHA =========================
+// =============================================================================
+
+export async function getAIFeedbackForEssay(essayId: string) {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase
+        .from('ai_feedback')
+        .select('*')
+        .eq('essay_id', essayId)
+        .single();
+    
+    if (error && error.code !== 'PGRST116') { // 'PGRST116' = 'single row not found'
+        console.error("Erro ao buscar feedback da IA:", error);
+        return { data: null, error: error.message };
+    }
+
+    return { data };
 }

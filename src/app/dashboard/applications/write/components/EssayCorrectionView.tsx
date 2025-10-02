@@ -1,20 +1,18 @@
 "use client";
 
 import { useEffect, useState, ReactElement } from 'react';
-import { Essay, EssayCorrection, Annotation, getEssayDetails, getCorrectionForEssay } from '../actions';
+import { Essay, EssayCorrection, Annotation, getEssayDetails, getCorrectionForEssay, AIFeedback } from '../actions';
 import Image from 'next/image';
-import { VerificationBadge } from '@/components/VerificationBadge'; // Alterado
-
-// O resto do código permanece o mesmo, pois a alteração foi apenas na linha de importação e no tipo.
+import { VerificationBadge } from '@/components/VerificationBadge';
+import FeedbackTabs from './FeedbackTabs';
 
 // --- TIPOS E SUB-COMPONENTES ---
 
 type FullEssayDetails = Essay & {
-  correction: (EssayCorrection & { profiles: { full_name: string | null, verification_badge: string | null } }) | null;
+  correction: (EssayCorrection & { profiles: { full_name: string | null, verification_badge: string | null }, ai_feedback: AIFeedback | null }) | null;
   profiles: { full_name: string | null } | null;
 };
 
-// ... (restante do código idêntico ao da resposta anterior)
 const competencyDetails = [
   { title: "Competência 1: Domínio da Escrita Formal", description: "Avalia o domínio da modalidade escrita formal da língua portuguesa e da norma-padrão." },
   { title: "Competência 2: Compreensão do Tema e Estrutura", description: "Avalia a compreensão da proposta de redação e a aplicação de conceitos de várias áreas do conhecimento para desenvolver o tema, dentro da estrutura do texto dissertativo-argumentativo." },
@@ -29,7 +27,6 @@ const markerStyles = {
     sugestao: { flag: 'text-blue-500', highlight: 'bg-blue-200 dark:bg-blue-500/30' },
 };
 
-// FUNÇÃO DE RENDERIZAÇÃO CORRIGIDA E ROBUSTA
 const renderAnnotatedText = (text: string, annotations?: Annotation[] | null): React.ReactNode => {
     const textAnnotations = annotations?.filter(a => a.type === 'text' && a.selection) || [];
     if (!text || textAnnotations.length === 0) {
@@ -71,31 +68,33 @@ const renderAnnotatedText = (text: string, annotations?: Annotation[] | null): R
         nodes.push(text.substring(lastIndex));
     }
 
-    return nodes.reduce((acc: React.ReactNode[], node) => {
+    const paragraphs: React.ReactNode[] = [];
+    let currentParagraph: React.ReactNode[] = [];
+
+    const flushParagraph = () => {
+        if (currentParagraph.length > 0) {
+            paragraphs.push(<p className="mb-4" key={paragraphs.length}>{currentParagraph}</p>);
+            currentParagraph = [];
+        }
+    };
+
+    nodes.forEach(node => {
         if (typeof node === 'string') {
-            const paragraphs = node.split('\n\n').map((paragraphText, index, arr) => (
-                <span key={index}>
-                    {paragraphText}
-                    {index < arr.length - 1 && <br />}
-                </span>
-            ));
-            return [...acc, ...paragraphs];
+            const parts = node.split('\n\n');
+            parts.forEach((part, index) => {
+                currentParagraph.push(part);
+                if (index < parts.length - 1) {
+                    flushParagraph();
+                }
+            });
+        } else {
+            currentParagraph.push(node);
         }
-        return [...acc, node];
-    }, []).map((node, i, allNodes) => {
-        const elementsInParagraph: React.ReactNode[] = [];
-        let currentNode = node as ReactElement;
-        let currentIndex = i;
-        while(currentNode && (currentNode as React.ReactElement)?.type !== 'br') {
-            elementsInParagraph.push(currentNode);
-            currentIndex++;
-            currentNode = allNodes[currentIndex] as ReactElement;
-        }
-        if (elementsInParagraph.length > 0) {
-            return <p key={i} className="mb-4">{elementsInParagraph}</p>
-        }
-        return null;
     });
+
+    flushParagraph();
+
+    return paragraphs;
 };
 
 const CompetencyModal = ({ competencyIndex, onClose }: { competencyIndex: number | null, onClose: () => void }) => {
@@ -190,22 +189,12 @@ export default function EssayCorrectionView({ essayId, onBack }: {essayId: strin
                                     </span>
                                 </div>
                             ))}
-                            <div>
-                                <h3 className="font-bold mt-6 mb-2 dark:text-white-text">Feedback do Corretor</h3>
-                                {correction.audio_feedback_url && (
-                                    <div className="mb-4">
-                                        <audio controls className="w-full">
-                                            <source src={correction.audio_feedback_url} type="audio/webm" />
-                                            O seu navegador não suporta o elemento de áudio.
-                                        </audio>
-                                    </div>
-                                )}
-                                <div className="text-sm text-gray-700 dark:text-dark-text-muted bg-gray-50 dark:bg-gray-700/50 p-4 rounded-md whitespace-pre-wrap">{correction.feedback}</div>
-                                <div className="text-xs text-gray-400 mt-2 flex items-center gap-2">
-                                    <span>Corrigido por: {correction.profiles?.full_name}</span>
-                                    <VerificationBadge badge={correction.profiles?.verification_badge} />
-                                </div>
-                            </div>
+                            <div className="border-t dark:border-gray-700 pt-4">
+                               <FeedbackTabs 
+                                   humanCorrection={correction}
+                                   aiFeedback={correction.ai_feedback || null}
+                               />
+                           </div>
                         </div>
                     ) : (
                         <p className="text-center text-gray-500 py-8">A sua redação ainda está na fila para ser corrigida.</p>

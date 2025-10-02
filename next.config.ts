@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Adiciona a variável de ambiente GOOGLE_API_KEY ao ambiente do servidor
+  env: {
+    GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
+  },
   images: {
     remotePatterns: [
       {
