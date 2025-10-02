@@ -87,7 +87,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
 
     const [annotations, setAnnotations] = useState<Annotation[]>([]);
     
-    // CORREÇÃO: Alterado para armazenar o texto da seleção, não o objeto 'Selection' ao vivo.
     const [popupState, setPopupState] = useState<{ visible: boolean; x: number; y: number; selectionText?: string }>({ visible: false, x: 0, y: 0 });
     const imageContainerRef = useRef<HTMLDivElement>(null);
 
@@ -183,7 +182,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
         return data.publicUrl;
     };
     
-    // CORREÇÃO: Captura o texto da seleção (string) em vez do objeto Selection.
     const handleTextMouseUp = () => {
         const selection = window.getSelection();
         if (selection && !selection.isCollapsed && selection.toString().trim() !== '') {
@@ -203,7 +201,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
         setPopupState({ visible: true, x: e.pageX, y: e.pageY, selectionText: undefined });
     };
 
-    // CORREÇÃO: Usa 'selectionText' que foi salvo no estado, garantindo que o valor correto seja usado.
     const handleSaveAnnotation = (comment: string, marker: Annotation['marker']) => {
         let newAnnotation: Annotation;
 

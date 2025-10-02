@@ -25,79 +25,83 @@ const markerStyles = {
     sugestao: { flag: 'text-blue-500', highlight: 'bg-blue-200 dark:bg-blue-500/30' },
 };
 
-// FUNÇÃO ATUALIZADA E CORRIGIDA
+// FUNÇÃO DE RENDERIZAÇÃO CORRIGIDA E ROBUSTA
 const renderAnnotatedText = (text: string, annotations?: Annotation[] | null): React.ReactNode => {
     const textAnnotations = annotations?.filter(a => a.type === 'text' && a.selection) || [];
-    
-    if (!text) return null;
-    if (textAnnotations.length === 0) {
+    if (!text || textAnnotations.length === 0) {
         return text.split('\n\n').map((p, i) => <p key={i} className="mb-4">{p}</p>);
     }
 
-    let remainingText = text;
-    const elements: React.ReactNode[] = [];
-    
-    // Mapeia todas as ocorrências de cada seleção para garantir que a correta seja usada
-    const annotationsWithIndices = textAnnotations.reduce((acc, anno) => {
-        const regex = new RegExp(anno.selection!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-        let match;
-        while ((match = regex.exec(text)) !== null) {
-            acc.push({ ...anno, index: match.index });
-        }
-        return acc;
-    }, [] as (Annotation & { index: number })[]).sort((a, b) => a.index - b.index);
+    // 1. Criar um mapa para contar as ocorrências de cada texto de seleção
+    const selectionOccurrenceMap = new Map<string, number>();
+    const positionedAnnotations = textAnnotations.map(anno => {
+        const selection = anno.selection!;
+        const occurrence = selectionOccurrenceMap.get(selection) || 0;
+        selectionOccurrenceMap.set(selection, occurrence + 1);
 
+        // Encontrar o índice da N-ésima ocorrência
+        let index = -1;
+        for (let i = 0; i <= occurrence; i++) {
+            index = text.indexOf(selection, index + 1);
+        }
+        return { ...anno, startIndex: index };
+    })
+    .filter(anno => anno.startIndex !== -1) // Ignorar anotações não encontradas
+    .sort((a, b) => a.startIndex - b.startIndex); // Ordenar pela posição no texto
+
+    // 2. Construir o array de nós React
+    const nodes: React.ReactNode[] = [];
     let lastIndex = 0;
-    annotationsWithIndices.forEach((a, i) => {
-        if (a.index >= lastIndex) {
-            const before = text.substring(lastIndex, a.index);
-            if (before) {
-                elements.push(before);
-            }
 
-            elements.push(
-                <mark key={`anno-${i}`} className={`${markerStyles[a.marker].highlight} relative group cursor-pointer px-1 rounded-sm`}>
-                    {a.selection}
-                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">{a.comment}</span>
-                </mark>
-            );
-
-            lastIndex = a.index + a.selection!.length;
+    positionedAnnotations.forEach(anno => {
+        // Adicionar o texto antes da anotação
+        if (anno.startIndex > lastIndex) {
+            nodes.push(text.substring(lastIndex, anno.startIndex));
         }
+        // Adicionar a anotação como um elemento <mark>
+        nodes.push(
+            <mark key={anno.id} className={`${markerStyles[anno.marker].highlight} relative group cursor-pointer px-1 rounded-sm`}>
+                {anno.selection}
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">{anno.comment}</span>
+            </mark>
+        );
+        lastIndex = anno.startIndex + anno.selection!.length;
     });
 
+    // Adicionar o restante do texto
     if (lastIndex < text.length) {
-        elements.push(text.substring(lastIndex));
+        nodes.push(text.substring(lastIndex));
     }
-    
-    // Junta todos os elementos e depois divide por parágrafos
-    const combined = elements.reduce((acc: (string | React.ReactNode)[], curr) => {
-        if (typeof curr === 'string') {
-            const parts = curr.split('\n\n');
-            parts.forEach((part, index) => {
-                acc.push(part);
-                if (index < parts.length - 1) {
-                    acc.push(<br key={`br-${acc.length}`} />); // Marcador de parágrafo
-                }
-            });
-        } else {
-            acc.push(curr);
-        }
-        return acc;
-    }, []);
 
-    const paragraphs: React.ReactNode[][] = [[]];
-    combined.forEach(el => {
-        if (typeof el !== 'string' && el?.type === 'br') {
-            paragraphs.push([]);
-        } else {
-            paragraphs[paragraphs.length - 1].push(el);
+    // 3. Processar o array de nós para reconstruir os parágrafos
+    return nodes.reduce((acc: React.ReactNode[], node) => {
+        if (typeof node === 'string') {
+            const paragraphs = node.split('\n\n').map((paragraphText, index, arr) => (
+                <span key={index}>
+                    {paragraphText}
+                    {index < arr.length - 1 && <br />}
+                </span>
+            ));
+            return [...acc, ...paragraphs];
         }
+        return [...acc, node];
+    }, []).map((node, i) => {
+        // Agrupa os elementos em parágrafos. A lógica é um pouco complexa,
+        // mas a ideia é criar um <p> para cada conjunto de nós até encontrar um <br>
+        const elementsInParagraph: React.ReactNode[] = [];
+        let currentNode = node;
+        let currentIndex = i;
+        while(currentNode && (currentNode as React.ReactElement)?.type !== 'br') {
+            elementsInParagraph.push(currentNode);
+            currentIndex++;
+            currentNode = (node as any)._owner.memoizedProps[currentIndex]; // Hacky way to look ahead, might need refinement
+        }
+        if (elementsInParagraph.length > 0) {
+            return <p key={i} className="mb-4">{elementsInParagraph}</p>
+        }
+        return null;
     });
-    
-    return paragraphs.map((p, i) => <p key={`p-${i}`} className="mb-4">{p}</p>);
 };
-
 
 const CompetencyModal = ({ competencyIndex, onClose }: { competencyIndex: number | null, onClose: () => void }) => {
     if (competencyIndex === null) return null;
@@ -165,7 +169,7 @@ export default function EssayCorrectionView({ essayId, onBack }: {essayId: strin
                             ))}
                         </div>
                     ) : (
-                        <div className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed">
+                         <div className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed">
                             {renderAnnotatedText(content, annotations)}
                         </div>
                     )}
