@@ -51,7 +51,6 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
   };
 
   const handleSave = (status: 'draft' | 'submitted') => {
-    // Validação aprimorada
     if (status === 'submitted') {
         if (!currentEssay.content && !currentEssay.image_submission_url) {
             alert('Você precisa de escrever um texto ou enviar uma imagem da sua redação para submeter.');
@@ -95,15 +94,42 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
             <div className="mb-6 pb-6 border-b dark:border-dark-border">
                 <h2 className="text-xl font-bold dark:text-white-text">{selectedPrompt?.title}</h2>
                 <p className="text-sm text-gray-500 dark:text-dark-text-muted">{selectedPrompt?.source}</p>
+                
+                {/* ALTERADO: Renderização dos novos textos motivadores */}
                 <div className="mt-4 space-y-4">
-                  {selectedPrompt?.motivational_text && (
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                      <p className="text-sm text-gray-600 dark:text-dark-text-muted whitespace-pre-wrap">{selectedPrompt?.description}</p>
+                  </div>
+
+                  {/* TEXTO I */}
+                  {selectedPrompt?.motivational_text_1 && (
                     <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <p className="text-sm text-text-muted dark:text-dark-text-muted italic">{selectedPrompt.motivational_text}</p>
+                        <h4 className="font-bold text-xs uppercase text-gray-400 mb-2">TEXTO I</h4>
+                        <p className="text-sm text-text-muted dark:text-dark-text-muted whitespace-pre-wrap">{selectedPrompt.motivational_text_1}</p>
                     </div>
                   )}
-                   <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                      <p className="text-sm text-gray-600 dark:text-dark-text-muted whitespace-pre-wrap">{selectedPrompt?.description}</p>
-                   </div>
+
+                  {/* TEXTO II */}
+                  {selectedPrompt?.motivational_text_2 && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <h4 className="font-bold text-xs uppercase text-gray-400 mb-2">TEXTO II</h4>
+                        <p className="text-sm text-text-muted dark:text-dark-text-muted whitespace-pre-wrap">{selectedPrompt.motivational_text_2}</p>
+                    </div>
+                  )}
+
+                  {/* TEXTO III (IMAGEM) */}
+                  {selectedPrompt?.motivational_text_3_image_url && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <h4 className="font-bold text-xs uppercase text-gray-400 mb-2">TEXTO III</h4>
+                        <img src={selectedPrompt.motivational_text_3_image_url} alt="Texto motivador III" className="w-full max-w-md mx-auto rounded-md mb-2" />
+                        {selectedPrompt.motivational_text_3_description && (
+                            <p className="text-sm text-center text-text-muted dark:text-dark-text-muted italic my-2">{selectedPrompt.motivational_text_3_description}</p>
+                        )}
+                        {selectedPrompt.motivational_text_3_image_source && (
+                             <p className="text-xs text-center text-gray-400">Fonte: {selectedPrompt.motivational_text_3_image_source}</p>
+                        )}
+                    </div>
+                  )}
                 </div>
             </div>
             

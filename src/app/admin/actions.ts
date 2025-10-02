@@ -3,18 +3,21 @@
 import { revalidatePath } from 'next/cache';
 import createSupabaseServerClient from '@/utils/supabase/server';
 
-// NOVO: Tipo EssayPrompt atualizado para incluir os novos campos
 export type EssayPrompt = {
     id: string;
     title: string;
     description: string | null;
     source: string | null;
     image_url: string | null;
-    motivational_text: string | null;
     category: string | null;
-    publication_date: string | null; // NOVO
-    deadline: string | null;         // NOVO
-    cover_image_source: string | null; // NOVO
+    publication_date: string | null;
+    deadline: string | null;
+    cover_image_source: string | null;
+    motivational_text_1: string | null;
+    motivational_text_2: string | null;
+    motivational_text_3_description: string | null;
+    motivational_text_3_image_url: string | null;
+    motivational_text_3_image_source: string | null;
 };
 
 
@@ -86,30 +89,51 @@ export async function updateProfessorVerification(professorId: string, isVerifie
   return { data };
 }
 
+// ALTERADO: Função de upsert mais robusta
 export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
     if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
     const supabase = await createSupabaseServerClient();
 
-    // Limpa campos vazios para não salvar strings vazias no banco
-    const cleanedData = { ...promptData };
-    for (const key in cleanedData) {
-        if (cleanedData[key as keyof typeof cleanedData] === '') {
-            cleanedData[key as keyof typeof cleanedData] = null;
-        }
+    // 1. Limpa os dados: transforma strings vazias em null e remove propriedades undefined
+    const cleanedData: { [key: string]: any } = {};
+    for (const key in promptData) {
+        const value = promptData[key as keyof typeof promptData];
+        cleanedData[key] = value === '' ? null : value;
     }
     
-    const { data, error } = await supabase
-        .from('essay_prompts')
-        .upsert(cleanedData)
-        .select()
-        .single();
+    let result;
+    // 2. Decide se é uma operação de UPDATE ou INSERT
+    if (cleanedData.id) {
+        // Se tem ID, é um UPDATE
+        const { id, ...updateData } = cleanedData;
+        result = await supabase
+            .from('essay_prompts')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+    } else {
+        // Se não tem ID, é um INSERT
+        result = await supabase
+            .from('essay_prompts')
+            .insert(cleanedData)
+            .select()
+            .single();
+    }
 
-    if (error) return { error: `Erro no upsert: ${error.message}` };
+    const { data, error } = result;
 
+    if (error) {
+        console.error("Erro no Supabase ao salvar o tema:", error); // Log do erro no servidor
+        return { error: `Erro ao salvar no banco de dados: ${error.message}` };
+    }
+
+    // 3. Revalida os caches para que as páginas sejam atualizadas com os novos dados
     revalidatePath('/admin/write');
     revalidatePath('/dashboard/applications/write');
     return { data };
 }
+
 
 export async function deletePrompt(promptId: string) {
     if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
@@ -123,7 +147,6 @@ export async function deletePrompt(promptId: string) {
     return { success: true };
 }
 
-// ... O resto das funções (upsertCurrentEvent, upsertExamDate) continua igual
 export async function upsertCurrentEvent(eventData: { id?: string; title: string; summary: string; link: string; }) {
     if (!(await isAdmin())) return { error: 'Acesso não autenticado.' };
     const supabase = await createSupabaseServerClient();

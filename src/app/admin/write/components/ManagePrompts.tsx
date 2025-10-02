@@ -4,13 +4,12 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import createClient from '@/utils/supabase/client';
 import { upsertPrompt, deletePrompt } from '../../actions';
-import { EssayPrompt } from '../../actions'; // ALTERADO: Importando o tipo atualizado
+import { EssayPrompt } from '../../actions';
 
 type Props = {
     prompts: EssayPrompt[];
 };
 
-// NOVO: Lista de categorias pré-definidas (deve corresponder ao ENUM do SQL)
 const categories = [
     'Ciência e Tecnologia', 'Sociedade', 'Meio Ambiente', 'Cultura', 'Educação', 'Saúde', 'Economia', 'Política'
 ];
@@ -24,7 +23,13 @@ export default function ManagePrompts({ prompts }: Props) {
     const supabase = createClient();
 
     const handleOpenModal = (prompt: Partial<EssayPrompt> | null) => {
-        setCurrentPrompt(prompt || { title: '', description: '', motivational_text: '' });
+        // Garante que as datas sejam formatadas corretamente para os inputs
+        const promptData = prompt ? {
+            ...prompt,
+            publication_date: prompt.publication_date ? prompt.publication_date.split('T')[0] : '',
+            deadline: prompt.deadline ? prompt.deadline.slice(0, 16) : '',
+        } : {};
+        setCurrentPrompt(promptData);
         setIsModalOpen(true);
     };
 
@@ -48,7 +53,7 @@ export default function ManagePrompts({ prompts }: Props) {
 
     const handleFileUpload = async (file: File): Promise<string | null> => {
         setIsUploading(true);
-        const filePath = `public/${Date.now()}-${file.name}`;
+        const filePath = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '')}`;
 
         const { error: uploadError } = await supabase.storage
             .from('essay_prompts')
@@ -71,6 +76,15 @@ export default function ManagePrompts({ prompts }: Props) {
         const publicUrl = await handleFileUpload(file);
         if (publicUrl) {
             setCurrentPrompt(prev => ({ ...prev, image_url: publicUrl }));
+        }
+    };
+
+    const handleMotivationalImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const publicUrl = await handleFileUpload(file);
+        if (publicUrl) {
+            setCurrentPrompt(prev => ({ ...prev, motivational_text_3_image_url: publicUrl }));
         }
     };
     
@@ -113,39 +127,67 @@ export default function ManagePrompts({ prompts }: Props) {
 
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                        <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                    <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+                        <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center flex-shrink-0">
                             <h3 className="text-lg font-bold">{currentPrompt?.id ? 'Editar Tema' : 'Novo Tema'}</h3>
                             <button onClick={handleCloseModal} className="text-gray-500">&times;</button>
                         </div>
                         <form id="prompt-form" onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+                            {/* CAMPOS REINTEGRADOS */}
                             <div>
                                 <label className="block text-sm font-medium mb-1">Título</label>
                                 <input type="text" value={currentPrompt?.title || ''} onChange={e => setCurrentPrompt(p => ({ ...p, title: e.target.value }))} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">Texto da Proposta (Descrição)</label>
-                                <textarea rows={5} value={currentPrompt?.description || ''} onChange={e => setCurrentPrompt(p => ({ ...p, description: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                                <textarea rows={4} value={currentPrompt?.description || ''} onChange={e => setCurrentPrompt(p => ({ ...p, description: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Textos Motivadores (suporta Markdown)</label>
-                                <textarea rows={5} value={currentPrompt?.motivational_text || ''} onChange={e => setCurrentPrompt(p => ({ ...p, motivational_text: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+
+                             {/* SEÇÃO DE TEXTOS MOTIVADORES ATUALIZADA */}
+                            <div className="space-y-4 rounded-md border dark:border-gray-600 p-4">
+                                <h4 className="font-bold text-md mb-2">Textos Motivadores</h4>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Texto Motivador I</label>
+                                    <textarea rows={3} value={currentPrompt?.motivational_text_1 || ''} onChange={e => setCurrentPrompt(p => ({ ...p, motivational_text_1: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Texto Motivador II</label>
+                                    <textarea rows={3} value={currentPrompt?.motivational_text_2 || ''} onChange={e => setCurrentPrompt(p => ({ ...p, motivational_text_2: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                                </div>
+                                <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                                    <label className="block text-sm font-medium mb-2">Texto Motivador III (Imagem)</label>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block text-xs font-medium mb-1">Upload da Imagem</label>
+                                            <input type="file" onChange={handleMotivationalImageChange} accept="image/*" className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-royal-blue hover:file:bg-blue-100" />
+                                            {currentPrompt?.motivational_text_3_image_url && <img src={currentPrompt.motivational_text_3_image_url} alt="Preview" className="mt-2 h-20 w-auto rounded" />}
+                                        </div>
+                                         <div>
+                                            <label className="block text-xs font-medium mb-1">Descrição da Imagem</label>
+                                            <textarea rows={2} value={currentPrompt?.motivational_text_3_description || ''} onChange={e => setCurrentPrompt(p => ({ ...p, motivational_text_3_description: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                                        </div>
+                                         <div>
+                                            <label className="block text-xs font-medium mb-1">Fonte da Imagem</label>
+                                            <input type="text" value={currentPrompt?.motivational_text_3_image_source || ''} onChange={e => setCurrentPrompt(p => ({ ...p, motivational_text_3_image_source: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+                            
+                            {/* CAMPOS REINTEGRADOS */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Fonte (Ex: ENEM 2023)</label>
+                                    <label className="block text-sm font-medium mb-1">Fonte do Tema (Ex: ENEM 2023)</label>
                                     <input type="text" value={currentPrompt?.source || ''} onChange={e => setCurrentPrompt(p => ({ ...p, source: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Categoria</label>
-                                    {/* ALTERADO: de input para select */}
-                                    <select value={currentPrompt?.category || ''} onChange={e => setCurrentPrompt(p => ({ ...p, category: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 bg-white">
+                                    <select value={currentPrompt?.category || ''} onChange={e => setCurrentPrompt(p => ({ ...p, category: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 bg-white dark:bg-gray-700">
                                         <option value="">Selecione uma categoria</option>
                                         {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                     </select>
                                 </div>
                             </div>
-                            {/* NOVOS CAMPOS */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Data de Publicação</label>
@@ -166,8 +208,9 @@ export default function ManagePrompts({ prompts }: Props) {
                                 <label className="block text-sm font-medium mb-1">Fonte da Imagem de Capa (Opcional)</label>
                                 <input type="text" value={currentPrompt?.cover_image_source || ''} onChange={e => setCurrentPrompt(p => ({ ...p, cover_image_source: e.target.value }))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
                             </div>
+
                         </form>
-                        <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-2 mt-auto">
+                        <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-2 mt-auto flex-shrink-0">
                             <button type="button" onClick={handleCloseModal} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button>
                             <button type="submit" form="prompt-form" disabled={isPending || isUploading} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 disabled:bg-gray-400">
                                 {isPending ? 'Salvando...' : 'Salvar'}

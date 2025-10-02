@@ -42,6 +42,10 @@ export type EssayPrompt = {
     image_url?: string | null;
     motivational_text?: string | null;
     category?: string | null;
+    motivational_text_2: string | null;
+    motivational_text_3_description: string | null;
+    motivational_text_3_image_url: string | null;
+    motivational_text_3_image_source: string | null;
 };
 
 
