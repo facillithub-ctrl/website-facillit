@@ -95,7 +95,7 @@ export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
     const supabase = await createSupabaseServerClient();
 
     // 1. Limpa os dados: transforma strings vazias em null e remove propriedades undefined
-    const cleanedData: { [key: string]: any } = {};
+    const cleanedData: { [key: string]: string | boolean | string[] | null | undefined } = {};
     for (const key in promptData) {
         const value = promptData[key as keyof typeof promptData];
         cleanedData[key] = value === '' ? null : value;

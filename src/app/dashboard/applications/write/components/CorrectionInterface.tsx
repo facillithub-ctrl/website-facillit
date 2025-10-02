@@ -147,7 +147,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
             };
             mediaRecorderRef.current.start();
             setIsRecording(true);
-        } catch (err) {
+        } catch {
             alert("Não foi possível aceder ao microfone. Por favor, verifique as permissões do seu navegador.");
         }
     };
@@ -261,7 +261,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
             });
             
             if (!result.error && result.data) {
-                const correctionId = (result.data as any).id;
+                const correctionId = (result.data as { id: string }).id;
                 const errorMappings = Array.from(selectedErrors).map(error_id => ({
                     correction_id: correctionId,
                     error_id: error_id

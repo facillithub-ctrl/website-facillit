@@ -163,7 +163,7 @@ export async function getCorrectionForEssay(essayId: string): Promise<{ data?: E
 
     if (error && error.code !== 'PGRST116') return { error: error.message };
     
-    // @ts-ignore
+    // @ts-expect-error
     return { data: data || undefined };
 }
 

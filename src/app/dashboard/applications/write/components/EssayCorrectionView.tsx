@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, ReactElement } from 'react';
 import { Essay, EssayCorrection, Annotation, getEssayDetails, getCorrectionForEssay } from '../actions';
 import Image from 'next/image';
 
@@ -85,16 +85,16 @@ const renderAnnotatedText = (text: string, annotations?: Annotation[] | null): R
             return [...acc, ...paragraphs];
         }
         return [...acc, node];
-    }, []).map((node, i) => {
+    }, []).map((node, i, allNodes) => {
         // Agrupa os elementos em parágrafos. A lógica é um pouco complexa,
         // mas a ideia é criar um <p> para cada conjunto de nós até encontrar um <br>
         const elementsInParagraph: React.ReactNode[] = [];
-        let currentNode = node;
+        let currentNode = node as ReactElement;
         let currentIndex = i;
         while(currentNode && (currentNode as React.ReactElement)?.type !== 'br') {
             elementsInParagraph.push(currentNode);
             currentIndex++;
-            currentNode = (node as any)._owner.memoizedProps[currentIndex]; // Hacky way to look ahead, might need refinement
+            currentNode = allNodes[currentIndex] as ReactElement;
         }
         if (elementsInParagraph.length > 0) {
             return <p key={i} className="mb-4">{elementsInParagraph}</p>
