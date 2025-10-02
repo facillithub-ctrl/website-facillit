@@ -1,6 +1,7 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Image from 'next/image';
+import Link from 'next/link'; // <-- ADICIONADO: Importação do componente Link
 import ContactCTA from '@/components/ContactCTA';
 
 const FeatureIcon = ({ icon, title, text }: { icon: string, title: string, text: string }) => ( <div className="feature-card bg-white p-6 rounded-lg shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1"><div className="text-royal-blue text-3xl mb-4"><i className={`fas ${icon}`}></i></div><h3 className="text-xl font-bold mb-2">{title}</h3><p className="text-text-muted">{text}</p></div> );
@@ -63,6 +64,21 @@ export default function FacillitWritePage() {
                         </div>
                     </div>
                 </section>
+
+                <section className="py-12 bg-white">
+                    <div className="container mx-auto px-6 text-center">
+                        <div className="max-w-3xl mx-auto bg-background-light p-8 rounded-lg">
+                            <h3 className="text-2xl font-bold text-dark-text mb-4">Transparência em Primeiro Lugar</h3>
+                            <p className="text-text-muted mb-6">
+                                Queremos que você entenda exatamente como seus dados são utilizados para potenciar sua experiência de aprendizado neste módulo. Confira os detalhes sobre o tratamento de dados específico do Facillit Write.
+                            </p>
+                            <Link href="/recursos/politica-de-dados#write" className="inline-block bg-transparent text-royal-blue py-3 px-8 rounded-full font-bold border-2 border-royal-blue transition-all duration-300 hover:bg-royal-blue hover:text-white">
+                                Confira a Política de Dados do Módulo
+                            </Link>
+                        </div>
+                    </div>
+                </section>
+
                 <ContactCTA />
             </main>
             <Footer />

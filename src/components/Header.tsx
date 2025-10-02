@@ -43,7 +43,7 @@ const recursos = {
     ],
     "Legal": [
       { href: "/recursos/uso", title: "Termos de Uso", subtitle: "Nossas políticas e termos." }, 
-      { href: "recursos/blog", title: "Blog", subtitle: "Artigos e novidades." }
+      { href: "/recursos/privacidade", title: "Política de Privacidade", subtitle: "Como tratamos os seus dados." }
     ],
 }
 

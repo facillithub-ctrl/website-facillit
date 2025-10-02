@@ -8,95 +8,81 @@ export default function TermosDeUsoPage() {
             <main>
                 <section className="bg-royal-blue text-white pt-32 pb-20 text-center">
                     <div className="container mx-auto px-6 text-center">
-                        <h1 className="text-4xl md:text-5xl font-black text-white-text mb-4">{"Termos e Condições Gerais de Uso"}</h1>
-                        <p className="text-lg text-text-white">{"Data da Última Atualização: 10 de Agosto de 2025"}</p>
+                        <h1 className="text-4xl md:text-5xl font-black text-white-text mb-4">Termos e Condições de Uso da Plataforma Facillit HUB</h1>
+                        <p className="text-lg text-text-white">Última Atualização: 10 de Agosto de 2025</p>
                     </div>
                 </section>
 
                 <section className="py-12 bg-white">
                     <div className="container mx-auto px-6 max-w-4xl">
                         <div className="prose lg:prose-xl max-w-none space-y-8 text-text-muted">
+
+                            <p>
+                                Bem-vindo(a) à Facillit Hub! Estes Termos e Condições de Uso ("Termos") constituem um contrato legalmente vinculativo entre você ("Usuário") e a FACILLIT HUB TECNOLOGIA E EDUCAÇÃO LTDA., pessoa jurídica de direito privado, inscrita no CNPJ sob o nº [Inserir CNPJ], com sede em [Inserir Endereço Completo] ("Facillit Hub", "nós", "nosso"). Ao criar uma conta, acessar ou utilizar a plataforma Facillit Hub, incluindo nosso website, aplicativos e quaisquer serviços associados (coletivamente, os "Serviços"), você declara que leu, compreendeu e concorda em cumprir integralmente estes Termos e nossa Política de Privacidade, que é parte integrante deste documento. <strong>SE VOCÊ NÃO CONCORDA COM QUALQUER PARTE DESTES TERMOS, VOCÊ NÃO DEVE ACESSAR OU UTILIZAR NOSSOS SERVIÇOS.</strong>
+                            </p>
                             
                             <div>
-                                <h2 className="text-2xl font-bold text-dark-text mb-4">{"Preâmbulo"}</h2>
-                                <p>
-                                    {'Este documento, doravante denominado "Termos", estabelece as regras e condições para o uso da plataforma digital Facillit HUB. Ele constitui um contrato legalmente vinculante entre o Usuário (conforme definido na Seção 2) e a FACILLIT HUB TECNOLOGIA E EDUCAÇÃO LTDA., pessoa jurídica de direito privado, devidamente inscrita no CNPJ/MF sob o nº [Inserir CNPJ], com sede em [Inserir Endereço Completo], na cidade de São Paulo, Estado de São Paulo, Brasil, doravante denominada simplesmente "FACILLIT HUB".'}
-                                </p>
-                                <p>
-                                    {'A aceitação integral e incondicional destes Termos é um requisito indispensável para a utilização da Plataforma e de todos os serviços a ela associados. A leitura atenta e a compreensão deste documento são de responsabilidade do Usuário. Informa-se que a Política de Privacidade do FACILLIT HUB é um documento anexo e indissociável destes Termos. Ao concordar com os Termos, o Usuário manifesta sua concordância, também, com a referida Política, que detalha como os dados pessoais são coletados, utilizados, armazenados e protegidos, em estrita conformidade com a legislação brasileira.'}
-                                </p>
+                                <h2 className="text-2xl font-bold text-dark-text mb-4">1. DEFINIÇÕES</h2>
+                                <ul className="list-disc pl-6 space-y-2">
+                                    <li><strong>Plataforma:</strong> Refere-se ao ambiente digital da Facillit Hub, acessível via website [facillithub.com.br] e aplicativos, onde os Serviços são oferecidos.</li>
+                                    <li><strong>Usuário:</strong> Qualquer pessoa física que cria uma conta e utiliza os Serviços da Plataforma.</li>
+                                    <li><strong>Conteúdo do Usuário:</strong> Refere-se a todo e qualquer texto, informação ou material que o Usuário envia, publica ou exibe na Plataforma, incluindo, mas não se limitando a, redações submetidas na seção "Facillit Write".</li>
+                                    <li><strong>Facillit Write:</strong> Módulo específico dos Serviços destinado à produção textual, que oferece correção e análise de redações por meio de uma tecnologia híbrida de Inteligência Artificial e tutores humanos.</li>
+                                </ul>
                             </div>
 
                             <div>
-                                <h2 className="text-2xl font-bold text-dark-text mb-4">{"1. Objeto e Aceitação"}</h2>
-                                <h3 className="text-xl font-bold text-dark-text mt-6 mb-2">{"1.1. Objeto"}</h3>
-                                <p>
-                                    {'O objeto destes Termos é a concessão, pelo FACILLIT HUB ao Usuário, de uma licença de uso pessoal, não exclusiva, intransferível e revogável para acessar e utilizar a plataforma de software "Facillit HUB". Esta plataforma consiste em um ecossistema digital integrado, projetado para oferecer soluções de organização, produtividade e educação, composto pelos seguintes subprodutos interconectados: Facillit Edu, Facillit Games, Facillit Write e Facillit Day, cujas funcionalidades e propósito estão detalhadamente descritos na documentação oficial da plataforma e em seu material de apresentação.'}
-                                </p>
-                                <h3 className="text-xl font-bold text-dark-text mt-6 mb-2">{"1.2. Ato de Aceitação"}</h3>
-                                <p>
-                                    {'O ato de acessar, navegar, cadastrar-se ou utilizar de qualquer forma a Plataforma, incluindo o envio de conteúdos ou a simples utilização de suas funcionalidades, representa a manifestação de vontade livre, informada e inequívoca do Usuário de que leu, compreendeu e concorda integralmente com todas as cláusulas e condições aqui estipuladas, bem como com a Política de Privacidade. Caso o Usuário não concorde com qualquer disposição destes Termos, deverá abster-se imediatamente de utilizar a Plataforma.'}
-                                </p>
-                                <h3 className="text-xl font-bold text-dark-text mt-6 mb-2">{"1.3. Capacidade Civil e Representação Legal"}</h3>
-                                <p>
-                                    {'O uso da Plataforma é destinado a pessoas com plena capacidade para os atos da vida civil. Ao aceitar estes Termos, o Usuário declara ser maior de 18 anos e possuir tal capacidade. Considerando que o público-alvo do FACILLIT HUB inclui estudantes, muitos dos quais podem ser menores de idade, a utilização da Plataforma por crianças e adolescentes é condicionada à representação ou assistência de seus pais ou responsáveis legais. Nestes casos, o cadastro e a aceitação destes Termos devem ser realizados pelo responsável legal, que se responsabilizará integralmente por todos os atos praticados pelo menor na Plataforma.'}
-                                </p>
+                                <h2 className="text-2xl font-bold text-dark-text mb-4">2. OBJETO DOS SERVIÇOS</h2>
+                                <p>A Facillit Hub oferece uma plataforma educacional online com ferramentas e recursos para auxiliar estudantes em sua jornada de aprendizado, com foco especial na melhoria da escrita através do módulo "Facillit Write". Os Serviços podem incluir, entre outros, a submissão de redações, correção automatizada por Inteligência Artificial, revisão por tutores humanos, fornecimento de feedback, análise de desempenho e acesso a materiais educacionais.</p>
                             </div>
 
                             <div>
-                                <h2 className="text-2xl font-bold text-dark-text mb-4">{"2. Definições"}</h2>
-                                <p>
-                                    {'Para garantir a clareza deste documento, os termos listados abaixo, quando utilizados com a primeira letra em maiúsculo, terão os significados a eles atribuídos.'}
-                                </p>
-                            </div>
-                            
-                            <div>
-                                <h2 className="text-2xl font-bold text-dark-text mb-4">{"3. Cadastro, Contas de Acesso e Dados do Usuário"}</h2>
-                                <h3 className="text-xl font-bold text-dark-text mt-6 mb-2">{"3.1. Veracidade das Informações"}</h3>
-                                <p>{"O Usuário compromete-se a fornecer informações verdadeiras, exatas, atuais e completas durante o processo de cadastro e a mantê-las atualizadas. A prestação de informações falsas constitui violação destes Termos."}</p>
-                                <h3 className="text-xl font-bold text-dark-text mt-6 mb-2">{"3.2. Segurança da Conta"}</h3>
-                                <p>{"A guarda e a confidencialidade da senha e do login de acesso são de responsabilidade exclusiva do Usuário. O Usuário deve notificar imediatamente o FACILLIT HUB sobre qualquer suspeita ou violação de segurança de suas credenciais."}</p>
-                                <h3 className="text-xl font-bold text-dark-text mt-6 mb-2">{"3.3. Modalidades de Cadastro"}</h3>
-                                <p>{"O cadastro pode ser Individual, criado diretamente pelo usuário na plataforma, ou Institucional, onde entidades como escolas podem criar contas em massa para seus membros, assumindo a responsabilidade de obter o consentimento necessário para o tratamento de dados, especialmente no caso de menores de idade."}</p>
+                                <h2 className="text-2xl font-bold text-dark-text mb-4">3. CADASTRO, CONTA E ELEGIBILIDADE</h2>
+                                <p><strong>3.1.</strong> Para utilizar os Serviços, o Usuário deve criar uma conta, fornecendo informações verdadeiras, precisas e completas. O Usuário é o único responsável por manter a confidencialidade de sua senha e por todas as atividades que ocorram em sua conta.</p>
+                                <p><strong>3.2. Idade Mínima:</strong> Os Serviços são destinados a pessoas com idade igual ou superior a 16 (dezesseis) anos. Ao criar uma conta, você declara e garante que possui a idade mínima exigida. A utilização dos Serviços por menores de 16 anos só é permitida com o consentimento específico e em destaque de um dos pais ou responsável legal, que deverá supervisionar o uso da conta.</p>
                             </div>
 
                             <div>
-                                <h2 className="text-2xl font-bold text-dark-text mb-4">{"4. Conteúdo e Propriedade Intelectual"}</h2>
-                                <h3 className="text-xl font-bold text-dark-text mt-6 mb-2">{"4.1. Propriedade Intelectual do FACILLIT HUB"}</h3>
-                                <p>{'Todos os direitos relativos à Plataforma (software, design, marcas, etc.) são de propriedade exclusiva do FACILLIT HUB. É vedado ao Usuário copiar, modificar, distribuir, vender ou alugar qualquer parte da Plataforma.'}</p>
-                                <h3 className="text-xl font-bold text-dark-text mt-6 mb-2">{"4.2. Propriedade Intelectual do Conteúdo do Usuário"}</h3>
-                                <p>{"O Usuário é o único e exclusivo titular dos direitos autorais sobre o conteúdo que cria e insere na Plataforma. Ao submeter conteúdo, o Usuário concede ao FACILLIT HUB uma licença não exclusiva, global, perpétua, irrevogável e isenta de royalties para usar, reproduzir, adaptar e distribuir o referido conteúdo com as finalidades estritas de operar a plataforma, aprimorar nossos modelos de inteligência artificial e gerar dados analíticos de forma agregada e anonimizada."}</p>
+                                <h2 className="text-2xl font-bold text-dark-text mb-4">4. PROPRIEDADE INTELECTUAL</h2>
+                                <p><strong>4.1. Conteúdo da Facillit Hub:</strong> Todos os direitos de propriedade intelectual sobre a Plataforma, o software, as marcas, logotipos, designs, textos, gráficos e outros conteúdos fornecidos pela Facillit Hub ("Conteúdo da Facillit Hub") são de titularidade exclusiva da Facillit Hub ou de seus licenciantes. Estes Termos não concedem ao Usuário qualquer direito de usar o Conteúdo da Facillit Hub, exceto conforme estritamente necessário para a utilização dos Serviços.</p>
+                                <p><strong>4.2. Conteúdo do Usuário:</strong> Você retém todos os direitos de propriedade intelectual sobre o Conteúdo do Usuário que você cria e submete à Plataforma.</p>
+                                <p><strong>4.3. Licença de Uso para a Facillit Hub:</strong> Ao submeter Conteúdo do Usuário à Plataforma, você concede à Facillit Hub uma licença mundial, não exclusiva, isenta de royalties, sublicenciável e transferível para usar, hospedar, armazenar, reproduzir, modificar, criar obras derivadas (como as redações corrigidas e analisadas), comunicar, publicar e distribuir tal Conteúdo do Usuário.</p>
+                                <p><strong>4.4. Finalidade da Licença:</strong> Esta licença é concedida com o único e exclusivo propósito de permitir que a Facillit Hub opere, desenvolva, aprimore, promova e preste os Serviços a você e a outros usuários, conforme descrito nestes Termos e em nossa Política de Privacidade.</p>
                             </div>
 
                             <div>
-                                <h2 className="text-2xl font-bold text-dark-text mb-4">{"5. Obrigações e Condutas dos Usuários"}</h2>
-                                <p>{"O Usuário deve utilizar a Plataforma de maneira ética e legal. É proibido publicar conteúdo ilegal, difamatório, odioso ou que viole direitos de terceiros; tentar realizar engenharia reversa do software; ou introduzir qualquer tipo de código malicioso. O Usuário é o único responsável pelo conteúdo que publica."}</p>
+                                <h2 className="text-2xl font-bold text-dark-text mb-4">5. USO DE SEU CONTEÚDO PARA FINALIDADES ESPECÍFICAS</h2>
+                                <p><strong>5.1. Análise de Dados para Aprimoramento do Serviço:</strong> Com o objetivo de realizar pesquisas acadêmicas, análises estatísticas e aprimorar constantemente nossos serviços educacionais, a Facillit Hub poderá processar os dados de sua redação e de seu desempenho de forma agregada e anonimizada. O processo de anonimização remove permanentemente toda e qualquer informação que possa levar à sua identificação.</p>
+                                <p><strong>5.2. Consentimento para Treinamento de Inteligência Artificial:</strong> Para aprimorar continuamente a qualidade de nossas ferramentas, a Facillit Hub utiliza as redações enviadas para treinar, desenvolver e validar seus modelos de inteligência artificial. Este processo é essencial para que nossa tecnologia aprenda com uma ampla variedade de estilos de escrita. Ao concordar com estes termos, você afirma: <strong>"Li e concordo que minhas redações sejam utilizadas para o treinamento e aprimoramento da inteligência artificial da Facillit Hub".</strong></p>
+                                <p><strong>5.3. Consentimento para Uso em Marketing e Materiais Educacionais:</strong> Para demonstrar a eficácia de nossa plataforma, gostaríamos de ter a sua permissão para utilizar, ocasionalmente, trechos de suas redações em nossos materiais de marketing e conteúdos educacionais, sempre de forma anonimizada. Este consentimento é opcional. <strong>"Sim, autorizo o uso de trechos anonimizados de minhas redações para fins educacionais e de marketing pela Facillit Hub."</strong></p>
+                                <p><strong>5.4. Gerenciamento de Permissões:</strong> Você pode, a qualquer momento, revisar e alterar suas permissões de consentimento na seção "Configurações de Privacidade" de sua conta. A revogação do consentimento não afetará a legalidade do tratamento realizado anteriormente.</p>
                             </div>
 
                             <div>
-                                <h2 className="text-2xl font-bold text-dark-text mb-4">{"6. Privacidade, Proteção de Dados e Permissões"}</h2>
-                                <p>{"A nossa Política de Privacidade, parte integrante destes Termos, detalha como coletamos, tratamos e protegemos seus dados. Cumprimos rigorosamente a LGPD e o Marco Civil da Internet, incluindo a guarda de registros de acesso por 6 meses. As permissões do aplicativo móvel, como acesso à galeria ou localização, são opcionais e solicitadas apenas quando necessárias para funcionalidades específicas."}</p>
-                            </div>
-                            
-                            <div>
-                                <h2 className="text-2xl font-bold text-dark-text mb-4">{"7. Limitação de Responsabilidade"}</h2>
-                                <p>{'A Plataforma é fornecida "no estado em que se encontra" ("as is"), sem garantias. O FACILLIT HUB não se responsabiliza por danos indiretos, e nossa responsabilidade financeira total está limitada ao valor pago pelo usuário nos últimos 12 meses ou R$ 100,00 (cem reais), o que for maior.'}</p>
+                                <h2 className="text-2xl font-bold text-dark-text mb-4">6. OBRIGAÇÕES DO USUÁRIO E CONDUTA</h2>
+                                <p>O Usuário concorda em não utilizar os Serviços para enviar conteúdo ilegal, ofensivo ou que viole direitos de terceiros; tentar obter acesso não autorizado; interferir no desempenho dos Serviços; ou utilizar a plataforma para qualquer finalidade comercial sem autorização.</p>
                             </div>
 
                             <div>
-                                <h2 className="text-2xl font-bold text-dark-text mb-4">{"8. Suspensão e Encerramento de Contas"}</h2>
-                                <p>{"Reservamo-nos o direito de suspender ou encerrar contas que violem estes Termos. O Usuário também pode encerrar sua conta a qualquer momento. Após o encerramento, a licença de uso cessa, mas a licença sobre o conteúdo para fins de treinamento de IA permanece, dada sua natureza irrevogável."}</p>
+                                <h2 className="text-2xl font-bold text-dark-text mb-4">7. PRIVACIDADE E PROTEÇÃO DE DADOS</h2>
+                                <p>A Facillit Hub está comprometida com a proteção de seus dados pessoais. Nossa Política de Privacidade detalha como coletamos, usamos, armazenamos e protegemos suas informações em conformidade com a LGPD.</p>
                             </div>
 
                             <div>
-                                <h2 className="text-2xl font-bold text-dark-text mb-4">{"9. Alterações dos Termos"}</h2>
-                                <p>{"Podemos modificar estes Termos periodicamente. Notificaremos os usuários sobre alterações materiais. O uso continuado da Plataforma após as alterações constituirá aceitação dos novos Termos."}</p>
+                                <h2 className="text-2xl font-bold text-dark-text mb-4">8. LIMITAÇÃO DE RESPONSABILIDADE</h2>
+                                <p>Os Serviços são fornecidos "no estado em que se encontram". A Facillit Hub não garante que os Serviços serão ininterruptos ou livres de erros. Na máxima extensão permitida pela lei, a Facillit Hub não será responsável por quaisquer danos indiretos, incidentais, especiais, consequenciais ou punitivos.</p>
                             </div>
 
                             <div>
-                                <h2 className="text-2xl font-bold text-dark-text mb-4">{"10. Disposições Gerais"}</h2>
-                                <p>{"Estes Termos são regidos pelas leis da República Federativa do Brasil, e o foro eleito para dirimir controvérsias é o da Comarca de São Paulo, SP."}</p>
+                                <h2 className="text-2xl font-bold text-dark-text mb-4">9. MODIFICAÇÃO E RESCISÃO</h2>
+                                <p>Reservamo-nos o direito de modificar estes Termos a qualquer momento e notificaremos você sobre alterações materiais. O uso continuado dos Serviços após as alterações constituirá sua aceitação. Você pode encerrar este acordo excluindo sua conta. A Facillit Hub pode suspender ou encerrar sua conta se você violar estes Termos.</p>
                             </div>
+
+                            <div>
+                                <h2 className="text-2xl font-bold text-dark-text mb-4">10. DISPOSIÇÕES GERAIS</h2>
+                                <p>Estes Termos serão regidos pelas leis da República Federativa do Brasil. Fica eleito o foro da Comarca de São Paulo, Estado de São Paulo, para dirimir quaisquer questões oriundas destes Termos. Em caso de dúvidas, entre em contato conosco através do e-mail: [e-mail de contato].</p>
+                            </div>
+
                         </div>
                     </div>
                 </section>
