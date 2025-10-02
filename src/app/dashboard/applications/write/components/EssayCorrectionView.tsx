@@ -19,19 +19,19 @@ const competencyDetails = [
   { title: "Competência 5: Proposta de Intervenção", description: "Avalia a elaboração de uma proposta de intervenção para o problema abordado, que respeite os direitos humanos." },
 ];
 
+// ATUALIZADO: Estilos mais fortes e distintos para os marcadores
 const markerStyles = {
-    erro: { bg: 'bg-red-500', highlight: 'bg-red-200 dark:bg-red-500/30' },
-    acerto: { bg: 'bg-green-500', highlight: 'bg-green-200 dark:bg-green-500/30' },
-    sugestao: { bg: 'bg-blue-500', highlight: 'bg-blue-200 dark:bg-blue-500/30' },
+    erro: { flag: 'text-red-500', highlight: 'bg-red-200 dark:bg-red-500/30 border-b-2 border-red-400' },
+    acerto: { flag: 'text-green-500', highlight: 'bg-green-200 dark:bg-green-500/30' },
+    sugestao: { flag: 'text-blue-500', highlight: 'bg-blue-200 dark:bg-blue-500/30' },
 };
 
 const renderAnnotatedText = (text: string, annotations?: Annotation[] | null) => {
-    if (!annotations || annotations.filter(a => a.type === 'text').length === 0) {
+    const textAnnotations = annotations?.filter(a => a.type === 'text' && a.selection) || [];
+    if (!text || textAnnotations.length === 0) {
         return text.split('\n\n').map((p, i) => <p key={i} className="mb-4">{p}</p>);
     }
 
-    let annotatedHtml = text;
-    // Escapa caracteres HTML para evitar XSS
     const escapeHtml = (unsafe: string) => unsafe.replace(/[&<"']/g, (match) => {
         switch (match) {
             case '&': return '&amp;';
@@ -43,19 +43,28 @@ const renderAnnotatedText = (text: string, annotations?: Annotation[] | null) =>
         }
     });
 
-    annotations.filter(a => a.type === 'text' && a.selection).forEach(a => {
+    let annotatedHtml = escapeHtml(text);
+
+    textAnnotations.forEach(a => {
         const highlightClass = markerStyles[a.marker].highlight;
         const commentHtml = escapeHtml(a.comment);
+        const selectionHtml = escapeHtml(a.selection!);
 
-        const annotatedSpan = `<mark class="${highlightClass} relative group cursor-pointer">
-            ${escapeHtml(a.selection!)}
+        const annotatedSpan = `<mark class="${highlightClass} relative group cursor-pointer px-1 rounded-sm">
+            ${selectionHtml}
             <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">${commentHtml}</span>
         </mark>`;
         
-        // Substitui apenas a primeira ocorrência para evitar problemas com textos repetidos
-        if (annotatedHtml.includes(escapeHtml(a.selection!))) {
-           annotatedHtml = annotatedHtml.replace(escapeHtml(a.selection!), annotatedSpan);
-        }
+        // Substitui a primeira ocorrência não marcada ainda
+        const regex = new RegExp(selectionHtml.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
+        let replaced = false;
+        annotatedHtml = annotatedHtml.replace(regex, (match) => {
+            if (!replaced) {
+                replaced = true;
+                return annotatedSpan;
+            }
+            return match;
+        });
     });
 
     return annotatedHtml.split('\n\n').map((p, i) => 
@@ -122,7 +131,9 @@ export default function EssayCorrectionView({ essayId, onBack }: Props) {
                         <div className="relative w-full h-auto">
                             <Image src={image_submission_url} alt="Redação enviada" width={800} height={1100} className="rounded-lg object-contain"/>
                             {annotations?.filter(a => a.type === 'image').map(a => (
-                                <div key={a.id} className={`absolute w-4 h-4 rounded-full ${markerStyles[a.marker].bg} transform -translate-x-1/2 -translate-y-1/2 group`} style={{ left: `${a.position?.x}%`, top: `${a.position?.y}%` }}>
+                                // ALTERADO: Usando ícone de bandeira para o aluno também
+                                <div key={a.id} className="absolute transform -translate-x-1 -translate-y-4 group text-xl" style={{ left: `${a.position?.x}%`, top: `${a.position?.y}%` }}>
+                                    <i className={`fas fa-flag ${markerStyles[a.marker].flag}`}></i>
                                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                                         {a.comment}
                                     </div>

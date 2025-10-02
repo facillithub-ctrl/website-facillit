@@ -19,7 +19,6 @@ type AnnotationPopupProps = {
     onClose: () => void;
 };
 
-// Pop-up para adicionar o comentário e marcador
 const AnnotationPopup = ({ position, onSave, onClose }: AnnotationPopupProps) => {
     const [comment, setComment] = useState('');
     const [marker, setMarker] = useState<Annotation['marker']>('sugestao');
@@ -188,7 +187,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
             const range = selection.getRangeAt(0);
             const rect = range.getBoundingClientRect();
             setPopupState({ visible: true, x: rect.left + window.scrollX, y: rect.bottom + window.scrollY, selection });
-        } else {
+        } else if (popupState.visible && popupState.selection) {
             setPopupState({ visible: false, x: 0, y: 0 });
         }
     };
@@ -198,7 +197,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
             setPopupState({ visible: false, x: 0, y: 0});
             return;
         }
-
         setPopupState({ visible: true, x: e.pageX, y: e.pageY, selection: undefined });
     };
 
@@ -290,10 +288,11 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
 
     const totalGrade = Object.values(grades).reduce((a, b) => a + b, 0);
 
-    const markerClasses = {
-        erro: 'bg-red-500',
-        acerto: 'bg-green-500',
-        sugestao: 'bg-blue-500',
+    // ALTERADO: Mapeamento de cores para os marcadores de bandeira
+    const markerFlagColors = {
+        erro: 'text-red-500',
+        acerto: 'text-green-500',
+        sugestao: 'text-blue-500',
     };
 
     return (
@@ -315,7 +314,9 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                         <div ref={imageContainerRef} onClick={handleImageClick} className="relative w-full h-auto cursor-crosshair">
                             <Image src={essay.image_submission_url} alt="Redação enviada" width={800} height={1100} className="rounded-lg object-contain"/>
                             {annotations.filter(a => a.type === 'image').map(a => (
-                                <div key={a.id} className={`absolute w-4 h-4 rounded-full ${markerClasses[a.marker]} transform -translate-x-1/2 -translate-y-1/2 group`} style={{ left: `${a.position?.x}%`, top: `${a.position?.y}%` }}>
+                                // ALTERADO: Usando ícone de bandeira
+                                <div key={a.id} className="absolute transform -translate-x-1 -translate-y-4 group text-xl" style={{ left: `${a.position?.x}%`, top: `${a.position?.y}%` }}>
+                                    <i className={`fas fa-flag ${markerFlagColors[a.marker]}`}></i>
                                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                         {a.comment}
                                     </div>
@@ -323,7 +324,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                             ))}
                         </div>
                     ) : (
-                        <div onMouseUp={handleTextMouseUp} className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md">
+                        <div onMouseUp={handleTextMouseUp} className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md cursor-text">
                           {essay.content.split('\n\n').map((paragraph, index) => <p key={index} className="mb-4">{paragraph}</p>)}
                         </div>
                     )}

@@ -153,16 +153,27 @@ export async function getLatestEssayForDashboard() {
 
 // --- FUNÇÕES DE CORREÇÃO ---
 
-// FUNÇÃO ATUALIZADA
-export async function getCorrectionForEssay(essayId: string): Promise<{ data?: EssayCorrection & { profiles: { full_name: string | null, is_verified: boolean } }; error?: string }> {
+// Copie esta função e substitua a versão antiga no seu arquivo actions.ts
+
+export async function getCorrectionForEssay(essayId: string): Promise<{ data?: EssayCorrection & { profiles: { full_name: string | null, is_verified: boolean }, essay_correction_errors: { common_errors: { error_type: string } }[] }; error?: string }> {
     const supabase = await createSupabaseServerClient();
+    
+    // ATUALIZADO: O select agora inclui os 'erros comuns' através da tabela de junção.
     const { data, error } = await supabase
         .from('essay_corrections')
-        .select(`*, profiles (full_name, is_verified)`) // O '*' já inclui a nova coluna 'annotations'
+        .select(`
+            *, 
+            profiles (full_name, is_verified),
+            essay_correction_errors (
+                common_errors (error_type)
+            )
+        `)
         .eq('essay_id', essayId)
         .single();
 
     if (error && error.code !== 'PGRST116') return { error: error.message };
+    
+    // @ts-ignore
     return { data: data || undefined };
 }
 
