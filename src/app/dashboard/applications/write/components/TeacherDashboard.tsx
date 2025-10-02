@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import CorrectionInterface from './CorrectionInterface';
 
-// CORREÇÃO: O tipo 'profiles' foi ajustado de um array para um objeto.
+// CORREÇÃO: O tipo 'profiles' foi ajustado de volta para um array.
 type EssayListItem = {
   id: string;
   title: string | null;
   submitted_at: string | null;
-  profiles: { full_name: string | null; } | null; // Alterado de array para objeto
+  profiles: { full_name: string | null; }[] | null; // Alterado de objeto para array
   essay_corrections?: { final_grade: number }[] | null;
 };
 
@@ -56,8 +56,8 @@ export default function TeacherDashboard({ pendingEssays, correctedEssays }: Tea
                 <div>
                   <p className="font-bold text-dark-text dark:text-white">{essay.title || "Redação sem título"}</p>
                   <p className="text-sm text-gray-500">
-                    {/* CORREÇÃO: Acessando o nome diretamente do objeto 'profiles'. */}
-                    Enviada por {essay.profiles?.full_name || 'Aluno desconhecido'} em {new Date(essay.submitted_at!).toLocaleDateString()}
+                    {/* CORREÇÃO: Acessando o nome a partir do primeiro item do array 'profiles'. */}
+                    Enviada por {essay.profiles?.[0]?.full_name || 'Aluno desconhecido'} em {new Date(essay.submitted_at!).toLocaleDateString()}
                   </p>
                 </div>
                 {activeTab === 'corrected' && (
