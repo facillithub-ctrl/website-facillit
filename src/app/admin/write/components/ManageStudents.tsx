@@ -1,30 +1,77 @@
 "use client";
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { updateUserVerification } from '../../actions';
-import { VerificationBadge } from '@/components/VerificationBadge'; // CORRIGIDO
+import { VerificationBadge } from '@/components/VerificationBadge';
 
-type Student = { 
-    id: string; 
-    full_name: string | null; 
-    user_category: string | null; 
+type Student = {
+    id: string;
+    full_name: string | null;
+    user_category: string | null;
     created_at: string | null;
     verification_badge: string | null;
 };
 
-export default function ManageStudents({ students }: { students: Student[] }) {
+// --- NOVO SUB-COMPONENTE PARA A LINHA DA TABELA ---
+const StudentRow = ({ student }: { student: Student }) => {
+    const [selectedBadge, setSelectedBadge] = useState(student.verification_badge || 'none');
     const [isPending, startTransition] = useTransition();
+    const router = useRouter();
+    
+    // Verifica se a seleção atual é diferente da original
+    const hasChanged = selectedBadge !== (student.verification_badge || 'none');
 
-    const handleBadgeChange = (studentId: string, badge: string) => {
+    const handleSave = () => {
         startTransition(async () => {
-            const newBadge = badge === 'none' ? null : badge;
-            const result = await updateUserVerification(studentId, newBadge);
+            const newBadge = selectedBadge === 'none' ? null : selectedBadge;
+            const result = await updateUserVerification(student.id, newBadge);
+
             if (result.error) {
                 alert(`Erro: ${result.error}`);
+                // Reverte a alteração em caso de erro
+                setSelectedBadge(student.verification_badge || 'none');
+            } else {
+                // Atualiza a página para refletir o dado salvo no banco de dados
+                router.refresh();
             }
         });
     };
 
+    return (
+        <tr className="border-b dark:border-gray-700">
+            <td className="px-6 py-4 font-medium text-dark-text dark:text-white flex items-center gap-2">
+                {student.full_name}
+                <VerificationBadge badge={student.verification_badge} />
+            </td>
+            <td className="px-6 py-4 capitalize text-text-muted dark:text-gray-400">{student.user_category}</td>
+            <td className="px-6 py-4 flex items-center gap-2">
+                <select
+                    value={selectedBadge}
+                    onChange={(e) => setSelectedBadge(e.target.value)}
+                    disabled={isPending}
+                    className="bg-gray-50 border border-gray-300 text-sm rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                >
+                    <option value="none">Nenhum</option>
+                    <option value="blue">Azul (Identidade Verificada)</option>
+                    <option value="red">Vermelho (Aluno Destaque)</option>
+                </select>
+                {hasChanged && (
+                    <button 
+                        onClick={handleSave} 
+                        disabled={isPending}
+                        className="bg-green-500 text-white text-xs font-bold py-2 px-3 rounded-lg hover:bg-green-600 disabled:bg-gray-400"
+                    >
+                        {isPending ? 'Salvando...' : 'Salvar'}
+                    </button>
+                )}
+            </td>
+        </tr>
+    );
+};
+
+
+export default function ManageStudents({ students }: { students: Student[] }) {
     return (
         <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
             <h2 className="text-2xl font-bold mb-4 text-dark-text dark:text-white">Gerenciar Alunos</h2>
@@ -40,25 +87,7 @@ export default function ManageStudents({ students }: { students: Student[] }) {
                     </thead>
                     <tbody>
                         {students.map(s => (
-                            <tr key={s.id} className="border-b dark:border-gray-700">
-                                <td className="px-6 py-4 font-medium text-dark-text dark:text-white flex items-center gap-2">
-                                  {s.full_name}
-                                  <VerificationBadge badge={s.verification_badge} />
-                                </td>
-                                <td className="px-6 py-4 capitalize text-text-muted dark:text-gray-400">{s.user_category}</td>
-                                <td className="px-6 py-4">
-                                    <select
-                                        onChange={(e) => handleBadgeChange(s.id, e.target.value)}
-                                        defaultValue={s.verification_badge || 'none'}
-                                        disabled={isPending}
-                                        className="bg-gray-50 border border-gray-300 text-sm rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    >
-                                        <option value="none">Nenhum</option>
-                                        <option value="blue">Azul (Identidade Verificada)</option>
-                                        <option value="red">Vermelho (Aluno Destaque)</option>
-                                    </select>
-                                </td>
-                            </tr>
+                            <StudentRow key={s.id} student={s} />
                         ))}
                     </tbody>
                 </table>

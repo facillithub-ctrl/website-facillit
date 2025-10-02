@@ -76,12 +76,12 @@ export async function updateUserVerification(userId: string, badge: string | nul
   }
   
   const supabase = await createSupabaseServerClient();
+  // CORREÇÃO: Removido o .single() para evitar o erro de coerção de JSON.
   const { data, error } = await supabase
     .from('profiles')
     .update({ verification_badge: badge, verification_status: badge ? 'approved' : null })
     .eq('id', userId)
-    .select()
-    .single();
+    .select();
 
   if (error) return { error: error.message };
   
@@ -109,12 +109,10 @@ export async function updateProfessorVerification(professorId: string, isVerifie
   return { data };
 }
 
-// ALTERADO: Função de upsert mais robusta
 export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
     if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
     const supabase = await createSupabaseServerClient();
 
-    // 1. Limpa os dados: transforma strings vazias em null e remove propriedades undefined
     const cleanedData: { [key: string]: string | boolean | string[] | null | undefined } = {};
     for (const key in promptData) {
         const value = promptData[key as keyof typeof promptData];
@@ -122,9 +120,7 @@ export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
     }
     
     let result;
-    // 2. Decide se é uma operação de UPDATE ou INSERT
     if (cleanedData.id) {
-        // Se tem ID, é um UPDATE
         const { id, ...updateData } = cleanedData;
         result = await supabase
             .from('essay_prompts')
@@ -133,7 +129,6 @@ export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
             .select()
             .single();
     } else {
-        // Se não tem ID, é um INSERT
         result = await supabase
             .from('essay_prompts')
             .insert(cleanedData)
@@ -144,11 +139,10 @@ export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
     const { data, error } = result;
 
     if (error) {
-        console.error("Erro no Supabase ao salvar o tema:", error); // Log do erro no servidor
+        console.error("Erro no Supabase ao salvar o tema:", error);
         return { error: `Erro ao salvar no banco de dados: ${error.message}` };
     }
 
-    // 3. Revalida os caches para que as páginas sejam atualizadas com os novos dados
     revalidatePath('/admin/write');
     revalidatePath('/dashboard/applications/write');
     return { data };

@@ -12,7 +12,7 @@ export default async function ProfilePage() {
     redirect('/login');
   }
 
-  // Busca de dados do perfil e estatísticas em paralelo
+  // A query com select('*') já busca todas as colunas, incluindo a nova.
   const [profileResult, statsResult, streakResult, rankResult] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     getStudentStatistics(),
@@ -38,7 +38,8 @@ export default async function ProfilePage() {
     active_modules: profileData.active_modules,
     birthDate: profileData.birth_date,
     schoolName: profileData.school_name,
-    target_exam: profileData.target_exam, // Adicionado
+    target_exam: profileData.target_exam,
+    verification_badge: profileData.verification_badge, // <-- ADICIONADO AQUI
   };
 
   const statistics = {
