@@ -17,6 +17,20 @@ export type Essay = {
   image_submission_url?: string | null;
 };
 
+// NOVO: Tipo para uma única anotação
+export type Annotation = {
+    id: string;
+    type: 'text' | 'image';
+    comment: string;
+    marker: 'erro' | 'acerto' | 'sugestao';
+    // Para texto
+    selection?: string;
+    // Para imagem
+    position?: { x: number; y: number };
+};
+
+
+// TIPO ATUALIZADO
 export type EssayCorrection = {
     id: string;
     essay_id: string;
@@ -28,20 +42,21 @@ export type EssayCorrection = {
     grade_c4: number;
     grade_c5: number;
     final_grade: number;
-    paragraph_comments?: Record<string, unknown>;
-    support_links?: string[];
-    annotations?: Record<string, unknown>;
     audio_feedback_url?: string | null;
+    annotations?: Annotation[] | null; // NOVO
 };
 
 export type EssayPrompt = {
     id: string;
     title: string;
-    description: string;
-    source: string;
-    image_url?: string | null;
-    motivational_text?: string | null;
-    category?: string | null;
+    description: string | null;
+    source: string | null;
+    image_url: string | null;
+    category: string | null;
+    publication_date: string | null;
+    deadline: string | null;
+    cover_image_source: string | null;
+    motivational_text_1: string | null;
     motivational_text_2: string | null;
     motivational_text_3_description: string | null;
     motivational_text_3_image_url: string | null;
@@ -50,7 +65,7 @@ export type EssayPrompt = {
 
 
 // --- FUNÇÕES DE ALUNO E GERAIS ---
-
+// (Nenhuma alteração nesta seção, o código permanece o mesmo)
 export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -86,7 +101,8 @@ export async function getPrompts(): Promise<{ data?: EssayPrompt[]; error?: stri
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
         .from('essay_prompts')
-        .select('id, title, description, source, image_url, motivational_text, category');
+        .select('*');
+        
     if (error) return { error: error.message };
     return { data: data || [] };
 }
@@ -137,11 +153,12 @@ export async function getLatestEssayForDashboard() {
 
 // --- FUNÇÕES DE CORREÇÃO ---
 
+// FUNÇÃO ATUALIZADA
 export async function getCorrectionForEssay(essayId: string): Promise<{ data?: EssayCorrection & { profiles: { full_name: string | null, is_verified: boolean } }; error?: string }> {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
         .from('essay_corrections')
-        .select(`*, profiles (full_name, is_verified)`)
+        .select(`*, profiles (full_name, is_verified)`) // O '*' já inclui a nova coluna 'annotations'
         .eq('essay_id', essayId)
         .single();
 
@@ -149,6 +166,7 @@ export async function getCorrectionForEssay(essayId: string): Promise<{ data?: E
     return { data: data || undefined };
 }
 
+// FUNÇÃO ATUALIZADA
 export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id' | 'corrector_id' | 'created_at'>) {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -157,7 +175,10 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
 
     const { data: correction, error: correctionError } = await supabase
         .from('essay_corrections')
-        .insert({ ...correctionData, corrector_id: user.id })
+        .insert({ 
+            ...correctionData, 
+            corrector_id: user.id 
+        }) // O 'correctionData' agora inclui as 'annotations'
         .select().single();
 
     if (correctionError) return { error: `Erro ao salvar correção: ${correctionError.message}` };
@@ -184,9 +205,8 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
     return { data: correction };
 }
 
-
+// (O resto do arquivo não precisa de alterações)
 // --- FUNÇÕES DE ESTATÍSTICAS E RANKING ---
-
 export async function getStudentStatistics() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -246,7 +266,6 @@ export async function getStudentStatistics() {
 
     return { data: { totalCorrections, averages, pointToImprove, progression } };
 }
-
 export async function calculateWritingStreak() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();

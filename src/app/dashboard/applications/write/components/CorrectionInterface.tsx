@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, useTransition, useRef } from 'react';
-import { Essay, getEssayDetails, submitCorrection } from '../actions';
+import { useEffect, useState, useTransition, useRef, MouseEvent } from 'react';
+import { Essay, getEssayDetails, submitCorrection, Annotation } from '../actions';
 import Image from 'next/image';
 import createClient from '@/utils/supabase/client';
+
+// --- SUB-COMPONENTES E TIPOS ---
 
 type EssayWithProfile = Essay & {
     profiles: { full_name: string | null } | null;
@@ -11,22 +13,72 @@ type EssayWithProfile = Essay & {
 
 type CommonError = { id: string; error_type: string };
 
+type AnnotationPopupProps = {
+    position: { top: number; left: number };
+    onSave: (comment: string, marker: Annotation['marker']) => void;
+    onClose: () => void;
+};
+
+// Pop-up para adicionar o comentário e marcador
+const AnnotationPopup = ({ position, onSave, onClose }: AnnotationPopupProps) => {
+    const [comment, setComment] = useState('');
+    const [marker, setMarker] = useState<Annotation['marker']>('sugestao');
+
+    const handleSave = () => {
+        if (comment.trim()) {
+            onSave(comment, marker);
+        }
+    };
+
+    return (
+        <div 
+            className="absolute z-10 bg-white dark:bg-dark-card shadow-lg rounded-lg p-3 w-64 border dark:border-dark-border"
+            style={{ top: position.top, left: position.left }}
+            onClick={(e) => e.stopPropagation()}
+        >
+            <textarea 
+                placeholder="Adicione seu comentário..." 
+                rows={3} 
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                className="w-full p-2 border rounded-md text-sm dark:bg-gray-700 dark:border-gray-600 mb-2"
+                autoFocus
+            />
+            <div className="flex justify-between items-center">
+                <select 
+                    value={marker} 
+                    onChange={(e) => setMarker(e.target.value as Annotation['marker'])} 
+                    className="text-xs p-1 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                >
+                    <option value="sugestao">Sugestão</option>
+                    <option value="acerto">Acerto</option>
+                    <option value="erro">Erro</option>
+                </select>
+                <div>
+                    <button onClick={onClose} className="text-xs px-2 py-1 mr-1">Cancelar</button>
+                    <button onClick={handleSave} className="text-xs bg-royal-blue text-white px-3 py-1 rounded-md font-bold">Salvar</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+// --- COMPONENTE PRINCIPAL ---
+
 export default function CorrectionInterface({ essayId, onBack }: { essayId: string; onBack: () => void }) {
     const [essay, setEssay] = useState<EssayWithProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const supabase = createClient();
     
-    // Estados do formulário de correção
     const [feedback, setFeedback] = useState('');
     const [grades, setGrades] = useState({ c1: 0, c2: 0, c3: 0, c4: 0, c5: 0 });
     const [isSubmitting, startTransition] = useTransition();
 
-    // Novos estados para funcionalidades do professor
     const [commonErrors, setCommonErrors] = useState<CommonError[]>([]);
     const [selectedErrors, setSelectedErrors] = useState<Set<string>>(new Set());
     
-    // Estados para gravação de áudio
     const [isRecording, setIsRecording] = useState(false);
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -34,23 +86,25 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
 
+    const [annotations, setAnnotations] = useState<Annotation[]>([]);
+    const [popupState, setPopupState] = useState<{ visible: boolean; x: number; y: number; selection?: Selection }>({ visible: false, x: 0, y: 0 });
+    const imageContainerRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
         const fetchInitialData = async () => {
             setIsLoading(true);
             try {
-                // Buscar os tipos de erros comuns
                 const { data: errorsData, error: errorsError } = await supabase.from('common_errors').select('id, error_type');
                 if (errorsError) throw new Error(`Erro ao buscar erros: ${errorsError.message}`);
                 setCommonErrors(errorsData || []);
 
-                // Buscar detalhes da redação
                 const result = await getEssayDetails(essayId);
                 if (result.data) {
                     setEssay(result.data as EssayWithProfile);
                 } else if (result.error) {
                     setError(result.error);
                 }
-            } catch (err: unknown) { // Corrigido
+            } catch (err: unknown) {
                 if (err instanceof Error) {
                     setError(err.message);
                 } else {
@@ -79,7 +133,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
             return newSet;
         });
     };
-
+    
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -127,6 +181,56 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
         setIsUploadingAudio(false);
         return data.publicUrl;
     };
+    
+    const handleTextMouseUp = () => {
+        const selection = window.getSelection();
+        if (selection && !selection.isCollapsed) {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            setPopupState({ visible: true, x: rect.left + window.scrollX, y: rect.bottom + window.scrollY, selection });
+        } else {
+            setPopupState({ visible: false, x: 0, y: 0 });
+        }
+    };
+
+    const handleImageClick = (e: MouseEvent<HTMLDivElement>) => {
+        if (popupState.visible) {
+            setPopupState({ visible: false, x: 0, y: 0});
+            return;
+        }
+
+        setPopupState({ visible: true, x: e.pageX, y: e.pageY, selection: undefined });
+    };
+
+    const handleSaveAnnotation = (comment: string, marker: Annotation['marker']) => {
+        let newAnnotation: Annotation;
+
+        if (popupState.selection) { 
+            newAnnotation = {
+                id: crypto.randomUUID(),
+                type: 'text',
+                selection: popupState.selection.toString(),
+                comment,
+                marker,
+            };
+        } else {
+             if (!imageContainerRef.current) return;
+             const rect = imageContainerRef.current.getBoundingClientRect();
+             const x = ((popupState.x - rect.left - window.scrollX) / rect.width) * 100;
+             const y = ((popupState.y - rect.top - window.scrollY) / rect.height) * 100;
+            newAnnotation = {
+                id: crypto.randomUUID(),
+                type: 'image',
+                position: { x, y },
+                comment,
+                marker,
+            };
+        }
+        
+        setAnnotations(prev => [...prev, newAnnotation]);
+        setPopupState({ visible: false, x: 0, y: 0 });
+    };
+    
 
     const handleSubmit = async () => {
         const final_grade = Object.values(grades).reduce((a, b) => a + b, 0);
@@ -155,10 +259,11 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 grade_c5: grades.c5,
                 final_grade,
                 audio_feedback_url: uploadedAudioUrl,
+                annotations,
             });
             
             if (!result.error && result.data) {
-                const correctionId = result.data.id;
+                const correctionId = (result.data as any).id;
                 const errorMappings = Array.from(selectedErrors).map(error_id => ({
                     correction_id: correctionId,
                     error_id: error_id
@@ -185,17 +290,40 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
 
     const totalGrade = Object.values(grades).reduce((a, b) => a + b, 0);
 
+    const markerClasses = {
+        erro: 'bg-red-500',
+        acerto: 'bg-green-500',
+        sugestao: 'bg-blue-500',
+    };
+
     return (
         <div>
+            {popupState.visible && (
+                <AnnotationPopup 
+                    position={{ top: popupState.y + 5, left: popupState.x }}
+                    onSave={handleSaveAnnotation}
+                    onClose={() => setPopupState({ visible: false, x: 0, y: 0 })}
+                />
+            )}
             <button onClick={onBack} className="mb-4 text-sm text-royal-blue font-bold"><i className="fas fa-arrow-left mr-2"></i> Voltar para a fila</button>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
                     <h2 className="font-bold text-xl mb-1 dark:text-white-text">{essay.title}</h2>
                     <p className="text-sm text-gray-500 dark:text-dark-text-muted mb-4">Enviada por: {essay.profiles?.full_name || 'Aluno desconhecido'}</p>
+                    
                     {essay.image_submission_url ? (
-                        <Image src={essay.image_submission_url} alt="Redação enviada" width={800} height={1100} className="rounded-lg object-contain"/>
+                        <div ref={imageContainerRef} onClick={handleImageClick} className="relative w-full h-auto cursor-crosshair">
+                            <Image src={essay.image_submission_url} alt="Redação enviada" width={800} height={1100} className="rounded-lg object-contain"/>
+                            {annotations.filter(a => a.type === 'image').map(a => (
+                                <div key={a.id} className={`absolute w-4 h-4 rounded-full ${markerClasses[a.marker]} transform -translate-x-1/2 -translate-y-1/2 group`} style={{ left: `${a.position?.x}%`, top: `${a.position?.y}%` }}>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                        {a.comment}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     ) : (
-                        <div className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md">
+                        <div onMouseUp={handleTextMouseUp} className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md">
                           {essay.content.split('\n\n').map((paragraph, index) => <p key={index} className="mb-4">{paragraph}</p>)}
                         </div>
                     )}

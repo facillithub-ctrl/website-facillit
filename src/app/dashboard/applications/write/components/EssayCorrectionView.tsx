@@ -1,13 +1,10 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Essay, EssayCorrection, getEssayDetails, getCorrectionForEssay } from '../actions';
+import { Essay, EssayCorrection, Annotation, getEssayDetails, getCorrectionForEssay } from '../actions';
 import Image from 'next/image';
 
-type Props = {
-  essayId: string;
-  onBack: () => void;
-};
+// --- TIPOS E SUB-COMPONENTES ---
 
 type FullEssayDetails = Essay & {
   correction: (EssayCorrection & { profiles: { full_name: string | null, is_verified: boolean } }) | null;
@@ -21,6 +18,50 @@ const competencyDetails = [
   { title: "Competência 4: Coesão e Coerência", description: "Avalia o uso de mecanismos linguísticos (conjunções, preposições, etc.) para construir uma argumentação coesa e coerente." },
   { title: "Competência 5: Proposta de Intervenção", description: "Avalia a elaboração de uma proposta de intervenção para o problema abordado, que respeite os direitos humanos." },
 ];
+
+const markerStyles = {
+    erro: { bg: 'bg-red-500', highlight: 'bg-red-200 dark:bg-red-500/30' },
+    acerto: { bg: 'bg-green-500', highlight: 'bg-green-200 dark:bg-green-500/30' },
+    sugestao: { bg: 'bg-blue-500', highlight: 'bg-blue-200 dark:bg-blue-500/30' },
+};
+
+const renderAnnotatedText = (text: string, annotations?: Annotation[] | null) => {
+    if (!annotations || annotations.filter(a => a.type === 'text').length === 0) {
+        return text.split('\n\n').map((p, i) => <p key={i} className="mb-4">{p}</p>);
+    }
+
+    let annotatedHtml = text;
+    // Escapa caracteres HTML para evitar XSS
+    const escapeHtml = (unsafe: string) => unsafe.replace(/[&<"']/g, (match) => {
+        switch (match) {
+            case '&': return '&amp;';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot;';
+            case "'": return '&#039;';
+            default: return match;
+        }
+    });
+
+    annotations.filter(a => a.type === 'text' && a.selection).forEach(a => {
+        const highlightClass = markerStyles[a.marker].highlight;
+        const commentHtml = escapeHtml(a.comment);
+
+        const annotatedSpan = `<mark class="${highlightClass} relative group cursor-pointer">
+            ${escapeHtml(a.selection!)}
+            <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">${commentHtml}</span>
+        </mark>`;
+        
+        // Substitui apenas a primeira ocorrência para evitar problemas com textos repetidos
+        if (annotatedHtml.includes(escapeHtml(a.selection!))) {
+           annotatedHtml = annotatedHtml.replace(escapeHtml(a.selection!), annotatedSpan);
+        }
+    });
+
+    return annotatedHtml.split('\n\n').map((p, i) => 
+        <p key={i} className="mb-4" dangerouslySetInnerHTML={{ __html: p.replace(/\n/g, '<br/>') }} />
+    );
+};
 
 const CompetencyModal = ({ competencyIndex, onClose }: { competencyIndex: number | null, onClose: () => void }) => {
     if (competencyIndex === null) return null;
@@ -37,6 +78,9 @@ const CompetencyModal = ({ competencyIndex, onClose }: { competencyIndex: number
     );
 };
 
+
+// --- COMPONENTE PRINCIPAL ---
+
 export default function EssayCorrectionView({ essayId, onBack }: Props) {
     const [details, setDetails] = useState<FullEssayDetails | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -44,6 +88,7 @@ export default function EssayCorrectionView({ essayId, onBack }: Props) {
 
     useEffect(() => {
         const fetchDetails = async () => {
+            setIsLoading(true);
             const essayResult = await getEssayDetails(essayId);
             if (essayResult.data) {
                 const correctionResult = await getCorrectionForEssay(essayId);
@@ -61,6 +106,7 @@ export default function EssayCorrectionView({ essayId, onBack }: Props) {
     if (!details) return <div className="text-center p-8">Não foi possível carregar os detalhes da redação.</div>;
 
     const { title, content, correction, image_submission_url } = details;
+    const annotations = correction?.annotations;
 
     return (
         <div>
@@ -71,14 +117,25 @@ export default function EssayCorrectionView({ essayId, onBack }: Props) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
                     <h2 className="font-bold text-xl mb-4 dark:text-white-text">{title}</h2>
+                    
                     {image_submission_url ? (
                         <div className="relative w-full h-auto">
                             <Image src={image_submission_url} alt="Redação enviada" width={800} height={1100} className="rounded-lg object-contain"/>
+                            {annotations?.filter(a => a.type === 'image').map(a => (
+                                <div key={a.id} className={`absolute w-4 h-4 rounded-full ${markerStyles[a.marker].bg} transform -translate-x-1/2 -translate-y-1/2 group`} style={{ left: `${a.position?.x}%`, top: `${a.position?.y}%` }}>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                        {a.comment}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     ) : (
-                        <p className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed">{content}</p>
+                        <div className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed">
+                            {renderAnnotatedText(content, annotations)}
+                        </div>
                     )}
                 </div>
+
                 <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="font-bold text-xl dark:text-white-text">Correção</h2>
