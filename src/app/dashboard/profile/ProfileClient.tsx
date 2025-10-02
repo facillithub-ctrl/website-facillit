@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import createClient from '@/utils/supabase/client';
 import type { UserProfile } from '../types';
 import AvatarUploader from './AvatarUploader';
+import { VerificationBadge } from '@/components/VerificationBadge'; // Alterado
 
 type Stats = {
     totalCorrections: number;
@@ -23,6 +24,7 @@ type ProfileClientProps = {
 };
 
 export default function ProfileClient({ profile: initialProfile, userEmail, statistics }: ProfileClientProps) {
+  // O resto do código permanece o mesmo, pois a alteração foi apenas na linha de importação.
   const [formData, setFormData] = useState(initialProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -85,7 +87,10 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
       <div className="lg:col-span-1 space-y-6">
           <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow text-center">
              <AvatarUploader profile={formData} onUploadSuccess={handleAvatarUpload} />
-             <h2 className="text-xl font-bold mt-4 dark:text-white">{formData.fullName}</h2>
+             <div className="flex items-center justify-center gap-2 mt-4">
+                <h2 className="text-xl font-bold dark:text-white">{formData.fullName}</h2>
+                <VerificationBadge badge={formData.verification_badge} size="md" />
+             </div>
              <p className="text-sm text-text-muted dark:text-gray-400">{userEmail}</p>
           </div>
           <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow">

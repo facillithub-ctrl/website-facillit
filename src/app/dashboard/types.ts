@@ -10,4 +10,5 @@ export type UserProfile = {
   birthDate?: string | null;
   schoolName?: string | null;
   target_exam?: string | null; // Adicionado
+  verification_badge?: string | null; // 
 };

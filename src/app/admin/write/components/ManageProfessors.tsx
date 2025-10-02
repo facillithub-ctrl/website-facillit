@@ -1,21 +1,29 @@
 "use client";
 
 import { useState, useTransition } from 'react';
-import { updateProfessorVerification } from '../../actions';
+import { updateUserVerification } from '../../actions';
+import { VerificationBadge } from '@/components/VerificationBadge'; // CORRIGIDO
 
-type Professor = { id: string; full_name: string | null; is_verified: boolean | null; created_at: string | null; };
+type Professor = { 
+  id: string; 
+  full_name: string | null; 
+  is_verified: boolean | null; 
+  created_at: string | null;
+  verification_badge: string | null;
+};
 
 export default function ManageProfessors({ professors: initialProfessors }: { professors: Professor[] }) {
     const [professors, setProfessors] = useState(initialProfessors);
     const [isPending, startTransition] = useTransition();
 
-    const handleToggleVerify = (professorId: string, currentStatus: boolean) => {
+    const handleBadgeChange = (professorId: string, badge: string) => {
         startTransition(async () => {
-            setProfessors(profs => profs.map(p => p.id === professorId ? { ...p, is_verified: !currentStatus } : p));
-            const result = await updateProfessorVerification(professorId, !currentStatus);
+            const newBadge = badge === 'none' ? null : badge;
+            const result = await updateUserVerification(professorId, newBadge);
             if (result.error) {
-                setProfessors(profs => profs.map(p => p.id === professorId ? { ...p, is_verified: currentStatus } : p));
                 alert(`Erro ao atualizar professor: ${result.error}`);
+            } else {
+                setProfessors(profs => profs.map(p => p.id === professorId ? { ...p, verification_badge: newBadge } : p));
             }
         });
     };
@@ -30,18 +38,29 @@ export default function ManageProfessors({ professors: initialProfessors }: { pr
                         <tr>
                             <th scope="col" className="px-6 py-3">Nome</th>
                             <th scope="col" className="px-6 py-3">Status</th>
-                            <th scope="col" className="px-6 py-3">Ação</th>
+                            <th scope="col" className="px-6 py-3">Ação (Atribuir Selo)</th>
                         </tr>
                     </thead>
                     <tbody>
                         {professors.map(p => (
                             <tr key={p.id} className="border-b dark:border-gray-700">
-                                <td className="px-6 py-4 font-medium text-dark-text dark:text-white">{p.full_name}</td>
-                                <td className="px-6 py-4">{p.is_verified ? <span className="text-green-500 font-bold">Verificado</span> : 'Não Verificado'}</td>
+                                <td className="px-6 py-4 font-medium text-dark-text dark:text-white flex items-center gap-2">
+                                  {p.full_name}
+                                  <VerificationBadge badge={p.verification_badge} />
+                                </td>
                                 <td className="px-6 py-4">
-                                    <button onClick={() => handleToggleVerify(p.id, !!p.is_verified)} disabled={isPending} className="font-medium text-blue-600 dark:text-blue-500 hover:underline disabled:opacity-50">
-                                        {p.is_verified ? 'Remover Verificação' : 'Verificar'}
-                                    </button>
+                                  {p.verification_badge === 'green' ? <span className="text-green-500 font-bold">Verificado</span> : 'Não Verificado'}
+                                </td>
+                                <td className="px-6 py-4">
+                                    <select
+                                        onChange={(e) => handleBadgeChange(p.id, e.target.value)}
+                                        defaultValue={p.verification_badge || 'none'}
+                                        disabled={isPending}
+                                        className="bg-gray-50 border border-gray-300 text-sm rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    >
+                                        <option value="none">Nenhum</option>
+                                        <option value="green">Verde (Professor)</option>
+                                    </select>
                                 </td>
                             </tr>
                         ))}

@@ -46,8 +46,8 @@ export async function getWriteModuleData() {
   const supabase = await createSupabaseServerClient();
   
   const [studentsResult, professorsResult, promptsResult, eventsResult, examsResult] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, user_category, created_at').or('user_category.eq.aluno,user_category.eq.vestibulando'),
-    supabase.from('profiles').select('id, full_name, user_category, is_verified, created_at').eq('user_category', 'professor'),
+    supabase.from('profiles').select('id, full_name, user_category, created_at, verification_badge').or('user_category.eq.aluno,user_category.eq.vestibulando'),
+    supabase.from('profiles').select('id, full_name, user_category, is_verified, created_at, verification_badge').eq('user_category', 'professor'),
     supabase.from('essay_prompts').select('*').order('created_at', { ascending: false }),
     supabase.from('current_events').select('*').order('created_at', { ascending: false }),
     supabase.from('exam_dates').select('*').order('exam_date', { ascending: true })
@@ -69,6 +69,26 @@ export async function getWriteModuleData() {
     }
   };
 }
+
+export async function updateUserVerification(userId: string, badge: string | null) {
+  if (!(await isAdmin())) {
+    return { error: 'Acesso não autorizado.' };
+  }
+  
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ verification_badge: badge, verification_status: badge ? 'approved' : null })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+  
+  revalidatePath('/admin/write');
+  return { data };
+}
+
 
 export async function updateProfessorVerification(professorId: string, isVerified: boolean) {
   if (!(await isAdmin())) {

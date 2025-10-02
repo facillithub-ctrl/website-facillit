@@ -146,14 +146,14 @@ export async function getLatestEssayForDashboard() {
 
 
 // --- FUNÇÕES DE CORREÇÃO ---
-export async function getCorrectionForEssay(essayId: string): Promise<{ data?: EssayCorrection & { profiles: { full_name: string | null, is_verified: boolean }, essay_correction_errors: { common_errors: { error_type: string } }[] }; error?: string }> {
+export async function getCorrectionForEssay(essayId: string): Promise<{ data?: EssayCorrection & { profiles: { full_name: string | null, verification_badge: string | null }, essay_correction_errors: { common_errors: { error_type: string } }[] }; error?: string }> {
     const supabase = await createSupabaseServerClient();
     
     const { data, error } = await supabase
         .from('essay_corrections')
         .select(`
             *, 
-            profiles (full_name, is_verified),
+            profiles (full_name, verification_badge),
             essay_correction_errors (
                 common_errors (error_type)
             )

@@ -3,14 +3,18 @@
 import { useEffect, useState, ReactElement } from 'react';
 import { Essay, EssayCorrection, Annotation, getEssayDetails, getCorrectionForEssay } from '../actions';
 import Image from 'next/image';
+import { VerificationBadge } from '@/components/VerificationBadge'; // Alterado
+
+// O resto do código permanece o mesmo, pois a alteração foi apenas na linha de importação e no tipo.
 
 // --- TIPOS E SUB-COMPONENTES ---
 
 type FullEssayDetails = Essay & {
-  correction: (EssayCorrection & { profiles: { full_name: string | null, is_verified: boolean } }) | null;
+  correction: (EssayCorrection & { profiles: { full_name: string | null, verification_badge: string | null } }) | null;
   profiles: { full_name: string | null } | null;
 };
 
+// ... (restante do código idêntico ao da resposta anterior)
 const competencyDetails = [
   { title: "Competência 1: Domínio da Escrita Formal", description: "Avalia o domínio da modalidade escrita formal da língua portuguesa e da norma-padrão." },
   { title: "Competência 2: Compreensão do Tema e Estrutura", description: "Avalia a compreensão da proposta de redação e a aplicação de conceitos de várias áreas do conhecimento para desenvolver o tema, dentro da estrutura do texto dissertativo-argumentativo." },
@@ -32,33 +36,28 @@ const renderAnnotatedText = (text: string, annotations?: Annotation[] | null): R
         return text.split('\n\n').map((p, i) => <p key={i} className="mb-4">{p}</p>);
     }
 
-    // 1. Criar um mapa para contar as ocorrências de cada texto de seleção
     const selectionOccurrenceMap = new Map<string, number>();
     const positionedAnnotations = textAnnotations.map(anno => {
         const selection = anno.selection!;
         const occurrence = selectionOccurrenceMap.get(selection) || 0;
         selectionOccurrenceMap.set(selection, occurrence + 1);
 
-        // Encontrar o índice da N-ésima ocorrência
         let index = -1;
         for (let i = 0; i <= occurrence; i++) {
             index = text.indexOf(selection, index + 1);
         }
         return { ...anno, startIndex: index };
     })
-    .filter(anno => anno.startIndex !== -1) // Ignorar anotações não encontradas
-    .sort((a, b) => a.startIndex - b.startIndex); // Ordenar pela posição no texto
+    .filter(anno => anno.startIndex !== -1)
+    .sort((a, b) => a.startIndex - b.startIndex);
 
-    // 2. Construir o array de nós React
     const nodes: React.ReactNode[] = [];
     let lastIndex = 0;
 
     positionedAnnotations.forEach(anno => {
-        // Adicionar o texto antes da anotação
         if (anno.startIndex > lastIndex) {
             nodes.push(text.substring(lastIndex, anno.startIndex));
         }
-        // Adicionar a anotação como um elemento <mark>
         nodes.push(
             <mark key={anno.id} className={`${markerStyles[anno.marker].highlight} relative group cursor-pointer px-1 rounded-sm`}>
                 {anno.selection}
@@ -68,12 +67,10 @@ const renderAnnotatedText = (text: string, annotations?: Annotation[] | null): R
         lastIndex = anno.startIndex + anno.selection!.length;
     });
 
-    // Adicionar o restante do texto
     if (lastIndex < text.length) {
         nodes.push(text.substring(lastIndex));
     }
 
-    // 3. Processar o array de nós para reconstruir os parágrafos
     return nodes.reduce((acc: React.ReactNode[], node) => {
         if (typeof node === 'string') {
             const paragraphs = node.split('\n\n').map((paragraphText, index, arr) => (
@@ -86,8 +83,6 @@ const renderAnnotatedText = (text: string, annotations?: Annotation[] | null): R
         }
         return [...acc, node];
     }, []).map((node, i, allNodes) => {
-        // Agrupa os elementos em parágrafos. A lógica é um pouco complexa,
-        // mas a ideia é criar um <p> para cada conjunto de nós até encontrar um <br>
         const elementsInParagraph: React.ReactNode[] = [];
         let currentNode = node as ReactElement;
         let currentIndex = i;
@@ -118,7 +113,6 @@ const CompetencyModal = ({ competencyIndex, onClose }: { competencyIndex: number
     );
 };
 
-// --- COMPONENTE PRINCIPAL ---
 export default function EssayCorrectionView({ essayId, onBack }: {essayId: string, onBack: () => void}) {
     const [details, setDetails] = useState<FullEssayDetails | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -209,11 +203,7 @@ export default function EssayCorrectionView({ essayId, onBack }: {essayId: strin
                                 <div className="text-sm text-gray-700 dark:text-dark-text-muted bg-gray-50 dark:bg-gray-700/50 p-4 rounded-md whitespace-pre-wrap">{correction.feedback}</div>
                                 <div className="text-xs text-gray-400 mt-2 flex items-center gap-2">
                                     <span>Corrigido por: {correction.profiles?.full_name}</span>
-                                    {correction.profiles?.is_verified && (
-                                        <span className="flex items-center gap-1 text-royal-blue bg-royal-blue/10 px-2 py-0.5 rounded-full font-bold text-xs">
-                                            <i className="fas fa-check-circle"></i> Professor Verificado
-                                        </span>
-                                    )}
+                                    <VerificationBadge badge={correction.profiles?.verification_badge} />
                                 </div>
                             </div>
                         </div>
