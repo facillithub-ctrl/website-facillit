@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import createClient from '@/utils/supabase/client';
 import type { UserProfile } from '../types';
+import Link from 'next/link'; // Importado para o link da política
 
 const modulesData = [
   { slug: 'edu', icon: 'fa-graduation-cap', title: 'Facillit Edu', description: 'Gestão pedagógica e de alunos.', roles: ['aluno', 'professor', 'gestor'] },
@@ -23,11 +24,11 @@ const modulesData = [
 export default function Onboarding({ userProfile }: { userProfile: UserProfile }) {
     const supabase = createClient();
     const router = useRouter();
-    const [selectedModules, setSelectedModules] = useState<string[]>(['write']); // Módulo 'write' pré-selecionado
+    const [selectedModules, setSelectedModules] = useState<string[]>(['write']);
+    const [agreedToModuleTerms, setAgreedToModuleTerms] = useState(false); // NOVO ESTADO
     const [isLoading, setIsLoading] = useState(false);
 
     const toggleModule = (slug: string) => {
-        // Permite apenas a seleção/deseleção do módulo 'write'
         if (slug !== 'write') return;
         
         setSelectedModules(prev =>
@@ -49,6 +50,7 @@ export default function Onboarding({ userProfile }: { userProfile: UserProfile }
                 .eq('id', user.id);
 
             if (!error) {
+                // Força a atualização da página para carregar o layout do dashboard
                 window.location.assign('/dashboard');
             } else {
                 console.error("Erro ao salvar módulos:", error);
@@ -62,6 +64,9 @@ export default function Onboarding({ userProfile }: { userProfile: UserProfile }
     const availableModules = modulesData.filter(module => 
         userProfile.userCategory && module.roles.includes(userProfile.userCategory)
     );
+
+    // Condição para desabilitar o botão de continuar
+    const isContinueDisabled = isLoading || !selectedModules.includes('write') || !agreedToModuleTerms;
 
     return (
         <div className="min-h-screen bg-background-light flex items-center justify-center p-4">
@@ -96,9 +101,25 @@ export default function Onboarding({ userProfile }: { userProfile: UserProfile }
                         )
                     })}
                 </div>
+                
+                {/* NOVO: CHECKBOX DE CONSENTIMENTO */}
+                <div className="mb-6">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            checked={agreedToModuleTerms}
+                            onChange={(e) => setAgreedToModuleTerms(e.target.checked)}
+                            className="h-5 w-5 mt-1 rounded border-gray-300 text-royal-blue focus:ring-royal-blue flex-shrink-0"
+                        />
+                        <span className="text-sm text-gray-600">
+                            Eu li e concordo com a <Link href="/recursos/politica-de-dado" target="_blank" className="font-bold text-royal-blue underline">Política de Dados do Módulo</Link>, permitindo o uso dos meus textos para aprimoramento do serviço e da IA.
+                        </span>
+                    </label>
+                </div>
+                
                 <button
                     onClick={handleContinue}
-                    disabled={isLoading || !selectedModules.includes('write')}
+                    disabled={isContinueDisabled}
                     className="w-full py-3 bg-royal-blue text-white font-bold rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed hover:bg-opacity-90"
                 >
                     {isLoading ? 'Salvando...' : 'Continuar para o Dashboard'}

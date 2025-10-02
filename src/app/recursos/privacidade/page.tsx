@@ -9,7 +9,7 @@ export default function PoliticaDePrivacidadePage() {
                 <section className="bg-royal-blue text-white pt-32 pb-20 text-center">
                     <div className="container mx-auto px-6 text-center">
                         <h1 className="text-4xl md:text-5xl font-black text-white-text mb-4">Política de Privacidade</h1>
-                        <p className="text-lg text-text-white">Data da Última Atualização: 10 de Agosto de 2025</p>
+                        <p className="text-lg text-text-white">Última Atualização: 02 de Outubro de 2025</p>
                     </div>
                 </section>
 
@@ -19,8 +19,8 @@ export default function PoliticaDePrivacidadePage() {
                             
                             <div>
                                 <h2 className="text-2xl font-bold text-dark-text mb-4">1. Introdução: Nosso Compromisso com a Sua Privacidade</h2>
-                                <p>Este documento, a Política de Privacidade da FACILLIT HUB TECNOLOGIA E EDUCAÇÃO LTDA. ("FACILLIT HUB", "nós"), tem como objetivo informar de maneira clara, transparente e detalhada como coletamos, utilizamos, armazenamos e protegemos os seus dados pessoais. Reconhecemos a importância fundamental da sua privacidade e nos comprometemos a tratar seus dados com o máximo de cuidado, segurança e em estrita conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 - "LGPD") e demais legislações aplicáveis, como o Marco Civil da Internet (Lei nº 12.965/2014) e o Estatuto da Criança e do Adolescente (Lei nº 8.069/1990).</p>
-                                <p>Esta política se aplica a todos os "Usuários" (conforme definido em nossos Termos de Uso) que acessam ou utilizam nossa "Plataforma" o ecossistema digital integrado que inclui os subprodutos Facillit Edu, Facillit Games, Facillit Write e Facillit Day. A leitura atenta e a aceitação desta Política são requisitos indispensáveis para o uso de nossos serviços, sendo este documento parte indissociável dos Termos de Uso.</p>
+                                <p>Este documento, a Política de Privacidade da FACILLIT HUB TECNOLOGIA E EDUCAÇÃO LTDA. (FACILLIT HUB, nós), tem como objetivo informar de maneira clara, transparente e detalhada como coletamos, utilizamos, armazenamos e protegemos os seus dados pessoais. Reconhecemos a importância fundamental da sua privacidade e nos comprometemos a tratar seus dados com o máximo de cuidado, segurança e em estrita conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 - LGPD) e demais legislações aplicáveis, como o Marco Civil da Internet (Lei nº 12.965/2014) e o Estatuto da Criança e do Adolescente (Lei nº 8.069/1990).</p>
+                                <p>Esta política se aplica a todos os Usuários (conforme definido em nossos Termos de Uso) que acessam ou utilizam nossa Plataforma o ecossistema digital integrado que inclui os subprodutos Facillit Edu, Facillit Games, Facillit Write e Facillit Day. A leitura atenta e a aceitação desta Política são requisitos indispensáveis para o uso de nossos serviços, sendo este documento parte indissociável dos Termos de Uso.</p>
                             </div>
 
                             <div>

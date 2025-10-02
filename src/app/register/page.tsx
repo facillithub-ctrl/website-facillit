@@ -41,8 +41,8 @@ export default function RegisterPage() {
     const [formData, setFormData] = useState<FormData>({});
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [agreedToTerms, setAgreedToTerms] = useState(false);
-    const router = useRouter(); // router é usado em SuccessStep
+    const [agreedToTerms, setAgreedToTerms] = useState(false); // Estado para o checkbox
+    const router = useRouter();
     const supabase = createClient();
 
     const handleNextStep = (nextStep: string, data: Partial<FormData> = {}) => {
@@ -58,7 +58,7 @@ export default function RegisterPage() {
 
     const handleRegister = async (finalData: Partial<FormData>) => {
         if (!agreedToTerms) {
-            setError("Você precisa de concordar com os Termos de Uso e a Política de Privacidade para continuar.");
+            setError("Você precisa concordar com os Termos de Uso e a Política de Privacidade para continuar.");
             return;
         }
 
@@ -109,6 +109,7 @@ export default function RegisterPage() {
                     address_city: fullData.addressCity,
                     address_state: fullData.addressState,
                     category_details: fullData.categoryDetails,
+                    has_agreed_to_terms: true, // <-- NOVO: Salvando a confirmação
                     updated_at: new Date().toISOString(),
                 });
 
@@ -154,7 +155,7 @@ export default function RegisterPage() {
 }
 
 
-// --- Componentes de Cena (sem alterações) ---
+// --- Componentes de Etapa (Sem alterações, exceto PersonalizationStep) ---
 const WelcomeStep = ({ onNext }: { onNext: () => void }) => (
     <div className="text-center flex flex-col h-full justify-center">
         <h2 className="text-2xl font-bold mb-2">Olá! É a sua primeira vez por aqui?</h2>
@@ -202,7 +203,7 @@ const AddressDataStep = ({ onNext, onBack }: { onNext: (data: Partial<FormData>)
             const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
             const data = await response.json();
             if (!data.erro) {
-                setAddress({ street: data.logradouro, neighborhood: data.bairro, city: data.localidade, state: data.uf });
+                setAddress({ street: data.logouro, neighborhood: data.bairro, city: data.localidade, state: data.uf });
             }
         } catch (error) {
             console.error("Erro ao procurar CEP:", error);

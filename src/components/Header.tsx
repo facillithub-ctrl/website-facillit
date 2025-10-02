@@ -28,9 +28,9 @@ const modulos = {
   ],
 };
 const solucoes = [
-    { href: "#", title: "Para Pessoas", subtitle: "Organização e desenvolvimento pessoal." },
-    { href: "#", title: "Para Escolas", subtitle: "Inovação na gestão pedagógica." },
-    { href: "#", title: "Para Empresas", subtitle: "Produtividade e bem-estar corporativo." },
+    { href: "/recursos/sobre-nos", title: "Para Pessoas", subtitle: "Organização e desenvolvimento pessoal." },
+    { href: "/recursos/sobre-nos", title: "Para Escolas", subtitle: "Inovação na gestão pedagógica." },
+    { href: "/recursos/sobre-nos", title: "Para Empresas", subtitle: "Produtividade e bem-estar corporativo." },
 ];
 const recursos = {
     "Empresa": [

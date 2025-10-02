@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Essay, EssayPrompt, saveOrUpdateEssay } from '../actions';
 import PromptSelector from './PromptSelector';
 import createClient from '@/utils/supabase/client';
-import Image from 'next/image'; // Importado
+import Image from 'next/image';
 
 type Props = {
   essay: Partial<Essay> | null;
@@ -96,13 +96,11 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                 <h2 className="text-xl font-bold dark:text-white-text">{selectedPrompt?.title}</h2>
                 <p className="text-sm text-gray-500 dark:text-dark-text-muted">{selectedPrompt?.source}</p>
                 
-                {/* ALTERADO: Renderização dos novos textos motivadores */}
                 <div className="mt-4 space-y-4">
                   <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                       <p className="text-sm text-gray-600 dark:text-dark-text-muted whitespace-pre-wrap">{selectedPrompt?.description}</p>
                   </div>
 
-                  {/* TEXTO I */}
                   {selectedPrompt?.motivational_text_1 && (
                     <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                         <h4 className="font-bold text-xs uppercase text-gray-400 mb-2">TEXTO I</h4>
@@ -110,7 +108,6 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                     </div>
                   )}
 
-                  {/* TEXTO II */}
                   {selectedPrompt?.motivational_text_2 && (
                     <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                         <h4 className="font-bold text-xs uppercase text-gray-400 mb-2">TEXTO II</h4>
@@ -118,7 +115,6 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                     </div>
                   )}
 
-                  {/* TEXTO III (IMAGEM) */}
                   {selectedPrompt?.motivational_text_3_image_url && (
                     <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                         <h4 className="font-bold text-xs uppercase text-gray-400 mb-2">TEXTO III</h4>
@@ -171,7 +167,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                 <label className="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="h-5 w-5 rounded border-gray-300 text-royal-blue focus:ring-royal-blue" />
                     <span className="text-sm text-gray-600 dark:text-dark-text-muted">
-                        Li e concordo com os <Link href="/recursos/uso" target="_blank" className="underline font-bold">Termos de Uso</Link>. Autorizo o uso anônimo desta redação para o treinamento da inteligência artificial.
+                        Eu li e concordo com a <Link href="/recursos/direito-autoral" target="_blank" className="underline font-bold">Política de Direitos Autorais</Link> e consinto com o uso da minha redação para o treinamento da inteligência artificial.
                     </span>
                 </label>
             </div>
@@ -180,7 +176,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                 <button onClick={() => handleSave('draft')} disabled={isPending} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 disabled:opacity-50">
                     {isPending ? 'A salvar...' : 'Salvar Rascunho'}
                 </button>
-                <button onClick={() => handleSave('submitted')} disabled={isPending || (isPending && !consent)} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 disabled:opacity-50">
+                <button onClick={() => handleSave('submitted')} disabled={isPending || !consent} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 disabled:opacity-50">
                     {isPending ? 'A enviar...' : 'Enviar para Correção'}
                 </button>
             </div>
