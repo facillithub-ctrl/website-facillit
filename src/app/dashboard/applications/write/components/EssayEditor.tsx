@@ -8,7 +8,7 @@ import createClient from '@/utils/supabase/client';
 import Image from 'next/image';
 import VersionHistory from './VersionHistory';
 import Timer from './Timer';
-import PlagiarismResultModal from './PlagiarismResultModal';
+import PlagiarismResultModal, { type PlagiarismResult } from './PlagiarismResultModal';
 
 type Props = {
   essay: Partial<Essay> | null;
@@ -30,7 +30,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
   const [isSimulado, setIsSimulado] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isCheckingPlagiarism, setIsCheckingPlagiarism] = useState(false);
-  const [plagiarismResult, setPlagiarismResult] = useState<Awaited<ReturnType<typeof checkForPlagiarism>>['data'] | null>(null);
+  const [plagiarismResult, setPlagiarismResult] = useState<PlagiarismResult | null>(null);
 
   useEffect(() => {
     if (isSimulado) {

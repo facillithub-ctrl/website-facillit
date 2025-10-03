@@ -1,6 +1,6 @@
 "use client";
 
-type PlagiarismResult = {
+export type PlagiarismResult = {
   similarity_percentage: number;
   matches: { source: string; text: string }[];
 };
