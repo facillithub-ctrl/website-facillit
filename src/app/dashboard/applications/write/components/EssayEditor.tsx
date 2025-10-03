@@ -28,13 +28,11 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
   );
   const [showHistory, setShowHistory] = useState(false);
 
-  // ESTADOS PARA MODO SIMULADO E PLÁGIO
   const [isSimulado, setIsSimulado] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isCheckingPlagiarism, setIsCheckingPlagiarism] = useState(false);
   const [plagiarismResult, setPlagiarismResult] = useState<any | null>(null);
 
-  // Efeito para salvamento automático
   useEffect(() => {
     if (isSimulado) {
       autoSaveTimerRef.current = setInterval(() => {
@@ -47,7 +45,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
           }
           return prevEssay;
         });
-      }, 60000); // Salva a cada 1 minuto
+      }, 60000); 
     } else {
       if (autoSaveTimerRef.current) {
         clearInterval(autoSaveTimerRef.current);
@@ -106,9 +104,9 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
         consent_to_ai_training: consent,
       };
       const result = await saveOrUpdateEssay(updatedData);
-      
+
       if (!result.error) {
-        if(status === 'submitted') setIsSimulado(false); // Desativa o simulado ao enviar
+        if(status === 'submitted') setIsSimulado(false);
         alert(status === 'draft' ? 'Rascunho salvo com sucesso!' : 'Redação enviada com sucesso!');
         if(status === 'submitted') onBack();
       } else {
@@ -138,7 +136,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
     }
     setIsCheckingPlagiarism(false);
   };
-  
+
   const handleExport = () => {
       const blob = new Blob([currentEssay.content || ''], { type: 'text/plain;charset=utf-8' });
       const link = document.createElement('a');
@@ -168,7 +166,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                 <h2 className="text-xl font-bold dark:text-white-text">{selectedPrompt?.title}</h2>
                 <p className="text-sm text-gray-500 dark:text-dark-text-muted">{selectedPrompt?.source}</p>
             </div>
-            
+
             <input
                 type="text"
                 placeholder="Título da sua redação"
@@ -201,7 +199,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                 </button>
               </>
             )}
-            
+
             {currentEssay.id && !currentEssay.image_submission_url && (
                 <div>
                     <div className="flex flex-wrap items-center gap-4 mt-4">

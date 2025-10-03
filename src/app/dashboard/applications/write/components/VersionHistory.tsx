@@ -12,10 +12,9 @@ type EssayVersion = {
 
 type Props = {
   essayId: string;
-  onSelectVersion: (content: string) => void; // Função para restaurar uma versão
+  onSelectVersion: (content: string) => void;
 };
 
-// Função para buscar as versões de uma redação
 async function getEssayVersions(essayId: string): Promise<EssayVersion[]> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -63,9 +62,8 @@ export default function VersionHistory({ essayId, onSelectVersion }: Props) {
                 </span>
               </div>
               <div>
-                {/* FUTURO: Botão para comparar versões */}
                 <button className="text-xs font-medium text-gray-500 mr-3" disabled>Comparar</button>
-                <button 
+                <button
                   onClick={() => onSelectVersion(version.content)}
                   className="text-xs font-medium text-royal-blue hover:underline"
                 >

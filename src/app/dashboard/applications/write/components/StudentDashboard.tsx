@@ -8,7 +8,6 @@ import EssayEditor from './EssayEditor';
 import EssayCorrectionView from './EssayCorrectionView';
 import StatisticsWidget from './StatisticsWidget';
 import ProgressionChart from './ProgressionChart';
-// Importações atualizadas para o gráfico de pizza
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 // --- TIPOS E PROPS ---
@@ -76,10 +75,9 @@ const ActionShortcuts = () => (
     </div>
 );
 
-// GRÁFICO DE PIZZA ATUALIZADO
 const FrequentErrorsChart = ({ data }: { data: FrequentError[] }) => {
   if (!data || data.length === 0) return null;
-  
+
   const COLORS = ['#2E14ED', '#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F', '#FFBB28'];
 
   return (
@@ -101,8 +99,8 @@ const FrequentErrorsChart = ({ data }: { data: FrequentError[] }) => {
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip 
-             contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#2f2f2f', borderRadius: '0.5rem' }} 
+          <Tooltip
+             contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#2f2f2f', borderRadius: '0.5rem' }}
           />
           <Legend iconType="circle" />
         </PieChart>
@@ -162,12 +160,12 @@ export default function StudentDashboard({ initialEssays, prompts, statistics, s
 
   const handleBackToDashboard = async () => {
     const result = await getEssaysForStudent();
-    if (result.data) setEssays(result.data); 
+    if (result.data) setEssays(result.data);
     setView('dashboard');
     setCurrentEssay(null);
     window.history.pushState({}, '', '/dashboard/applications/write');
   };
-  
+
   if (view === 'edit') return <EssayEditor essay={currentEssay} prompts={prompts} onBack={handleBackToDashboard} />;
   if (view === 'view_correction' && currentEssay?.id) return <EssayCorrectionView essayId={currentEssay.id} onBack={handleBackToDashboard} />;
 
@@ -179,7 +177,7 @@ export default function StudentDashboard({ initialEssays, prompts, statistics, s
           <i className="fas fa-plus mr-2"></i> Nova Redação
         </button>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <WritingStreak days={streak} />
           <StateRanking rank={rankInfo?.rank ?? null} state={rankInfo?.state ?? null} />
@@ -197,13 +195,11 @@ export default function StudentDashboard({ initialEssays, prompts, statistics, s
           </div>
       )}
 
-      {/* Seção com Gráfico de Erros e Atualidades */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <FrequentErrorsChart data={frequentErrors} />
         <CurrentEventsWidget events={currentEvents} />
       </div>
 
-      {/* Histórico de Redações */}
       <div>
         <h2 className="text-2xl font-bold text-dark-text dark:text-white-text mb-4">Histórico de Redações</h2>
         <div className="bg-white dark:bg-dark-card rounded-lg shadow-md border dark:border-dark-border p-4">

@@ -39,7 +39,7 @@ export type EssayCorrection = {
     final_grade: number;
     audio_feedback_url?: string | null;
     annotations?: Annotation[] | null;
-    ai_feedback?: AIFeedback | null; 
+    ai_feedback?: AIFeedback | null;
 };
 
 export type EssayPrompt = {
@@ -102,9 +102,9 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
       .from('essay_versions')
       .select('*', { count: 'exact', head: true })
       .eq('essay_id', upsertedEssay.id);
-      
+
     if (countError) console.error("Erro ao contar versões:", countError.message);
-    
+
     const { error: versionError } = await supabase
       .from('essay_versions')
       .insert({
@@ -128,7 +128,7 @@ export async function getPrompts(): Promise<{ data?: EssayPrompt[]; error?: stri
     const { data, error } = await supabase
         .from('essay_prompts')
         .select('*');
-        
+
     if (error) return { error: error.message };
     return { data: data || [] };
 }
@@ -180,13 +180,13 @@ export async function getLatestEssayForDashboard() {
 // --- FUNÇÕES DE CORREÇÃO ---
 export async function getCorrectionForEssay(essayId: string): Promise<{ data?: (EssayCorrection & { profiles: { full_name: string | null, verification_badge: string | null }, ai_feedback: AIFeedback | null, essay_correction_errors: { common_errors: { error_type: string } }[] }); error?: string }> {
     const supabase = await createSupabaseServerClient();
-    
+
     const { data, error } = await supabase
         .from('essay_corrections')
         .select(`
-            *, 
+            *,
             profiles (full_name, verification_badge),
-            ai_feedback (*), 
+            ai_feedback (*),
             essay_correction_errors (
                 common_errors (error_type)
             )
@@ -195,7 +195,7 @@ export async function getCorrectionForEssay(essayId: string): Promise<{ data?: (
         .single();
 
     if (error && error.code !== 'PGRST116') return { error: error.message };
-    
+
     return { data: data as any || undefined };
 }
 
@@ -209,9 +209,9 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
 
     const { data: correction, error: correctionError } = await supabase
         .from('essay_corrections')
-        .insert({ 
-            ...humanCorrectionData, 
-            corrector_id: user.id 
+        .insert({
+            ...humanCorrectionData,
+            corrector_id: user.id
         })
         .select()
         .single();
@@ -227,7 +227,7 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
                 rewrite_suggestions: ai_feedback.rewrite_suggestions,
                 actionable_items: ai_feedback.actionable_items
             });
-        
+
         if (aiError) {
             console.error("Erro ao salvar feedback da IA:", aiError);
         }
@@ -462,7 +462,7 @@ export async function getAIFeedbackForEssay(essayId: string) {
         .select('*')
         .eq('essay_id', essayId)
         .single();
-    
+
     if (error && error.code !== 'PGRST116') {
         console.error("Erro ao buscar feedback da IA:", error);
         return { data: null, error: error.message };
