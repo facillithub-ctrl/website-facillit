@@ -71,7 +71,7 @@ export default function ManagePrompts({ prompts }: Props) {
         setIsModalOpen(false);
         setCurrentPrompt(null);
     };
-    
+
     const handleDelete = async (promptId: string) => {
         if (confirm('Tem certeza que deseja excluir este tema?')) {
             startTransition(async () => {
@@ -92,7 +92,7 @@ export default function ManagePrompts({ prompts }: Props) {
         const { error: uploadError } = await supabase.storage
             .from('essay_prompts')
             .upload(filePath, file);
-        
+
         if (uploadError) {
             alert(`Erro no upload: ${uploadError.message}`);
             setIsUploading(false);
@@ -121,7 +121,7 @@ export default function ManagePrompts({ prompts }: Props) {
             setCurrentPrompt(prev => ({ ...prev, motivational_text_3_image_url: publicUrl }));
         }
     };
-    
+
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!currentPrompt) return;

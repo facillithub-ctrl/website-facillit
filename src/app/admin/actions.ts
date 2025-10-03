@@ -46,7 +46,7 @@ export async function getWriteModuleData() {
   }
 
   const supabase = await createSupabaseServerClient();
-  
+
   const [studentsResult, professorsResult, promptsResult, eventsResult, examsResult] = await Promise.all([
     supabase.from('profiles').select('id, full_name, user_category, created_at, verification_badge').or('user_category.eq.aluno,user_category.eq.vestibulando'),
     supabase.from('profiles').select('id, full_name, user_category, is_verified, created_at, verification_badge').eq('user_category', 'professor'),
@@ -76,7 +76,7 @@ export async function updateUserVerification(userId: string, badge: string | nul
   if (!(await isAdmin())) {
     return { error: 'Acesso não autorizado.' };
   }
-  
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('profiles')
@@ -85,7 +85,7 @@ export async function updateUserVerification(userId: string, badge: string | nul
     .select();
 
   if (error) return { error: error.message };
-  
+
   revalidatePath('/admin/write');
   return { data };
 }
@@ -95,7 +95,7 @@ export async function updateProfessorVerification(professorId: string, isVerifie
   if (!(await isAdmin())) {
     return { error: 'Acesso não autorizado.' };
   }
-  
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('profiles')
@@ -105,7 +105,7 @@ export async function updateProfessorVerification(professorId: string, isVerifie
     .single();
 
   if (error) return { error: error.message };
-  
+
   revalidatePath('/admin/write');
   return { data };
 }
@@ -124,7 +124,7 @@ export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
             cleanedData[key] = value === '' ? null : value;
         }
     }
-    
+
     let result;
     if (cleanedData.id) {
         const { id, ...updateData } = cleanedData;
@@ -159,7 +159,7 @@ export async function deletePrompt(promptId: string) {
     if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
     const supabase = await createSupabaseServerClient();
     const { error } = await supabase.from('essay_prompts').delete().eq('id', promptId);
-    
+
     if (error) return { error: error.message };
 
     revalidatePath('/admin/write');

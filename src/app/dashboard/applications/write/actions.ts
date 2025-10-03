@@ -469,7 +469,7 @@ export async function getAIFeedbackForEssay(essayId: string) {
         .select('*')
         .eq('essay_id', essayId)
         .single();
-
+    
     if (error && error.code !== 'PGRST116') {
         console.error("Erro ao buscar feedback da IA:", error);
         return { data: null, error: error.message };
@@ -480,15 +480,13 @@ export async function getAIFeedbackForEssay(essayId: string) {
 
 export async function checkForPlagiarism(_text: string): Promise<{ data?: { similarity_percentage: number; matches: { source: string; text: string }[] }; error?: string }> {
     try {
-        // Simula uma chamada de API
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Simula uma resposta com plágio em 50% dos casos
         const hasPlagiarism = Math.random() > 0.5;
         if (hasPlagiarism) {
             return {
                 data: {
-                    similarity_percentage: Math.random() * (30 - 5) + 5, // Entre 5% e 30%
+                    similarity_percentage: Math.random() * (30 - 5) + 5,
                     matches: [
                         { source: "Artigo online 'Exemplo.com'", text: "um trecho simulado encontrado na internet que se parece com o texto do aluno." },
                         { source: "Redação de outro aluno (ID: XXX)", text: "outro trecho que se assemelha a uma redação já enviada na plataforma." }
@@ -498,7 +496,7 @@ export async function checkForPlagiarism(_text: string): Promise<{ data?: { simi
         } else {
             return {
                 data: {
-                    similarity_percentage: Math.random() * 4, // Abaixo de 4%
+                    similarity_percentage: Math.random() * 4,
                     matches: []
                 }
             };
