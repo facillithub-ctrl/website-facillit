@@ -4,7 +4,6 @@ import { useEffect, useState, useTransition, useRef, MouseEvent } from 'react';
 import { Essay, getEssayDetails, submitCorrection, Annotation, getAIFeedbackForEssay, AIFeedback } from '../actions';
 import Image from 'next/image';
 import createClient from '@/utils/supabase/client';
-import FeedbackTabs from './FeedbackTabs';
 
 // --- SUB-COMPONENTES E TIPOS ---
 
@@ -31,23 +30,23 @@ const AnnotationPopup = ({ position, onSave, onClose }: AnnotationPopupProps) =>
     };
 
     return (
-        <div 
+        <div
             className="absolute z-10 bg-white dark:bg-dark-card shadow-lg rounded-lg p-3 w-64 border dark:border-dark-border"
             style={{ top: position.top, left: position.left }}
             onClick={(e) => e.stopPropagation()}
         >
-            <textarea 
-                placeholder="Adicione seu comentário..." 
-                rows={3} 
+            <textarea
+                placeholder="Adicione seu comentário..."
+                rows={3}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 className="w-full p-2 border rounded-md text-sm dark:bg-gray-700 dark:border-gray-600 mb-2"
                 autoFocus
             />
             <div className="flex justify-between items-center">
-                <select 
-                    value={marker} 
-                    onChange={(e) => setMarker(e.target.value as Annotation['marker'])} 
+                <select
+                    value={marker}
+                    onChange={(e) => setMarker(e.target.value as Annotation['marker'])}
                     className="text-xs p-1 border rounded-md dark:bg-gray-700 dark:border-gray-600"
                 >
                     <option value="sugestao">Sugestão</option>
@@ -70,14 +69,14 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const supabase = createClient();
-    
+
     const [feedback, setFeedback] = useState('');
     const [grades, setGrades] = useState({ c1: 0, c2: 0, c3: 0, c4: 0, c5: 0 });
     const [isSubmitting, startTransition] = useTransition();
 
     const [commonErrors, setCommonErrors] = useState<CommonError[]>([]);
     const [selectedErrors, setSelectedErrors] = useState<Set<string>>(new Set());
-    
+
     const [isRecording, setIsRecording] = useState(false);
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -86,7 +85,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
     const audioChunksRef = useRef<Blob[]>([]);
 
     const [annotations, setAnnotations] = useState<Annotation[]>([]);
-    
+
     const [popupState, setPopupState] = useState<{ visible: boolean; x: number; y: number; selectionText?: string; position?: Annotation['position'] }>({ visible: false, x: 0, y: 0 });
     const imageContainerRef = useRef<HTMLDivElement>(null);
 
@@ -111,7 +110,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 } else if (result.error) {
                     setError(result.error);
                 }
-                
+
                 const { data: existingAIFeedback } = await getAIFeedbackForEssay(essayId);
                 if (existingAIFeedback) {
                     setAIFeedback(existingAIFeedback as AIFeedback);
@@ -127,10 +126,10 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 setIsLoading(false);
             }
         };
-        
+
         fetchInitialData();
     }, [essayId, supabase]);
-    
+
     const handleGradeChange = (c: keyof typeof grades, value: string) => {
         const numericValue = parseInt(value, 10);
         if (!isNaN(numericValue) && numericValue >= 0 && numericValue <= 200) {
@@ -146,7 +145,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
             return newSet;
         });
     };
-    
+
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -169,10 +168,10 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
         mediaRecorderRef.current?.stop();
         setIsRecording(false);
     };
-    
+
     const uploadAudio = async (): Promise<string | null> => {
         if (!audioBlob) return null;
-        
+
         setIsUploadingAudio(true);
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
@@ -194,7 +193,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
         setIsUploadingAudio(false);
         return data.publicUrl;
     };
-    
+
     const handleTextMouseUp = () => {
         const selection = window.getSelection();
         if (selection && !selection.isCollapsed && selection.toString().trim() !== '') {
@@ -265,7 +264,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 marker,
             };
         } else { return; }
-        
+
         setAnnotations(prev => [...prev, newAnnotation]);
         setPopupState({ visible: false, x: 0, y: 0 });
     };
@@ -283,22 +282,26 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: essay.content }),
             });
-            
+
             const responseBody = await response.json();
 
             if (!response.ok) {
                 const errorMessage = responseBody.error || "Falha ao gerar o feedback da IA.";
                 throw new Error(errorMessage);
             }
-            
+
             setAIFeedback(responseBody);
-        } catch (error: any) {
-            alert(error.message);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                alert(error.message);
+            } else {
+                alert("Ocorreu um erro desconhecido.");
+            }
         } finally {
             setIsGeneratingAI(false);
         }
     };
-    
+
     const handleSubmit = async () => {
         const final_grade = Object.values(grades).reduce((a, b) => a + b, 0);
         if (!feedback) {
@@ -329,21 +332,21 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 annotations,
                 ai_feedback: aiFeedback,
             });
-            
+
             if (!result.error && result.data) {
                 const correctionId = (result.data as { id: string }).id;
                 const errorMappings = Array.from(selectedErrors).map(error_id => ({
                     correction_id: correctionId,
                     error_id: error_id
                 }));
-                
+
                 if (errorMappings.length > 0) {
                     const { error: errorMappingError } = await supabase.from('essay_correction_errors').insert(errorMappings);
                     if (errorMappingError) {
                         alert(`A correção foi salva, mas houve um erro ao registrar os erros comuns: ${errorMappingError.message}`);
                     }
                 }
-                
+
                 alert('Correção enviada com sucesso!');
                 onBack();
             } else {
@@ -367,7 +370,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
     return (
         <div>
             {popupState.visible && (
-                <AnnotationPopup 
+                <AnnotationPopup
                     position={{ top: popupState.y + 5, left: popupState.x }}
                     onSave={handleSaveAnnotation}
                     onClose={() => setPopupState({ visible: false, x: 0, y: 0 })}
@@ -378,10 +381,10 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
                     <h2 className="font-bold text-xl mb-1 dark:text-white-text">{essay.title}</h2>
                     <p className="text-sm text-gray-500 dark:text-dark-text-muted mb-4">Enviada por: {essay.profiles?.full_name || 'Aluno desconhecido'}</p>
-                    
+
                     {essay.image_submission_url ? (
-                        <div 
-                            ref={imageContainerRef} 
+                        <div
+                            ref={imageContainerRef}
                             onMouseDown={handleImageMouseDown}
                             onMouseMove={handleImageMouseMove}
                             onMouseUp={handleImageMouseUp}
@@ -389,11 +392,11 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                             className="relative w-full h-auto cursor-crosshair"
                         >
                             <Image src={essay.image_submission_url} alt="Redação enviada" width={800} height={1100} className="rounded-lg object-contain select-none pointer-events-none" draggable="false" />
-                            
+
                             {isDrawing && selectionBox && (
                                 <div className="absolute border-2 border-dashed border-royal-blue bg-royal-blue/20 pointer-events-none" style={{ left: selectionBox.x, top: selectionBox.y, width: selectionBox.width, height: selectionBox.height }} />
                             )}
-                            
+
                             {annotations.filter(a => a.type === 'image' && a.position?.width).map(a => (
                                 <div key={a.id} className={`absolute border-2 bg-yellow-400/20 group pointer-events-none ${markerStyles[a.marker]}`} style={{ left: `${a.position!.x}%`, top: `${a.position!.y}%`, width: `${a.position!.width}%`, height: `${a.position!.height}%` }}>
                                     <div className="absolute -top-7 left-0 w-max px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
@@ -404,7 +407,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                         </div>
                     ) : (
                         <div onMouseUp={handleTextMouseUp} className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md cursor-text">
-                          {essay.content.split('\n\n').map((paragraph, index) => <p key={index} className="mb-4">{paragraph}</p>)}
+                            {/* CORREÇÃO: Removida a renderização duplicada do texto */}
                         </div>
                     )}
                 </div>
@@ -432,7 +435,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                             ))}
                         </div>
                     </div>
-                    
+
                     <div>
                         <h3 className="font-bold mb-2 dark:text-white-text">Análise com Inteligência Artificial</h3>
                         {aiFeedback ? (
@@ -446,7 +449,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                             </button>
                         )}
                     </div>
-                    
+
                     <div className="border-t dark:border-gray-700 pt-4">
                          <h3 className="font-bold mb-2 dark:text-white-text">Feedback Geral (Humano)</h3>
                          <textarea rows={6} value={feedback} onChange={e => setFeedback(e.target.value)} className="w-full p-2 border rounded-md dark:bg-dark-card dark:border-dark-border dark:text-white-text"></textarea>

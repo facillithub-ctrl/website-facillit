@@ -28,11 +28,13 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
   );
   const [showHistory, setShowHistory] = useState(false);
 
+  // ESTADOS PARA MODO SIMULADO E PLÁGIO
   const [isSimulado, setIsSimulado] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isCheckingPlagiarism, setIsCheckingPlagiarism] = useState(false);
-  const [plagiarismResult, setPlagiarismResult] = useState<any | null>(null);
+  const [plagiarismResult, setPlagiarismResult] = useState<Awaited<ReturnType<typeof checkForPlagiarism>>['data'] | null>(null);
 
+  // Efeito para salvamento automático
   useEffect(() => {
     if (isSimulado) {
       autoSaveTimerRef.current = setInterval(() => {
@@ -45,7 +47,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
           }
           return prevEssay;
         });
-      }, 60000); 
+      }, 60000); // Salva a cada 1 minuto
     } else {
       if (autoSaveTimerRef.current) {
         clearInterval(autoSaveTimerRef.current);
@@ -106,7 +108,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
       const result = await saveOrUpdateEssay(updatedData);
 
       if (!result.error) {
-        if(status === 'submitted') setIsSimulado(false);
+        if(status === 'submitted') setIsSimulado(false); // Desativa o simulado ao enviar
         alert(status === 'draft' ? 'Rascunho salvo com sucesso!' : 'Redação enviada com sucesso!');
         if(status === 'submitted') onBack();
       } else {
@@ -213,7 +215,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                             <i className="fas fa-file-export mr-2"></i>Exportar
                         </button>
                     </div>
-                    {showHistory && <VersionHistory essayId={currentEssay.id} onSelectVersion={handleRestoreVersion} />}
+                    {showHistory && <VersionHistory essayId={currentEssay.id as string} onSelectVersion={handleRestoreVersion} />}
                 </div>
             )}
 

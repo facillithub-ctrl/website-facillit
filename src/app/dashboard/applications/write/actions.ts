@@ -178,7 +178,13 @@ export async function getLatestEssayForDashboard() {
 
 
 // --- FUNÇÕES DE CORREÇÃO ---
-export async function getCorrectionForEssay(essayId: string): Promise<{ data?: (EssayCorrection & { profiles: { full_name: string | null, verification_badge: string | null }, ai_feedback: AIFeedback | null, essay_correction_errors: { common_errors: { error_type: string } }[] }); error?: string }> {
+type CorrectionWithProfile = EssayCorrection & {
+    profiles: { full_name: string | null, verification_badge: string | null };
+    ai_feedback: AIFeedback | null;
+    essay_correction_errors: { common_errors: { error_type: string } }[];
+};
+
+export async function getCorrectionForEssay(essayId: string): Promise<{ data?: CorrectionWithProfile; error?: string }> {
     const supabase = await createSupabaseServerClient();
 
     const { data, error } = await supabase
@@ -196,8 +202,9 @@ export async function getCorrectionForEssay(essayId: string): Promise<{ data?: (
 
     if (error && error.code !== 'PGRST116') return { error: error.message };
 
-    return { data: data as any || undefined };
+    return { data: data as CorrectionWithProfile || undefined };
 }
+
 
 export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id' | 'corrector_id' | 'created_at'>) {
     const supabase = await createSupabaseServerClient();
@@ -394,7 +401,7 @@ export async function getUserStateRank() {
 
 export async function createNotification(userId: string, title: string, message: string, link: string | null) {
     const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase
+    const { error } = await supabase
         .from('notifications')
         .insert({
             user_id: userId,
@@ -406,7 +413,7 @@ export async function createNotification(userId: string, title: string, message:
     if (error) {
         console.error('Erro ao criar notificação:', error);
     }
-    return { data, error };
+    return { error };
 }
 
 export async function getFrequentErrors() {
@@ -473,13 +480,15 @@ export async function getAIFeedbackForEssay(essayId: string) {
 
 export async function checkForPlagiarism(text: string): Promise<{ data?: { similarity_percentage: number; matches: { source: string; text: string }[] }; error?: string }> {
     try {
+        // Simula uma chamada de API
         await new Promise(resolve => setTimeout(resolve, 2000));
 
+        // Simula uma resposta com plágio em 50% dos casos
         const hasPlagiarism = Math.random() > 0.5;
         if (hasPlagiarism) {
             return {
                 data: {
-                    similarity_percentage: Math.random() * (30 - 5) + 5,
+                    similarity_percentage: Math.random() * (30 - 5) + 5, // Entre 5% e 30%
                     matches: [
                         { source: "Artigo online 'Exemplo.com'", text: "um trecho simulado encontrado na internet que se parece com o texto do aluno." },
                         { source: "Redação de outro aluno (ID: XXX)", text: "outro trecho que se assemelha a uma redação já enviada na plataforma." }
@@ -489,12 +498,12 @@ export async function checkForPlagiarism(text: string): Promise<{ data?: { simil
         } else {
             return {
                 data: {
-                    similarity_percentage: Math.random() * 4,
+                    similarity_percentage: Math.random() * 4, // Abaixo de 4%
                     matches: []
                 }
             };
         }
-    } catch (error) {
+    } catch (e) {
         return { error: "Não foi possível conectar ao serviço de verificação de plágio." };
     }
 }
