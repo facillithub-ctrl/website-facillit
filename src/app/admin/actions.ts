@@ -18,8 +18,8 @@ export type EssayPrompt = {
     motivational_text_3_description: string | null;
     motivational_text_3_image_url: string | null;
     motivational_text_3_image_source: string | null;
-    difficulty: number | null; // NOVO
-    tags: string[] | null; // NOVO
+    difficulty: number | null;
+    tags: string[] | null;
 };
 
 
@@ -114,6 +114,7 @@ export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
     if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
     const supabase = await createSupabaseServerClient();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cleanedData: { [key: string]: any } = {};
     for (const key in promptData) {
         const value = promptData[key as keyof typeof promptData];

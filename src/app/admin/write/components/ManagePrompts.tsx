@@ -15,7 +15,6 @@ const categories = [
     'Ciência e Tecnologia', 'Sociedade', 'Meio Ambiente', 'Cultura', 'Educação', 'Saúde', 'Economia', 'Política'
 ];
 
-// NOVO: Componente para o seletor de dificuldade
 const DifficultySelector = ({ value, onChange }: { value: number, onChange: (value: number) => void }) => {
     const difficulties = [
         { level: 1, label: 'Muito Fácil' },
@@ -232,7 +231,7 @@ export default function ManagePrompts({ prompts }: Props) {
                                 />
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Tags (separadas por vírgula)</label>
-                                    <input type="text" value={(currentPrompt?.tags as any) || ''} onChange={e => setCurrentPrompt(p => ({ ...p, tags: e.target.value as any }))} placeholder="Ex: Atualidades, Filosofia" className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                                    <input type="text" value={(currentPrompt?.tags as string[] | string) || ''} onChange={e => setCurrentPrompt(p => ({ ...p, tags: e.target.value.split(',').map(tag => tag.trim()) }))} placeholder="Ex: Atualidades, Filosofia" className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
                                 </div>
                             </div>
 

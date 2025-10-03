@@ -478,7 +478,7 @@ export async function getAIFeedbackForEssay(essayId: string) {
     return { data };
 }
 
-export async function checkForPlagiarism(text: string): Promise<{ data?: { similarity_percentage: number; matches: { source: string; text: string }[] }; error?: string }> {
+export async function checkForPlagiarism(_text: string): Promise<{ data?: { similarity_percentage: number; matches: { source: string; text: string }[] }; error?: string }> {
     try {
         // Simula uma chamada de API
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -503,7 +503,7 @@ export async function checkForPlagiarism(text: string): Promise<{ data?: { simil
                 }
             };
         }
-    } catch (e) {
+    } catch {
         return { error: "Não foi possível conectar ao serviço de verificação de plágio." };
     }
 }
