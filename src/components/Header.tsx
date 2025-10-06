@@ -35,7 +35,7 @@ const solucoes = [
 const recursos = {
     "Empresa": [
       { href: "/recursos/sobre-nos", title: "Sobre Nós", subtitle: "Conheça nossa história e missão." }, 
-      { href: "/recursos/carreiras", title: "Carreiras", subtitle: "Junte-se à nossa equipe." }
+      { href: "/app/not-found.tsx", title: "Carreiras", subtitle: "Junte-se à nossa equipe." }
     ],
     "Suporte": [
       { href: "/recursos/contato", title: "Contato", subtitle: "Fale com nosso time." }, 

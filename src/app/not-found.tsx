@@ -6,7 +6,7 @@ export default function NotFound() {
     <div className="min-h-screen flex flex-col items-center justify-center text-center p-4 bg-background-light dark:bg-gray-900">
       <div className="w-full max-w-md">
         <Image
-          src="/assets/images/MASCOTE/login.png" // Usando uma imagem de mascote existente
+          src="/assets/images/MASCOTE/nofound.png"  
           alt="Mascote Facillit Hub"
           width={250}
           height={250}
