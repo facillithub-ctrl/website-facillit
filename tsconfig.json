@@ -5,9 +5,9 @@
       "dom.iterable",
       "esnext"
     ],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
+    "allowJs":true ,
+    "skipLibCheck":true ,
+    "strict":true,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
