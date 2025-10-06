@@ -2,12 +2,12 @@ import { redirect } from 'next/navigation';
 import createSupabaseServerClient from '@/utils/supabase/server';
 import StudentDashboard from './components/StudentDashboard';
 import TeacherDashboard from './components/TeacherDashboard';
-import { 
-  getPrompts, 
-  getStudentStatistics, 
-  calculateWritingStreak, 
-  getUserStateRank, 
-  getFrequentErrors, 
+import {
+  getPrompts,
+  getStudentStatistics,
+  calculateWritingStreak,
+  getUserStateRank,
+  getFrequentErrors,
   getCurrentEvents,
   getCorrectedEssaysForTeacher
 } from './actions';
@@ -33,10 +33,10 @@ export default async function WritePage() {
   // ROTA PARA ALUNO
   if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
     const [
-        essaysResult, 
-        promptsResult, 
-        statsResult, 
-        streakResult, 
+        essaysResult,
+        promptsResult,
+        statsResult,
+        streakResult,
         rankResult,
         frequentErrorsResult,
         currentEventsResult,
@@ -55,8 +55,8 @@ export default async function WritePage() {
     ]);
 
     return (
-      <StudentDashboard 
-        initialEssays={essaysResult.data || []} 
+      <StudentDashboard
+        initialEssays={essaysResult.data || []}
         prompts={promptsResult.data || []}
         statistics={statsResult.data ?? null}
         streak={streakResult.data || 0}
@@ -78,9 +78,16 @@ export default async function WritePage() {
         getCorrectedEssaysForTeacher()
      ]);
 
+    // CORREÇÃO: A propriedade 'profiles' da consulta é um array, mas o componente espera um objeto.
+    // Mapeamos os dados para transformar a propriedade no formato correto.
+    const pendingEssays = pendingEssaysResult.data?.map(essay => ({
+      ...essay,
+      profiles: Array.isArray(essay.profiles) ? essay.profiles[0] : essay.profiles,
+    })) || [];
+
     return (
-        <TeacherDashboard 
-            pendingEssays={pendingEssaysResult.data || []} 
+        <TeacherDashboard
+            pendingEssays={pendingEssays}
             correctedEssays={correctedEssaysResult.data || []}
         />
     );
