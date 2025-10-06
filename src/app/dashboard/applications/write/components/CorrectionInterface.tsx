@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, useRef, MouseEvent } from 'react';
+import { useEffect, useState, useTransition, useRef, MouseEvent, ReactNode } from 'react';
 import { Essay, getEssayDetails, submitCorrection, Annotation, getAIFeedbackForEssay, AIFeedback } from '../actions';
 import Image from 'next/image';
 import createClient from '@/utils/supabase/client';
@@ -60,6 +60,32 @@ const AnnotationPopup = ({ position, onSave, onClose }: AnnotationPopupProps) =>
             </div>
         </div>
     );
+};
+
+// AJUSTE 3 e 4: Função para renderizar o texto com anotações sem quebrar a formatação
+const renderAnnotatedText = (text: string, annotations?: Annotation[] | null): ReactNode => {
+    const textAnnotations = annotations?.filter(a => a.type === 'text' && a.selection) || [];
+    if (!text || textAnnotations.length === 0) {
+        return text;
+    }
+
+    const markerStyles = {
+        erro: 'bg-red-200 dark:bg-red-500/30',
+        acerto: 'bg-green-200 dark:bg-green-500/30',
+        sugestao: 'bg-blue-200 dark:bg-blue-500/30',
+    };
+    
+    let annotatedHtml = text;
+
+    // Ordena as anotações pela ordem em que aparecem no texto para evitar sobreposições incorretas
+    const sortedAnnotations = [...textAnnotations].sort((a, b) => text.indexOf(a.selection!) - text.indexOf(b.selection!));
+
+    sortedAnnotations.forEach(anno => {
+        const highlightedText = `<mark class="${markerStyles[anno.marker]} relative group cursor-pointer px-1 rounded-sm">${anno.selection}<span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">${anno.comment}</span></mark>`;
+        annotatedHtml = annotatedHtml.replace(anno.selection!, highlightedText);
+    });
+    
+    return <div dangerouslySetInnerHTML={{ __html: annotatedHtml.replace(/\n/g, '<br />') }} />;
 };
 
 
@@ -406,8 +432,8 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                             ))}
                         </div>
                     ) : (
-                        <div onMouseUp={handleTextMouseUp} className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md cursor-text">
-                            {/* CORREÇÃO: Removida a renderização duplicada do texto */}
+                         <div onMouseUp={handleTextMouseUp} className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md cursor-text">
+                            {renderAnnotatedText(essay.content, annotations)}
                         </div>
                     )}
                 </div>

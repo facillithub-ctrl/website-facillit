@@ -7,7 +7,7 @@ type EssayListItem = {
   id: string;
   title: string | null;
   submitted_at: string | null;
-  profiles: { full_name: string | null; } | null; // Corrigido para objeto ou nulo
+  profiles: { full_name: string | null; } | null;
   essay_corrections?: { final_grade: number }[] | null;
 };
 
@@ -50,12 +50,15 @@ export default function TeacherDashboard({ pendingEssays, correctedEssays }: Tea
       <div className="bg-white dark:bg-dark-card rounded-lg shadow p-4">
         <ul className="divide-y dark:divide-gray-700">
           {essaysToShow.length > 0 ? essaysToShow.map(essay => (
-            <li key={essay.id} onClick={() => activeTab === 'pending' && setSelectedEssayId(essay.id)} className={`p-4 ${activeTab === 'pending' ? 'hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer' : ''}`}>
+            <li 
+              key={essay.id} 
+              onClick={() => setSelectedEssayId(essay.id)} 
+              className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+            >
               <div className="flex justify-between items-center">
                 <div>
                   <p className="font-bold text-dark-text dark:text-white">{essay.title || "Redação sem título"}</p>
                   <p className="text-sm text-gray-500">
-                    {/* CORREÇÃO APLICADA AQUI */}
                     Enviada por {essay.profiles?.full_name || 'Aluno desconhecido'} em {new Date(essay.submitted_at!).toLocaleDateString()}
                   </p>
                 </div>

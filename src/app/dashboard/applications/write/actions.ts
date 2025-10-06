@@ -75,8 +75,29 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
 
   if (!user) return { error: 'Usuário não autenticado.' };
 
-  if (essayData.status === 'submitted' && !essayData.consent_to_ai_training) {
-    return { error: 'É obrigatório consentir com os termos para enviar a redação.' };
+  if (essayData.status === 'submitted') {
+    if (!essayData.consent_to_ai_training) {
+      return { error: 'É obrigatório consentir com os termos para enviar a redação.' };
+    }
+
+    // AJUSTE 6: Limitar uma redação por tema, por usuário
+    if (essayData.prompt_id && !essayData.id) {
+      const { data: existingEssay, error: existingError } = await supabase
+        .from('essays')
+        .select('id')
+        .eq('student_id', user.id)
+        .eq('prompt_id', essayData.prompt_id)
+        .eq('status', 'submitted')
+        .limit(1)
+        .single();
+      
+      if (existingEssay) {
+        return { error: 'Você já enviou uma redação para este tema.' };
+      }
+      if (existingError && existingError.code !== 'PGRST116') { // PGRST116 = no rows found
+        return { error: 'Erro ao verificar redações existentes.' };
+      }
+    }
   }
 
   const { data: upsertedEssay, error: upsertError } = await supabase
@@ -151,7 +172,7 @@ export async function getEssaysForStudent() {
 
   const { data, error } = await supabase
     .from('essays')
-    .select('id, title, status, submitted_at')
+    .select('id, title, status, submitted_at, content')
     .eq('student_id', user.id)
     .order('submitted_at', { ascending: false, nullsFirst: true });
 
@@ -448,10 +469,12 @@ export async function getCorrectedEssaysForTeacher() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Usuário não autenticado.' };
 
+  // AJUSTE 2: Professores devem poder ver as redações que ele corrigiu.
   const { data, error } = await supabase
     .from('essays')
-    .select('id, title, submitted_at, profiles(full_name), essay_corrections(final_grade)')
+    .select('id, title, submitted_at, profiles(full_name), essay_corrections!inner(final_grade, corrector_id)')
     .eq('status', 'corrected')
+    .eq('essay_corrections.corrector_id', user.id)
     .order('submitted_at', { ascending: false });
 
   if (error) return { error: error.message };

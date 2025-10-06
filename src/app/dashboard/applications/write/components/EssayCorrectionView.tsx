@@ -27,74 +27,23 @@ const markerStyles = {
     sugestao: { flag: 'text-blue-500', highlight: 'bg-blue-200 dark:bg-blue-500/30' },
 };
 
-const renderAnnotatedText = (text: string, annotations?: Annotation[] | null): React.ReactNode => {
+const renderAnnotatedText = (text: string, annotations?: Annotation[] | null): ReactElement => {
     const textAnnotations = annotations?.filter(a => a.type === 'text' && a.selection) || [];
     if (!text || textAnnotations.length === 0) {
-        return text.split('\n\n').map((p, i) => <p key={i} className="mb-4">{p}</p>);
+        return <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: text.replace(/\n/g, '<br />') }} />;
     }
 
-    const selectionOccurrenceMap = new Map<string, number>();
-    const positionedAnnotations = textAnnotations.map(anno => {
+    let annotatedHtml = text;
+
+    const uniqueAnnotations = Array.from(new Map(textAnnotations.map(item => [item.selection, item])).values());
+
+    uniqueAnnotations.forEach(anno => {
         const selection = anno.selection!;
-        const occurrence = selectionOccurrenceMap.get(selection) || 0;
-        selectionOccurrenceMap.set(selection, occurrence + 1);
-
-        let index = -1;
-        for (let i = 0; i <= occurrence; i++) {
-            index = text.indexOf(selection, index + 1);
-        }
-        return { ...anno, startIndex: index };
-    })
-    .filter(anno => anno.startIndex !== -1)
-    .sort((a, b) => a.startIndex - b.startIndex);
-
-    const nodes: React.ReactNode[] = [];
-    let lastIndex = 0;
-
-    positionedAnnotations.forEach(anno => {
-        if (anno.startIndex > lastIndex) {
-            nodes.push(text.substring(lastIndex, anno.startIndex));
-        }
-        nodes.push(
-            <mark key={anno.id} className={`${markerStyles[anno.marker].highlight} relative group cursor-pointer px-1 rounded-sm`}>
-                {anno.selection}
-                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">{anno.comment}</span>
-            </mark>
-        );
-        lastIndex = anno.startIndex + anno.selection!.length;
+        const highlightedText = `<mark class="${markerStyles[anno.marker].highlight} relative group cursor-pointer px-1 rounded-sm">${selection}<span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">${anno.comment}</span></mark>`;
+        annotatedHtml = annotatedHtml.split(selection).join(highlightedText);
     });
-
-    if (lastIndex < text.length) {
-        nodes.push(text.substring(lastIndex));
-    }
-
-    const paragraphs: React.ReactNode[] = [];
-    let currentParagraph: React.ReactNode[] = [];
-
-    const flushParagraph = () => {
-        if (currentParagraph.length > 0) {
-            paragraphs.push(<p className="mb-4" key={paragraphs.length}>{currentParagraph}</p>);
-            currentParagraph = [];
-        }
-    };
-
-    nodes.forEach(node => {
-        if (typeof node === 'string') {
-            const parts = node.split('\n\n');
-            parts.forEach((part, index) => {
-                currentParagraph.push(part);
-                if (index < parts.length - 1) {
-                    flushParagraph();
-                }
-            });
-        } else {
-            currentParagraph.push(node);
-        }
-    });
-
-    flushParagraph();
-
-    return paragraphs;
+    
+    return <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: annotatedHtml.replace(/\n/g, '<br />') }} />;
 };
 
 const CompetencyModal = ({ competencyIndex, onClose }: { competencyIndex: number | null, onClose: () => void }) => {
@@ -116,6 +65,7 @@ export default function EssayCorrectionView({ essayId, onBack }: {essayId: strin
     const [details, setDetails] = useState<FullEssayDetails | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [modalCompetency, setModalCompetency] = useState<number | null>(null);
+    const [viewMode, setViewMode] = useState<'corrected' | 'comparison'>('corrected'); // AJUSTE 5: Estado de visualização
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -139,68 +89,101 @@ export default function EssayCorrectionView({ essayId, onBack }: {essayId: strin
     const { title, content, correction, image_submission_url } = details;
     const annotations = correction?.annotations;
 
+    const isTextView = content && !image_submission_url;
+
     return (
         <div>
             <CompetencyModal competencyIndex={modalCompetency} onClose={() => setModalCompetency(null)} />
-            <button onClick={onBack} className="mb-4 text-sm text-royal-blue font-bold">
-                <i className="fas fa-arrow-left mr-2"></i> Voltar
-            </button>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
-                    <h2 className="font-bold text-xl mb-4 dark:text-white-text">{title}</h2>
-                    
-                    {image_submission_url ? (
-                        <div className="relative w-full h-auto">
-                            <Image src={image_submission_url} alt="Redação enviada" width={800} height={1100} className="rounded-lg object-contain"/>
-                            {annotations?.filter(a => a.type === 'image').map(a => (
-                                <div key={a.id} className="absolute transform -translate-x-1 -translate-y-4 group text-xl" style={{ left: `${a.position?.x}%`, top: `${a.position?.y}%` }}>
-                                    <i className={`fas fa-flag ${markerStyles[a.marker].flag}`}></i>
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                                        {a.comment}
-                                    </div>
-                                </div>
-                            ))}
+            <div className="flex justify-between items-center mb-4">
+                <button onClick={onBack} className="text-sm text-royal-blue font-bold">
+                    <i className="fas fa-arrow-left mr-2"></i> Voltar
+                </button>
+                {/* AJUSTE 5: Botão para alternar visualização */}
+                {isTextView && correction && (
+                    <button 
+                        onClick={() => setViewMode(prev => prev === 'corrected' ? 'comparison' : 'corrected')} 
+                        className="text-sm bg-gray-200 dark:bg-gray-700 px-3 py-1.5 rounded-md font-semibold"
+                    >
+                        {viewMode === 'corrected' ? 'Comparar Versões' : 'Ver Correção'}
+                    </button>
+                )}
+            </div>
+
+            {viewMode === 'comparison' && isTextView ? (
+                // AJUSTE 5: Modo de Comparação
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <h2 className="font-bold text-xl mb-4 dark:text-white-text">Texto Original</h2>
+                        <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed">
+                            <div dangerouslySetInnerHTML={{ __html: content.replace(/\n/g, '<br />') }} />
                         </div>
-                    ) : (
-                         <div className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed">
+                    </div>
+                    <div>
+                        <h2 className="font-bold text-xl mb-4 dark:text-white-text">Texto Corrigido</h2>
+                        <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border text-gray-700 dark:text-dark-text-muted leading-relaxed">
                             {renderAnnotatedText(content, annotations)}
                         </div>
-                    )}
+                    </div>
                 </div>
-
-                <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="font-bold text-xl dark:text-white-text">Correção</h2>
-                        {correction && <div className="text-2xl font-bold dark:text-white-text">{correction.final_grade}</div>}
+            ) : (
+                // Visualização Padrão
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
+                        <h2 className="font-bold text-xl mb-4 dark:text-white-text">{title}</h2>
+                        
+                        {image_submission_url ? (
+                            <div className="relative w-full h-auto">
+                                <Image src={image_submission_url} alt="Redação enviada" width={800} height={1100} className="rounded-lg object-contain"/>
+                                {annotations?.filter(a => a.type === 'image').map(a => (
+                                    <div key={a.id} className="absolute transform -translate-x-1 -translate-y-4 group text-xl" style={{ left: `${a.position?.x}%`, top: `${a.position?.y}%` }}>
+                                        <i className={`fas fa-flag ${markerStyles[a.marker].flag}`}></i>
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                            {a.comment}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-gray-700 dark:text-dark-text-muted leading-relaxed">
+                                {renderAnnotatedText(content, annotations)}
+                            </div>
+                        )}
                     </div>
 
-                    {correction ? (
-                        <div className="space-y-4">
-                            {competencyDetails.map((_, i) => (
-                                <div key={i} className="flex justify-between items-center p-3 rounded-md bg-gray-50 dark:bg-gray-700/50">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium text-sm dark:text-white-text">Competência {i + 1}</span>
-                                        <button onClick={() => setModalCompetency(i)} className="text-xs text-royal-blue">
-                                            <i className="fas fa-info-circle"></i>
-                                        </button>
-                                    </div>
-                                    <span className="font-bold text-sm dark:text-white-text">
-                                        {correction[`grade_c${i + 1}` as keyof EssayCorrection] as React.ReactNode}
-                                    </span>
-                                </div>
-                            ))}
-                            <div className="border-t dark:border-gray-700 pt-4">
-                               <FeedbackTabs 
-                                   humanCorrection={correction}
-                                   aiFeedback={correction.ai_feedback || null}
-                               />
-                           </div>
+                    <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="font-bold text-xl dark:text-white-text">Correção</h2>
+                            {correction && <div className="text-2xl font-bold dark:text-white-text">{correction.final_grade}</div>}
                         </div>
-                    ) : (
-                        <p className="text-center text-gray-500 py-8">A sua redação ainda está na fila para ser corrigida.</p>
-                    )}
+
+                        {correction ? (
+                            <div className="space-y-4">
+                                {competencyDetails.map((_, i) => (
+                                    <div key={i} className="flex justify-between items-center p-3 rounded-md bg-gray-50 dark:bg-gray-700/50">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium text-sm dark:text-white-text">Competência {i + 1}</span>
+                                            <button onClick={() => setModalCompetency(i)} className="text-xs text-royal-blue">
+                                                <i className="fas fa-info-circle"></i>
+                                            </button>
+                                        </div>
+                                        <span className="font-bold text-sm dark:text-white-text">
+                                            {correction[`grade_c${i + 1}` as keyof EssayCorrection] as React.ReactNode}
+                                        </span>
+                                    </div>
+                                ))}
+                                <div className="border-t dark:border-gray-700 pt-4">
+                                <FeedbackTabs 
+                                    humanCorrection={correction}
+                                    aiFeedback={correction.ai_feedback || null}
+                                />
+                            </div>
+                            </div>
+                        ) : (
+                            <p className="text-center text-gray-500 py-8">A sua redação ainda está na fila para ser corrigida.</p>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
