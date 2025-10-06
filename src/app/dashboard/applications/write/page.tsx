@@ -85,10 +85,17 @@ export default async function WritePage() {
       profiles: Array.isArray(essay.profiles) ? essay.profiles[0] : essay.profiles,
     })) || [];
 
+    // FIX APPLIED HERE: The same transformation is needed for correctedEssays.
+    const correctedEssays = correctedEssaysResult.data?.map(essay => ({
+        ...essay,
+        profiles: Array.isArray(essay.profiles) ? essay.profiles[0] : essay.profiles,
+    })) || [];
+
+
     return (
         <TeacherDashboard
             pendingEssays={pendingEssays}
-            correctedEssays={correctedEssaysResult.data || []}
+            correctedEssays={correctedEssays}
         />
     );
   }
