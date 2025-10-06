@@ -1,20 +1,18 @@
-// src/app/dashboard/applications/write/components/FeedbackTabs.tsx
 "use client";
 
 import { useState } from 'react';
-import type { EssayCorrection } from '../actions';
+import type { EssayCorrection, AIFeedback } from '../actions';
 import { VerificationBadge } from '@/components/VerificationBadge';
 
-// Tipo para o feedback da IA que virá da nossa API
-type AIFeedback = {
-  detailed_feedback: { competency: string; feedback: string }[];
-  rewrite_suggestions: { original: string; suggestion: string }[];
-  actionable_items: string[];
-} | null;
+// This type represents the correction data as it's shaped after fetching,
+// including the nested corrector profile.
+type CorrectionWithDetails = EssayCorrection & {
+  profiles: { full_name: string | null; verification_badge: string | null };
+};
 
 type Props = {
-  humanCorrection: (EssayCorrection & { profiles: { full_name: string | null; verification_badge: string | null } }) | null;
-  aiFeedback: AIFeedback | null;
+  // The component now accepts one prop for all correction-related data.
+  correction: CorrectionWithDetails | null;
 };
 
 const TabButton = ({ label, isActive, onClick }: { label: string; isActive: boolean; onClick: () => void }) => (
@@ -28,8 +26,12 @@ const TabButton = ({ label, isActive, onClick }: { label: string; isActive: bool
     </button>
 );
 
-export default function FeedbackTabs({ humanCorrection, aiFeedback }: Props) {
+export default function FeedbackTabs({ correction }: Props) {
     const [activeTab, setActiveTab] = useState<'human' | 'ai' | 'actions'>('human');
+
+    // Derive constants from the single prop for clarity.
+    const humanCorrection = correction;
+    const aiFeedback = correction?.ai_feedback ?? null;
 
     return (
         <div>

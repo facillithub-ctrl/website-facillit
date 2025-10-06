@@ -8,8 +8,12 @@ import FeedbackTabs from './FeedbackTabs';
 
 // --- TIPOS E SUB-COMPONENTES ---
 
+type CorrectionWithDetails = EssayCorrection & {
+  profiles: { full_name: string | null; verification_badge: string | null };
+};
+
 type FullEssayDetails = Essay & {
-  correction: EssayCorrection | null;
+  correction: CorrectionWithDetails | null;
   profiles: { full_name: string | null } | null;
 };
 
@@ -100,20 +104,26 @@ export default function EssayCorrectionView({ essayId, onBack }: {essayId: strin
                     getAIFeedbackForEssay(essayId)
                 ]);
 
-                const correctionData = correctionResult.data || null;
-                if (correctionData) {
-                    correctionData.ai_feedback = aiFeedbackResult.data || null;
-                }
+                const correctionData = correctionResult.data;
+                const aiFeedbackData = aiFeedbackResult.data;
+
+                const finalCorrection: CorrectionWithDetails | null = correctionData
+                    ? {
+                        ...correctionData,
+                        ai_feedback: aiFeedbackData || null,
+                      } as CorrectionWithDetails
+                    : null;
 
                 setDetails({
                     ...(essayResult.data as FullEssayDetails),
-                    correction: correctionData as EssayCorrection | null,
+                    correction: finalCorrection,
                 });
             }
             setIsLoading(false);
         };
         fetchDetails();
     }, [essayId]);
+
 
     if (isLoading) return <div className="text-center p-8">A carregar a sua redação...</div>;
     if (!details) return <div className="text-center p-8">Não foi possível carregar os detalhes da redação.</div>;
@@ -202,9 +212,8 @@ export default function EssayCorrectionView({ essayId, onBack }: {essayId: strin
                                     </div>
                                 ))}
                                 <div className="border-t dark:border-gray-700 pt-4">
-                                <FeedbackTabs 
-                                    humanCorrection={correction}
-                                    aiFeedback={correction.ai_feedback || null}
+                                <FeedbackTabs
+                                    correction={correction}
                                 />
                             </div>
                             </div>
