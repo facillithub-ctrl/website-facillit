@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import CorrectionInterface from './CorrectionInterface';
+import EssayCorrectionView from './EssayCorrectionView'; // Importado
 
 type EssayListItem = {
   id: string;
@@ -17,13 +18,28 @@ type TeacherDashboardProps = {
 };
 
 export default function TeacherDashboard({ pendingEssays, correctedEssays }: TeacherDashboardProps) {
+  const [view, setView] = useState<'list' | 'correct' | 'view_correction'>('list');
   const [selectedEssayId, setSelectedEssayId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'pending' | 'corrected'>('pending');
 
-  if (selectedEssayId) {
-    return <CorrectionInterface essayId={selectedEssayId} onBack={() => setSelectedEssayId(null)} />;
+  const handleSelectEssay = (essayId: string, status: 'pending' | 'corrected') => {
+    setSelectedEssayId(essayId);
+    setView(status === 'pending' ? 'correct' : 'view_correction');
+  };
+
+  const handleBack = () => {
+    setSelectedEssayId(null);
+    setView('list');
+  };
+
+  if (view === 'correct' && selectedEssayId) {
+    return <CorrectionInterface essayId={selectedEssayId} onBack={handleBack} />;
   }
 
+  if (view === 'view_correction' && selectedEssayId) {
+    return <EssayCorrectionView essayId={selectedEssayId} onBack={handleBack} />;
+  }
+  
   const essaysToShow = activeTab === 'pending' ? pendingEssays : correctedEssays;
 
   return (
@@ -52,7 +68,7 @@ export default function TeacherDashboard({ pendingEssays, correctedEssays }: Tea
           {essaysToShow.length > 0 ? essaysToShow.map(essay => (
             <li 
               key={essay.id} 
-              onClick={() => setSelectedEssayId(essay.id)} 
+              onClick={() => handleSelectEssay(essay.id, activeTab)} 
               className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
             >
               <div className="flex justify-between items-center">

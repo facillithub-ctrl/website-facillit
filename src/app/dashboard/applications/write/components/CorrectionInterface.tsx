@@ -63,10 +63,10 @@ const AnnotationPopup = ({ position, onSave, onClose }: AnnotationPopupProps) =>
 };
 
 // AJUSTE 3 e 4: Função para renderizar o texto com anotações sem quebrar a formatação
-const renderAnnotatedText = (text: string, annotations?: Annotation[] | null): ReactNode => {
-    const textAnnotations = annotations?.filter(a => a.type === 'text' && a.selection) || [];
+const renderAnnotatedText = (text: string, annotations: Annotation[]): ReactNode => {
+    const textAnnotations = annotations.filter(a => a.type === 'text' && a.selection);
     if (!text || textAnnotations.length === 0) {
-        return text;
+        return <div dangerouslySetInnerHTML={{ __html: text.replace(/\n/g, '<br />') }} />;
     }
 
     const markerStyles = {
@@ -74,18 +74,41 @@ const renderAnnotatedText = (text: string, annotations?: Annotation[] | null): R
         acerto: 'bg-green-200 dark:bg-green-500/30',
         sugestao: 'bg-blue-200 dark:bg-blue-500/30',
     };
-    
-    let annotatedHtml = text;
 
-    // Ordena as anotações pela ordem em que aparecem no texto para evitar sobreposições incorretas
-    const sortedAnnotations = [...textAnnotations].sort((a, b) => text.indexOf(a.selection!) - text.indexOf(b.selection!));
+    let result: (string | ReactNode)[] = [text];
 
-    sortedAnnotations.forEach(anno => {
-        const highlightedText = `<mark class="${markerStyles[anno.marker]} relative group cursor-pointer px-1 rounded-sm">${anno.selection}<span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">${anno.comment}</span></mark>`;
-        annotatedHtml = annotatedHtml.replace(anno.selection!, highlightedText);
+    textAnnotations.forEach((anno, i) => {
+        const newResult: (string | ReactNode)[] = [];
+        result.forEach((node) => {
+            if (typeof node !== 'string') {
+                newResult.push(node);
+                return;
+            }
+            const parts = node.split(anno.selection!);
+            for (let j = 0; j < parts.length; j++) {
+                newResult.push(parts[j]);
+                if (j < parts.length - 1) {
+                    newResult.push(
+                        <mark key={`${anno.id}-${i}-${j}`} className={`${markerStyles[anno.marker]} relative group cursor-pointer px-1 rounded-sm`}>
+                            {anno.selection}
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">{anno.comment}</span>
+                        </mark>
+                    );
+                }
+            }
+        });
+        result = newResult;
     });
-    
-    return <div dangerouslySetInnerHTML={{ __html: annotatedHtml.replace(/\n/g, '<br />') }} />;
+
+    return (
+        <div>
+            {result.map((node, index) =>
+                typeof node === 'string'
+                    ? <span key={index} dangerouslySetInnerHTML={{ __html: node.replace(/\n/g, '<br />') }} />
+                    : node
+            )}
+        </div>
+    );
 };
 
 
@@ -432,8 +455,8 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                             ))}
                         </div>
                     ) : (
-                         <div onMouseUp={handleTextMouseUp} className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md cursor-text">
-                            {renderAnnotatedText(essay.content, annotations)}
+                        <div onMouseUp={handleTextMouseUp} className="text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md cursor-text">
+                           {renderAnnotatedText(essay.content, annotations)}
                         </div>
                     )}
                 </div>

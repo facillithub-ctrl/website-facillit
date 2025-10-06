@@ -27,23 +27,46 @@ const markerStyles = {
     sugestao: { flag: 'text-blue-500', highlight: 'bg-blue-200 dark:bg-blue-500/30' },
 };
 
-const renderAnnotatedText = (text: string, annotations?: Annotation[] | null): ReactElement => {
+const renderAnnotatedText = (text: string, annotations: Annotation[] | null | undefined): ReactElement => {
     const textAnnotations = annotations?.filter(a => a.type === 'text' && a.selection) || [];
     if (!text || textAnnotations.length === 0) {
         return <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: text.replace(/\n/g, '<br />') }} />;
     }
 
-    let annotatedHtml = text;
+    let result: (string | ReactElement)[] = [text];
 
-    const uniqueAnnotations = Array.from(new Map(textAnnotations.map(item => [item.selection, item])).values());
-
-    uniqueAnnotations.forEach(anno => {
-        const selection = anno.selection!;
-        const highlightedText = `<mark class="${markerStyles[anno.marker].highlight} relative group cursor-pointer px-1 rounded-sm">${selection}<span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">${anno.comment}</span></mark>`;
-        annotatedHtml = annotatedHtml.split(selection).join(highlightedText);
+    textAnnotations.forEach((anno, i) => {
+        const newResult: (string | ReactElement)[] = [];
+        result.forEach((node) => {
+            if (typeof node !== 'string') {
+                newResult.push(node);
+                return;
+            }
+            const parts = node.split(anno.selection!);
+            for (let j = 0; j < parts.length; j++) {
+                newResult.push(parts[j]);
+                if (j < parts.length - 1) {
+                    newResult.push(
+                        <mark key={`${anno.id}-${i}-${j}`} className={`${markerStyles[anno.marker].highlight} relative group cursor-pointer px-1 rounded-sm`}>
+                            {anno.selection}
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">{anno.comment}</span>
+                        </mark>
+                    );
+                }
+            }
+        });
+        result = newResult;
     });
-    
-    return <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: annotatedHtml.replace(/\n/g, '<br />') }} />;
+
+    return (
+        <div>
+            {result.map((node, index) =>
+                typeof node === 'string'
+                    ? <span key={index} dangerouslySetInnerHTML={{ __html: node.replace(/\n/g, '<br />') }} />
+                    : node
+            )}
+        </div>
+    );
 };
 
 const CompetencyModal = ({ competencyIndex, onClose }: { competencyIndex: number | null, onClose: () => void }) => {
@@ -65,7 +88,7 @@ export default function EssayCorrectionView({ essayId, onBack }: {essayId: strin
     const [details, setDetails] = useState<FullEssayDetails | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [modalCompetency, setModalCompetency] = useState<number | null>(null);
-    const [viewMode, setViewMode] = useState<'corrected' | 'comparison'>('corrected'); // AJUSTE 5: Estado de visualização
+    const [viewMode, setViewMode] = useState<'corrected' | 'comparison'>('corrected');
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -98,19 +121,18 @@ export default function EssayCorrectionView({ essayId, onBack }: {essayId: strin
                 <button onClick={onBack} className="text-sm text-royal-blue font-bold">
                     <i className="fas fa-arrow-left mr-2"></i> Voltar
                 </button>
-                {/* AJUSTE 5: Botão para alternar visualização */}
                 {isTextView && correction && (
                     <button 
                         onClick={() => setViewMode(prev => prev === 'corrected' ? 'comparison' : 'corrected')} 
                         className="text-sm bg-gray-200 dark:bg-gray-700 px-3 py-1.5 rounded-md font-semibold"
                     >
-                        {viewMode === 'corrected' ? 'Comparar Versões' : 'Ver Correção'}
+                       <i className={`fas ${viewMode === 'corrected' ? 'fa-exchange-alt' : 'fa-eye'} mr-2`}></i>
+                       {viewMode === 'corrected' ? 'Comparar Versões' : 'Ver Correção'}
                     </button>
                 )}
             </div>
 
             {viewMode === 'comparison' && isTextView ? (
-                // AJUSTE 5: Modo de Comparação
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div>
                         <h2 className="font-bold text-xl mb-4 dark:text-white-text">Texto Original</h2>
@@ -126,7 +148,6 @@ export default function EssayCorrectionView({ essayId, onBack }: {essayId: strin
                     </div>
                 </div>
             ) : (
-                // Visualização Padrão
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
                         <h2 className="font-bold text-xl mb-4 dark:text-white-text">{title}</h2>

@@ -80,21 +80,20 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
       return { error: 'É obrigatório consentir com os termos para enviar a redação.' };
     }
 
-    // AJUSTE 6: Limitar uma redação por tema, por usuário
     if (essayData.prompt_id && !essayData.id) {
       const { data: existingEssay, error: existingError } = await supabase
         .from('essays')
         .select('id')
         .eq('student_id', user.id)
         .eq('prompt_id', essayData.prompt_id)
-        .eq('status', 'submitted')
+        .in('status', ['submitted', 'corrected'])
         .limit(1)
         .single();
       
       if (existingEssay) {
         return { error: 'Você já enviou uma redação para este tema.' };
       }
-      if (existingError && existingError.code !== 'PGRST116') { // PGRST116 = no rows found
+      if (existingError && existingError.code !== 'PGRST116') {
         return { error: 'Erro ao verificar redações existentes.' };
       }
     }
@@ -172,7 +171,7 @@ export async function getEssaysForStudent() {
 
   const { data, error } = await supabase
     .from('essays')
-    .select('id, title, status, submitted_at, content')
+    .select('id, title, status, submitted_at, content, image_submission_url, prompt_id')
     .eq('student_id', user.id)
     .order('submitted_at', { ascending: false, nullsFirst: true });
 
@@ -208,6 +207,7 @@ type CorrectionWithProfile = EssayCorrection & {
 export async function getCorrectionForEssay(essayId: string): Promise<{ data?: CorrectionWithProfile; error?: string }> {
     const supabase = await createSupabaseServerClient();
 
+    // AJUSTE FINAL: Usando .maybeSingle() para evitar o erro do console
     const { data, error } = await supabase
         .from('essay_corrections')
         .select(`
@@ -219,9 +219,12 @@ export async function getCorrectionForEssay(essayId: string): Promise<{ data?: C
             )
         `)
         .eq('essay_id', essayId)
-        .single();
+        .maybeSingle(); // Este método busca um registro, mas não retorna erro se não encontrar nenhum (retorna data: null)
 
-    if (error && error.code !== 'PGRST116') return { error: error.message };
+    if (error) {
+        console.error("Erro ao buscar correção:", error);
+        return { error: error.message };
+    }
 
     return { data: data as CorrectionWithProfile || undefined };
 }
@@ -301,8 +304,8 @@ export async function getStudentStatistics() {
     }
 
     const validCorrections = correctedEssays
-        .map(essay => ({ ...essay.essay_corrections[0], submitted_at: essay.submitted_at }))
-        .filter(correction => correction && correction.final_grade !== undefined);
+        .map(essay => essay.essay_corrections.length > 0 ? { ...essay.essay_corrections[0], submitted_at: essay.submitted_at } : null)
+        .filter((correction): correction is NonNullable<typeof correction> => correction !== null && correction.final_grade !== undefined);
 
     if (validCorrections.length === 0) return { data: null };
 
@@ -469,7 +472,6 @@ export async function getCorrectedEssaysForTeacher() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Usuário não autenticado.' };
 
-  // AJUSTE 2: Professores devem poder ver as redações que ele corrigiu.
   const { data, error } = await supabase
     .from('essays')
     .select('id, title, submitted_at, profiles(full_name), essay_corrections!inner(final_grade, corrector_id)')
@@ -491,9 +493,9 @@ export async function getAIFeedbackForEssay(essayId: string) {
         .from('ai_feedback')
         .select('*')
         .eq('essay_id', essayId)
-        .single();
+        .maybeSingle();
     
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
         console.error("Erro ao buscar feedback da IA:", error);
         return { data: null, error: error.message };
     }
