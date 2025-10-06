@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, ReactElement } from 'react';
-import { Essay, EssayCorrection, Annotation, getEssayDetails, getCorrectionForEssay, AIFeedback } from '../actions';
+import { useEffect, useState, ReactElement, ReactNode } from 'react';
+import { Essay, EssayCorrection, Annotation, getEssayDetails, getCorrectionForEssay, getAIFeedbackForEssay, AIFeedback } from '../actions';
 import Image from 'next/image';
 import { VerificationBadge } from '@/components/VerificationBadge';
 import FeedbackTabs from './FeedbackTabs';
@@ -9,7 +9,7 @@ import FeedbackTabs from './FeedbackTabs';
 // --- TIPOS E SUB-COMPONENTES ---
 
 type FullEssayDetails = Essay & {
-  correction: (EssayCorrection & { profiles: { full_name: string | null, verification_badge: string | null }, ai_feedback: AIFeedback | null }) | null;
+  correction: EssayCorrection | null;
   profiles: { full_name: string | null } | null;
 };
 
@@ -95,10 +95,19 @@ export default function EssayCorrectionView({ essayId, onBack }: {essayId: strin
             setIsLoading(true);
             const essayResult = await getEssayDetails(essayId);
             if (essayResult.data) {
-                const correctionResult = await getCorrectionForEssay(essayId);
+                const [correctionResult, aiFeedbackResult] = await Promise.all([
+                    getCorrectionForEssay(essayId),
+                    getAIFeedbackForEssay(essayId)
+                ]);
+
+                const correctionData = correctionResult.data || null;
+                if (correctionData) {
+                    correctionData.ai_feedback = aiFeedbackResult.data || null;
+                }
+
                 setDetails({
                     ...(essayResult.data as FullEssayDetails),
-                    correction: correctionResult.data || null,
+                    correction: correctionData as EssayCorrection | null,
                 });
             }
             setIsLoading(false);
@@ -166,7 +175,7 @@ export default function EssayCorrectionView({ essayId, onBack }: {essayId: strin
                             </div>
                         ) : (
                             <div className="text-gray-700 dark:text-dark-text-muted leading-relaxed">
-                                {renderAnnotatedText(content, annotations)}
+                                {content ? renderAnnotatedText(content, annotations) : <p>Esta redação não possui conteúdo textual para ser exibido.</p>}
                             </div>
                         )}
                     </div>

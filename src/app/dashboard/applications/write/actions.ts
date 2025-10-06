@@ -198,35 +198,33 @@ export async function getLatestEssayForDashboard() {
 
 
 // --- FUNÇÕES DE CORREÇÃO ---
-type CorrectionWithProfile = EssayCorrection & {
+type CorrectionWithProfile = Omit<EssayCorrection, 'ai_feedback'> & {
     profiles: { full_name: string | null, verification_badge: string | null };
-    ai_feedback: AIFeedback | null;
     essay_correction_errors: { common_errors: { error_type: string } }[];
 };
 
 export async function getCorrectionForEssay(essayId: string): Promise<{ data?: CorrectionWithProfile; error?: string }> {
     const supabase = await createSupabaseServerClient();
 
-    // AJUSTE FINAL: Usando .maybeSingle() para evitar o erro do console
+    // CORREÇÃO: Removido 'ai_feedback(*)' para evitar o erro de relação
     const { data, error } = await supabase
         .from('essay_corrections')
         .select(`
             *,
             profiles (full_name, verification_badge),
-            ai_feedback (*),
             essay_correction_errors (
                 common_errors (error_type)
             )
         `)
         .eq('essay_id', essayId)
-        .maybeSingle(); // Este método busca um registro, mas não retorna erro se não encontrar nenhum (retorna data: null)
+        .maybeSingle();
 
     if (error) {
-        console.error("Erro ao buscar correção:", error);
+        console.error("Erro ao buscar correção:", error.message);
         return { error: error.message };
     }
 
-    return { data: data as CorrectionWithProfile || undefined };
+    return { data: data as CorrectionWithProfile | undefined };
 }
 
 
