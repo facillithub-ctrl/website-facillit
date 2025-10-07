@@ -1,3 +1,5 @@
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+
 type Stats = {
     totalCorrections: number;
     averages: {
@@ -9,11 +11,38 @@ type Stats = {
         avg_c5: number;
     };
     pointToImprove: { name: string; average: number };
+};
+
+type FrequentError = { error_type: string; count: number };
+
+// Novas props para o componente
+type Props = {
+    stats: Stats;
+    frequentErrors: FrequentError[];
 }
 
-export default function StatisticsWidget({ stats }: { stats: Stats }) {
+const FrequentErrorsChart = ({ data }: { data: FrequentError[] }) => {
+  if (!data || data.length === 0) return null;
+  const COLORS = ['#5e55f9', '#8884d8', '#82ca9d', '#ffc658', '#ff8042'];
+  return (
+    <div>
+      <h4 className="font-semibold dark:text-white mt-6 text-center">Seus Erros Frequentes</h4>
+      <ResponsiveContainer width="100%" height={150}>
+        <PieChart>
+          <Pie data={data} dataKey="count" nameKey="error_type" cx="50%" cy="50%" outerRadius={60} fill="#8884d8" labelLine={false}>
+            {data.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
+          </Pie>
+          <Tooltip contentStyle={{ backgroundColor: 'rgba(30, 30, 30, 0.8)', borderColor: '#2f2f2f', borderRadius: '0.5rem' }}/>
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+
+export default function StatisticsWidget({ stats, frequentErrors }: Props) {
     return (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+        <div>
             <h3 className="font-bold text-lg mb-4">Suas Estatísticas</h3>
             <div className="grid grid-cols-2 gap-4 text-center">
                 <div>
@@ -36,12 +65,14 @@ export default function StatisticsWidget({ stats }: { stats: Stats }) {
                     ))}
                 </div>
             </div>
-             <div className="mt-6 text-center bg-blue-50 dark:bg-gray-700 p-4 rounded-lg">
+            <hr className="border-white/20 my-4" />
+            <div className="text-center bg-white/20 p-4 rounded-lg">
                 <h4 className="font-semibold dark:text-white">Ponto a Melhorar</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Sua menor média está na <strong>{stats.pointToImprove.name}</strong>. Que tal focar nela na próxima redação?
+                    Sua menor média está na <strong>{stats.pointToImprove.name}</strong>.
                 </p>
             </div>
+             <FrequentErrorsChart data={frequentErrors} />
         </div>
     );
 }

@@ -10,20 +10,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        'royal-blue': '#2E14ED',
-        'dark-text': '#212529',
+        'royal-blue': '#2e14ed', // azul violeta elétrico
+        'dark-purple-blue': '#190894', // azul roxo escuro
+        'lavender-blue': '#5e55f9', // azul lavanda
+        'light-lavender': '#dfdefe', // lavanda clara
+        'light-gray': '#e0e0e2', // cinza claro
+        'graphite-black': '#111114', // preto grafite
+        'dark-text': '#111114',
         'white-text': '#f8f9fa',
         'white': '#ffffff',
-        'header-border': '#e0e0e0',
-        'card-bg': '#ffffff',
-        'card-border': '#e9ecef',
-        'card-hover-shadow': 'rgba(46, 20, 237, 0.1)',
-        'background-light': '#f0f2f5',
+        'background-light': '#dfdefe',
         'text-muted': '#555',
-        // Cores aprimoradas para Dark Mode
-        'dark-background': '#121212',
-        'dark-card': '#1E1E1E',
-        'dark-border': '#2f2f2f',
+        'dark-background': '#111114',
+        'dark-card': '#1A1A1D',
+        'dark-border': '#2c2c31',
         'dark-text-muted': '#a0a0a0',
       },
       fontFamily: {

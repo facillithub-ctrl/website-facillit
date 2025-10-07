@@ -37,12 +37,17 @@ export default function CountdownWidget({ targetExam, examDate }: Props) {
   }, [targetExam, examDate]);
 
   if (!targetExam || !examDate || (timeLeft.days === 0 && timeLeft.hours === 0 && timeLeft.minutes === 0)) {
-    return null;
+     return (
+        <div className="h-full flex flex-col justify-center text-center">
+            <h2 className="font-bold mb-2 dark:text-white">Contagem Regressiva</h2>
+            <p className="text-sm text-text-muted dark:text-gray-400">Defina um vestibular alvo no seu perfil para ver a contagem aqui.</p>
+        </div>
+    );
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow col-span-1 md:col-span-2 lg:col-span-1">
-      <h2 className="font-bold mb-2 dark:text-white">Contagem Regressiva: {targetExam}</h2>
+    <div className="h-full flex flex-col justify-center">
+      <h2 className="font-bold mb-2 dark:text-white text-center">Contagem Regressiva: {targetExam}</h2>
       <div className="grid grid-cols-4 text-center">
         <div>
           <p className="text-3xl font-bold text-royal-blue">{timeLeft.days}</p>

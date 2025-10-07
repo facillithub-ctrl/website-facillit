@@ -22,7 +22,7 @@ export default async function WritePage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('user_category')
+    .select('user_category, target_exam') // Adicionado 'target_exam'
     .eq('id', user.id)
     .single();
 
@@ -53,6 +53,17 @@ export default async function WritePage() {
       getFrequentErrors(),
       getCurrentEvents(),
     ]);
+    
+    // Busca a data do vestibular se o usuário tiver um selecionado
+    let examDate: { name: string, exam_date: string } | null = null;
+    if (profile?.target_exam) {
+        const { data } = await supabase
+            .from('exam_dates')
+            .select('name, exam_date')
+            .eq('name', profile.target_exam)
+            .single();
+        examDate = data;
+    }
 
     return (
       <StudentDashboard
@@ -63,6 +74,8 @@ export default async function WritePage() {
         rankInfo={rankResult.data}
         frequentErrors={frequentErrorsResult.data || []}
         currentEvents={currentEventsResult.data || []}
+        targetExam={examDate?.name}
+        examDate={examDate?.exam_date}
       />
     );
   }
@@ -78,14 +91,11 @@ export default async function WritePage() {
         getCorrectedEssaysForTeacher()
      ]);
 
-    // CORREÇÃO: A propriedade 'profiles' da consulta é um array, mas o componente espera um objeto.
-    // Mapeamos os dados para transformar a propriedade no formato correto.
     const pendingEssays = pendingEssaysResult.data?.map(essay => ({
       ...essay,
       profiles: Array.isArray(essay.profiles) ? essay.profiles[0] : essay.profiles,
     })) || [];
 
-    // FIX APPLIED HERE: The same transformation is needed for correctedEssays.
     const correctedEssays = correctedEssaysResult.data?.map(essay => ({
         ...essay,
         profiles: Array.isArray(essay.profiles) ? essay.profiles[0] : essay.profiles,
