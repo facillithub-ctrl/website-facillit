@@ -1,7 +1,7 @@
 // src/app/dashboard/applications/test/components/QuestionEditor.tsx
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import RichTextEditor from './RichTextEditor';
 import createClient from '@/utils/supabase/client';
 
@@ -70,14 +70,16 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
     } else if (newCorrectOption && newCorrectOption > index) {
       newCorrectOption = newCorrectOption - 1;
     }
-    setLocalQuestion(prev => ({
-        ...prev,
+    const updatedQuestion = {
+        ...localQuestion,
         content: {
-            ...prev.content,
+            ...localQuestion.content,
             options: newOptions,
             correct_option: newCorrectOption,
         }
-    }));
+    };
+    setLocalQuestion(updatedQuestion);
+    onUpdate(updatedQuestion); // Atualiza imediatamente ao remover
   };
 
   const handleImageUpload = async (file: File): Promise<string | null> => {
@@ -94,8 +96,11 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
 
     const { data } = supabase.storage.from('tests').getPublicUrl(filePath);
     const newImageUrl = data.publicUrl;
-
-    handleContentChange('image_url', newImageUrl);
+    
+    // Atualiza o estado local e chama a função onUpdate para salvar
+    const updatedQuestion = { ...localQuestion, content: { ...localQuestion.content, image_url: newImageUrl } };
+    setLocalQuestion(updatedQuestion);
+    onUpdate(updatedQuestion);
 
     setIsUploading(false);
     return newImageUrl;
@@ -106,7 +111,12 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
       <div className="flex justify-between items-start">
         <select
           value={localQuestion.question_type}
-          onChange={(e) => setLocalQuestion(prev => ({ ...prev, question_type: e.target.value as Question['question_type'] }))}
+          onChange={(e) => {
+              const newType = e.target.value as Question['question_type'];
+              const updatedQuestion = { ...localQuestion, question_type: newType };
+              setLocalQuestion(updatedQuestion);
+              onUpdate(updatedQuestion); // Salva a alteração de tipo
+          }}
           className="font-bold p-1 border rounded-md dark:bg-gray-800 dark:border-gray-600"
         >
           <option value="multiple_choice">Múltipla Escolha</option>
@@ -124,20 +134,25 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
         onChange={(value) => handleContentChange('statement', value)}
         placeholder="Digite o enunciado da questão aqui..."
         onImageUpload={handleImageUpload}
+        onBlur={handleSaveChanges} // Salva ao perder o foco do editor
       />
 
       {localQuestion.question_type === 'multiple_choice' && (
         <div className="space-y-2">
-          <h5 className="text-sm font-semibold">Alternativas:</h5>
+          <h5 className="text-sm font-semibold">Alternativas (Marque a correta):</h5>
           {(localQuestion.content.options || []).map((option, index) => (
             <div key={index} className="flex items-center gap-2">
-               <label className="flex items-center gap-2 font-mono">
+               <label className="flex items-center gap-2 font-mono cursor-pointer">
                 <input
                     type="radio"
                     name={`correct_option_${question.id}`}
                     checked={localQuestion.content.correct_option === index}
-                    onChange={() => handleContentChange('correct_option', index)}
-                    className="form-radio text-royal-blue"
+                    onChange={() => {
+                        handleContentChange('correct_option', index);
+                        // Salva imediatamente ao mudar a resposta correta
+                        onUpdate({ ...localQuestion, content: { ...localQuestion.content, correct_option: index } });
+                    }}
+                    className="form-radio h-4 w-4 text-royal-blue focus:ring-royal-blue"
                 />
                  {String.fromCharCode(65 + index)})
                </label>
@@ -146,6 +161,7 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
                 placeholder={`Texto da alternativa ${String.fromCharCode(65 + index)}`}
                 value={option}
                 onChange={(e) => handleOptionChange(index, e.target.value)}
+                onBlur={handleSaveChanges} // Salva ao perder o foco do input
                 className="flex-grow p-2 border rounded-md text-sm dark:bg-gray-800 dark:border-gray-600"
               />
               <button type="button" onClick={() => removeOption(index)} className="text-gray-500 hover:text-red-500 text-xs">
@@ -154,22 +170,6 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
             </div>
           ))}
           <button type="button" onClick={addOption} className="text-xs font-bold text-royal-blue">+ Adicionar alternativa</button>
-        </div>
-      )}
-
-      {hasUnsavedChanges && (
-        <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border-t border-yellow-200 dark:border-yellow-800 flex justify-end items-center gap-3 rounded-b-lg -m-4 mt-4">
-            <span className="text-xs font-semibold text-yellow-800 dark:text-yellow-300">Você tem alterações não salvas.</span>
-            <button type="button" onClick={handleDiscardChanges} className="text-xs font-bold text-gray-600 dark:text-gray-300">
-                Cancelar
-            </button>
-            <button 
-                type="button"
-                onClick={handleSaveChanges} 
-                className="bg-royal-blue text-white font-bold py-1 px-3 rounded-md text-xs"
-            >
-                Salvar Alterações
-            </button>
         </div>
       )}
     </div>

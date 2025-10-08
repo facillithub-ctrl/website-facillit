@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import AvailableTestCard from './AvailableTestCard';
 import AttemptView from './AttemptView';
+import type { TestWithQuestions } from '../actions';
+
 
 // --- TIPOS ---
 type TestCardInfo = { id: string; title: string; subject: string | null; question_count: number; duration_minutes: number; difficulty: 'Fácil' | 'Médio' | 'Difícil'; avg_score: number; total_attempts: number; points: number; };
@@ -37,10 +39,10 @@ export default function StudentTestDashboard({ dashboardData, availableTests }: 
       setSelectedTestId(testId);
       setView('attempt');
   };
-  
+
   const handleFinishAttempt = () => {
     setView('dashboard');
-    // Forçar a atualização da página para buscar os novos dados
+    // Força a atualização da página para buscar os novos dados
     window.location.reload();
   };
 
@@ -48,6 +50,7 @@ export default function StudentTestDashboard({ dashboardData, availableTests }: 
     <>
       <h1 className="text-3xl font-bold text-dark-text dark:text-white mb-6">Meu Desempenho</h1>
       
+      {/* CORREÇÃO APLICADA AQUI: Verifica se dashboardData é nulo */}
       {!dashboardData ? (
          <div className="p-8 text-center border-2 border-dashed rounded-lg glass-card">
               <h2 className="text-xl font-bold mb-2">Comece sua jornada!</h2>

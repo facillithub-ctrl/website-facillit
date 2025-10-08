@@ -3,7 +3,6 @@
 import { useEffect, useState, useTransition } from 'react';
 import { getTestWithQuestions, submitTestAttempt } from '../actions';
 import type { TestWithQuestions } from '../actions';
-// CORREÇÃO: Ajustado o caminho de importação para o local original do Timer.
 import Timer from '../../write/components/Timer';
 
 type Answer = { questionId: string; answer: number | string | null };
@@ -44,23 +43,19 @@ export default function AttemptView({ testId, onFinish }: Props) {
 
         if (confirm("Tem certeza que deseja finalizar e enviar suas respostas?")) {
             startSubmitTransition(async () => {
-                let score = 0;
-                test.questions.forEach((q) => {
-                    const studentAnswer = answers.find(a => a.questionId === q.id);
-                    if (q.question_type === 'multiple_choice' && studentAnswer?.answer === q.content.correct_option) {
-                        score += q.points;
-                    }
-                });
-                const totalPoints = test.questions.reduce((acc, q) => acc + q.points, 0);
-                const finalPercentage = totalPoints > 0 ? (score / totalPoints) * 100 : 0;
-    
-                await submitTestAttempt({
+                // LÓGICA ATUALIZADA: Envia apenas o ID do teste e as respostas.
+                // O cálculo da nota é feito de forma segura no servidor.
+                const result = await submitTestAttempt({
                     test_id: test.id,
                     answers: answers,
-                    score: finalPercentage,
                 });
-                alert("Simulado enviado com sucesso!");
-                onFinish();
+
+                if (result.error) {
+                    alert(`Erro ao enviar: ${result.error}`);
+                } else {
+                    alert("Simulado enviado com sucesso!");
+                    onFinish();
+                }
             });
         }
     };
@@ -78,11 +73,13 @@ export default function AttemptView({ testId, onFinish }: Props) {
                     <h2 className="text-2xl font-bold dark:text-white">{test.title}</h2>
                     <p className="text-dark-text-muted">Questão {currentQuestionIndex + 1} de {test.questions.length}</p>
                 </div>
-                <Timer isRunning={true} durationInSeconds={test.duration_minutes * 60} onTimeUp={handleFinishAttempt} />
+                <Timer isRunning={true} durationInSeconds={(test.duration_minutes || 60) * 60} onTimeUp={handleFinishAttempt} />
             </div>
 
             <div>
-                <div className="prose dark:prose-invert max-w-none mb-6" dangerouslySetInnerHTML={{ __html: currentQuestion.content.statement }} />
+                {currentQuestion.content.statement && (
+                    <div className="prose dark:prose-invert max-w-none mb-6" dangerouslySetInnerHTML={{ __html: currentQuestion.content.statement }} />
+                )}
 
                 {currentQuestion.question_type === 'multiple_choice' && (
                     <div className="space-y-3">

@@ -31,11 +31,13 @@ export type TestWithQuestions = {
 
 export type Test = Omit<TestWithQuestions, 'questions'>;
 
+export type StudentAnswer = { questionId: string, answer: number | string | null };
+
 export type TestAttempt = {
   id: string;
   test_id: string;
   student_id: string;
-  answers: { questionId: string, answer: number | string | null }[];
+  answers: StudentAnswer[];
   score: number | null;
   started_at: string;
   completed_at: string | null;
@@ -58,15 +60,18 @@ export async function createOrUpdateTest(testData: { title: string; description:
       created_by: user.id,
       is_public: testData.is_public,
       // TODO: Adicionar campos para 'subject', 'difficulty', etc. no modal de criação
-      subject: 'Matemática',
+      subject: 'Geral',
       difficulty: 'Médio',
       duration_minutes: 60,
-      points: 100
+      points: testData.questions.reduce((sum, q) => sum + q.points, 0)
     })
     .select()
     .single();
 
-  if (testError) return { error: `Erro ao criar avaliação: ${testError.message}` };
+  if (testError) {
+    console.error("Erro ao criar avaliação:", testError);
+    return { error: `Erro ao criar avaliação: ${testError.message}` };
+  }
 
   if (testData.questions.length > 0) {
     const questionsToInsert = testData.questions.map(q => ({
@@ -77,6 +82,8 @@ export async function createOrUpdateTest(testData: { title: string; description:
     }));
     const { error: questionsError } = await supabase.from('questions').insert(questionsToInsert);
     if (questionsError) {
+      console.error("Erro ao salvar questões:", questionsError);
+      // Rollback: deleta o teste se as questões falharem
       await supabase.from('tests').delete().eq('id', testResult.id);
       return { error: `Erro ao salvar questões: ${questionsError.message}` };
     }
@@ -90,12 +97,21 @@ export async function getTestsForTeacher() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: "Usuário não autenticado." };
-  const { data, error } = await supabase.from('tests').select('*').eq('created_by', user.id).order('created_at', { ascending: false });
-  if (error) return { data: null, error: error.message };
+
+  const { data, error } = await supabase
+    .from('tests')
+    .select('*')
+    .eq('created_by', user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("Erro ao buscar testes do professor:", error);
+    return { data: null, error: error.message };
+  }
   return { data, error: null };
 }
 
-export async function getTestWithQuestions(testId: string) {
+export async function getTestWithQuestions(testId: string): Promise<{ data: TestWithQuestions | null; error: string | null; }> {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
         .from('tests')
@@ -103,7 +119,10 @@ export async function getTestWithQuestions(testId: string) {
         .eq('id', testId)
         .single();
         
-    if (error) return { data: null, error: `Erro ao buscar detalhes do teste: ${error.message}` };
+    if (error) {
+        console.error(`Erro ao buscar detalhes do teste ${testId}:`, error);
+        return { data: null, error: `Erro ao buscar detalhes do teste: ${error.message}` };
+    }
     
     return { data, error: null };
 }
@@ -111,7 +130,6 @@ export async function getTestWithQuestions(testId: string) {
 
 // --- FUNÇÕES DO ALUNO ---
 
-// Busca a lista de simulados disponíveis para a tela "Praticar"
 export async function getAvailableTestsForStudent() {
     const supabase = await createSupabaseServerClient();
 
@@ -158,8 +176,6 @@ export async function getAvailableTestsForStudent() {
     return { data: formattedData, error: null };
 }
 
-
-// Busca todos os dados da dashboard de uma vez
 export async function getStudentTestDashboardData() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -171,11 +187,19 @@ export async function getStudentTestDashboardData() {
         supabase.from('test_attempts').select('score, completed_at, tests (title, subject)').eq('student_id', user.id).eq('status', 'graded').order('completed_at', { ascending: false }).limit(3)
     ]);
 
-    if (statsRes.error) return { data: null, error: `Erro (stats): ${statsRes.error.message}` };
-    if (performanceRes.error) return { data: null, error: `Erro (performance): ${performanceRes.error.message}` };
-    if (recentRes.error) return { data: null, error: `Erro (recent): ${recentRes.error.message}` };
+    if (statsRes.error) {
+        console.error("Erro na RPC get_student_test_stats:", statsRes.error);
+        return { data: null, error: `Erro (stats): ${statsRes.error.message}` };
+    }
+    if (performanceRes.error) {
+        console.error("Erro na RPC get_student_performance_by_subject:", performanceRes.error);
+        return { data: null, error: `Erro (performance): ${performanceRes.error.message}` };
+    }
+    if (recentRes.error) {
+        console.error("Erro ao buscar tentativas recentes:", recentRes.error);
+        return { data: null, error: `Erro (recent): ${recentRes.error.message}` };
+    }
     
-    // CORREÇÃO: Acessa a propriedade correta retornada pela RPC
     if (!statsRes.data || statsRes.data.simuladosFeitos === 0) {
         return { data: null, error: null };
     }
@@ -190,26 +214,65 @@ export async function getStudentTestDashboardData() {
     };
 }
 
-// Salva a tentativa do aluno no banco
-export async function submitTestAttempt(attemptData: { test_id: string; answers: { questionId: string; answer: string | number | null; }[]; score: number; }) {
+/**
+ * Salva a tentativa do aluno, calculando a nota de forma segura no servidor.
+ */
+export async function submitTestAttempt(
+  { test_id, answers }: { test_id: string; answers: StudentAnswer[]; }
+) {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Usuário não autenticado.' };
   
+    // 1. Buscar as questões e respostas corretas do teste do banco de dados
+    const { data: test, error: testError } = await supabase
+      .from('tests')
+      .select('questions (id, question_type, content, points)')
+      .eq('id', test_id)
+      .single();
+
+    if (testError || !test) {
+      console.error('Erro ao buscar o teste para correção:', testError);
+      return { error: 'Não foi possível encontrar o simulado para correção.' };
+    }
+
+    // 2. Calcular a pontuação de forma segura no servidor
+    let score = 0;
+    const totalPoints = test.questions.reduce((acc, q) => acc + q.points, 0);
+    
+    for (const question of test.questions) {
+      const studentAnswer = answers.find(a => a.questionId === question.id);
+
+      if (studentAnswer && question.question_type === 'multiple_choice') {
+        // Compara a resposta do aluno com a resposta correta vinda do banco de dados
+        if (studentAnswer.answer === question.content.correct_option) {
+          score += question.points;
+        }
+      }
+      // Futuramente, a lógica para questões dissertativas pode ser adicionada aqui
+    }
+
+    const finalPercentage = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
+
+    // 3. Inserir a tentativa do aluno com a nota já calculada
     const { data, error } = await supabase
       .from('test_attempts')
       .insert({
-        test_id: attemptData.test_id,
+        test_id: test_id,
         student_id: user.id,
-        answers: attemptData.answers, // Salva as respostas
-        score: attemptData.score,
-        status: 'graded', // Marcamos como corrigido
+        answers: answers, // Armazena as respostas do aluno
+        score: finalPercentage, // Armazena a pontuação calculada
+        status: 'graded', // Define o status como 'corrigido'
         completed_at: new Date().toISOString()
       })
       .select()
       .single();
   
-    if (error) return { error: `Erro ao salvar tentativa: ${error.message}` };
+    if (error) {
+        // Log detalhado do erro no servidor
+        console.error('Erro do Supabase ao salvar tentativa:', error);
+        return { error: `Erro ao salvar tentativa: ${error.message}` };
+    }
 
     revalidatePath('/dashboard/applications/test');
     return { data };
