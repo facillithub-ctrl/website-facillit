@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import type { TestWithQuestions } from '../actions';
-import DOMPurify from 'isomorphic-dompurify';
+// Importaremos o DOMPurify dinamicamente para evitar erros de build
+// import DOMPurify from 'isomorphic-dompurify';
 
 type Props = {
   test: TestWithQuestions;
@@ -10,16 +11,25 @@ type Props = {
 };
 
 export default function TestDetailView({ test, onBack }: Props) {
-  // Estado para armazenar o HTML seguro
   const [sanitizedQuestions, setSanitizedQuestions] = useState<{ id: string, statement: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Garante que o DOMPurify só rode no lado do cliente (navegador)
-    const sanitized = test.questions.map(q => ({
-      id: q.id,
-      statement: DOMPurify.sanitize(q.content.statement)
-    }));
-    setSanitizedQuestions(sanitized);
+    // Usamos uma função assíncrona para carregar a biblioteca dinamicamente
+    const sanitizeHtml = async () => {
+      // Importa a biblioteca 'dompurify' somente no ambiente do cliente (navegador)
+      const DOMPurify = (await import('dompurify')).default;
+
+      const sanitized = test.questions.map(q => ({
+        id: q.id,
+        // "Limpa" o conteúdo HTML para exibição segura
+        statement: DOMPurify.sanitize(q.content.statement)
+      }));
+      setSanitizedQuestions(sanitized);
+      setIsLoading(false);
+    };
+
+    sanitizeHtml();
   }, [test.questions]);
 
 
@@ -37,7 +47,9 @@ export default function TestDetailView({ test, onBack }: Props) {
         
         <h2 className="text-xl font-bold mb-4">Questões</h2>
         <div className="space-y-6">
-          {test.questions.length > 0 ? test.questions.map((q, index) => {
+          {isLoading ? (
+            <p className="text-text-muted">Processando questões...</p>
+          ) : test.questions.length > 0 ? test.questions.map((q, index) => {
             // Encontra a versão sanitizada da questão
             const sanitizedQuestion = sanitizedQuestions.find(sq => sq.id === q.id);
             return (
