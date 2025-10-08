@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 import AvailableTestCard from "./AvailableTestCard";
 import AttemptView from "./AttemptView";
@@ -12,8 +12,7 @@ import {
     getTestWithQuestions, 
     type TestWithQuestions, 
     getQuickTest, 
-    getStudentResultsHistory,
-    getKnowledgeTestsForDashboard
+    getStudentResultsHistory 
 } from '../actions';
 
 // --- TIPOS ---
@@ -155,43 +154,12 @@ const TestBrowser = ({ initialTests, onStartTest, onViewDetails }: { initialTest
     );
 };
 
-const subjectColors: { [key: string]: string } = {
-    Matemática: "#8b5cf6", Física: "#ec4899", Química: "#3b82f6", Biologia: "#22c55e", Português: "#f97316", Default: "#6b7280",
-};
-const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    const notaStr = typeof data.nota === "number" ? data.nota.toFixed(1) : "0";
-    return ( <div className="p-2 rounded-lg" style={{ backgroundColor: "#1A1A1D", border: "1px solid #2c2c31" }}><p className="text-sm font-bold" style={{ color: "#f8f9fa" }}>{`${label}`}</p><p className="text-xs" style={{ color: "#a0a0a0" }}>{`Acerto Médio: ${notaStr}% • ${data.simulados ?? 0} simulados`}</p></div> );
-  }
-  return null;
-};
-const PerformanceChart = ({ data }: { data: PerformanceData[] }) => (
-    <div className="glass-card p-6 h-[320px] lg:col-span-5">
-        <h3 className="font-bold mb-4 text-dark-text dark:text-white">Performance por Matéria</h3>
-        <ResponsiveContainer width="100%" height="90%">
-            <BarChart data={data} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
-                <XAxis type="number" hide domain={[0, 100]} /><YAxis type="category" dataKey="materia" axisLine={false} tickLine={false} width={80} tick={{ fill: "#a0a0a0" }} />
-                <Tooltip cursor={{ fill: "rgba(255, 255, 255, 0.1)" }} content={<CustomTooltip />} />
-                <Bar dataKey="nota" barSize={16} radius={[0, 10, 10, 0]}>{data.map((entry) => (<Cell key={`cell-${entry.materia}`} fill={subjectColors[entry.materia] || subjectColors.Default} />))}</Bar>
-            </BarChart>
-        </ResponsiveContainer>
-    </div>
-);
-const RecentTests = ({ data }: { data: RecentAttempt[] }) => {
-  const getIconForSubject = (subject: string | null) => {
-    switch (subject) { case "Matemática": return "∫"; case "Física": return "⚡️"; case "Química": return "⚗️"; default: return "📝"; }
-  };
-  return (
-    <div className="glass-card p-6 lg:col-span-3">
-      <h3 className="font-bold mb-4 text-dark-text dark:text-white">Últimos Simulados</h3>
-      <div className="space-y-3">{data.map((simulado, i) => { const test = simulado.tests ? (Array.isArray(simulado.tests) ? simulado.tests[0] : simulado.tests) : { title: "Teste Rápido", subject: null };
-          return (<div key={i} className={`p-3 rounded-lg flex items-center justify-between bg-white/10`}><div className="flex items-center gap-3"><div className="text-xl">{getIconForSubject(test.subject)}</div><div><p className="font-semibold text-sm text-dark-text dark:text-white">{test.title}</p><p className="text-xs text-dark-text-muted">{new Date(simulado.completed_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</p></div></div><div className="text-right"><p className="font-bold text-lg text-lavender-blue">{simulado.score?.toFixed(1)}</p><p className="text-xs text-dark-text-muted">acertos</p></div></div> );
-        })}
-      </div>
-    </div>
-  );
-};
+const subjectColors: { [key: string]: string } = { Matemática: "#8b5cf6", Física: "#ec4899", Química: "#3b82f6", Biologia: "#22c55e", Português: "#f97316", Default: "#6b7280" };
+type CustomTooltipProps = { active?: boolean; payload?: { payload: PerformanceData }[]; label?: string; };
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => { if (active && payload && payload.length) { const data = payload[0].payload; const notaStr = typeof data.nota === "number" ? data.nota.toFixed(1) : "0"; return ( <div className="p-2 rounded-lg" style={{ backgroundColor: "#1A1A1D", border: "1px solid #2c2c31" }}><p className="text-sm font-bold" style={{ color: "#f8f9fa" }}>{`${label}`}</p><p className="text-xs" style={{ color: "#a0a0a0" }}>{`Acerto Médio: ${notaStr}% • ${data.simulados ?? 0} simulados`}</p></div> ); } return null; };
+const PerformanceChart = ({ data }: { data: PerformanceData[] }) => ( <div className="glass-card p-6 h-[320px] lg:col-span-5"><h3 className="font-bold mb-4 text-dark-text dark:text-white">Performance por Matéria</h3><ResponsiveContainer width="100%" height="90%"><BarChart data={data} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}><XAxis type="number" hide domain={[0, 100]} /><YAxis type="category" dataKey="materia" axisLine={false} tickLine={false} width={80} tick={{ fill: "#a0a0a0" }} /><Tooltip cursor={{ fill: "rgba(255, 255, 255, 0.1)" }} content={<CustomTooltip />} /><Bar dataKey="nota" barSize={16} radius={[0, 10, 10, 0]}>{data.map((entry) => (<Cell key={`cell-${entry.materia}`} fill={subjectColors[entry.materia] || subjectColors.Default} />))}</Bar></BarChart></ResponsiveContainer></div> );
+const RecentTests = ({ data }: { data: RecentAttempt[] }) => { const getIconForSubject = (subject: string | null) => { switch (subject) { case "Matemática": return "∫"; case "Física": return "⚡️"; case "Química": return "⚗️"; default: return "📝"; } }; return ( <div className="glass-card p-6 lg:col-span-3"><h3 className="font-bold mb-4 text-dark-text dark:text-white">Últimos Simulados</h3><div className="space-y-3">{data.map((simulado, i) => { const test = simulado.tests ? (Array.isArray(simulado.tests) ? simulado.tests[0] : simulado.tests) : { title: "Teste Rápido", subject: null }; return (<div key={i} className={`p-3 rounded-lg flex items-center justify-between bg-white/10`}><div className="flex items-center gap-3"><div className="text-xl">{getIconForSubject(test.subject)}</div><div><p className="font-semibold text-sm text-dark-text dark:text-white">{test.title}</p><p className="text-xs text-dark-text-muted">{new Date(simulado.completed_at!).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</p></div></div><div className="text-right"><p className="font-bold text-lg text-lavender-blue">{simulado.score?.toFixed(1)}</p><p className="text-xs text-dark-text-muted">acertos</p></div></div> ); })}</div></div> ); };
+
 
 // --- COMPONENTE PRINCIPAL ---
 export default function StudentTestDashboard({ dashboardData, initialAvailableTests, knowledgeTests }: Props) {
@@ -200,66 +168,13 @@ export default function StudentTestDashboard({ dashboardData, initialAvailableTe
   const [isLoading, setIsLoading] = useState(false);
   const [resultsHistory, setResultsHistory] = useState<AttemptHistory[]>([]);
 
-  const handleStartTest = (testData: TestWithQuestions) => {
-    setSelectedTest(testData);
-    setView("attempt");
-  };
-
-  const handleFinishAttempt = () => {
-    setView("dashboard");
-    window.location.reload();
-  };
-  
-  const handleViewDetails = async (testId: string) => {
-    setIsLoading(true);
-    const { data } = await getTestWithQuestions(testId);
-    if (data) {
-        setSelectedTest(data);
-        setView("detail");
-    } else {
-        alert("Não foi possível carregar os detalhes do simulado.");
-    }
-    setIsLoading(false);
-  };
-  
-  const handleInitiateTestFromBrowse = async (testId: string) => {
-    setIsLoading(true);
-    const { data } = await getTestWithQuestions(testId);
-    if (data) {
-        handleStartTest(data);
-    } else {
-        alert("Não foi possível iniciar o simulado.");
-    }
-    setIsLoading(false);
-  }
-
-  const handleStartQuickTest = async () => {
-    setIsLoading(true);
-    const { data, error } = await getQuickTest();
-    if (error) {
-        alert(error);
-    } else if (data) {
-        handleStartTest(data);
-    }
-    setIsLoading(false);
-  };
-
-  const handleViewResults = async () => {
-    setIsLoading(true);
-    const { data, error } = await getStudentResultsHistory();
-    if (error) {
-        alert(error);
-    } else if (data) {
-        setResultsHistory(data as AttemptHistory[]);
-        setView("results");
-    }
-    setIsLoading(false);
-  };
-
-  const handleBackToDashboard = () => {
-    setView("dashboard");
-    setSelectedTest(null);
-  };
+  const handleStartTest = (testData: TestWithQuestions) => { setSelectedTest(testData); setView("attempt"); };
+  const handleFinishAttempt = () => { setView("dashboard"); window.location.reload(); };
+  const handleViewDetails = async (testId: string) => { setIsLoading(true); const { data } = await getTestWithQuestions(testId); if (data) { setSelectedTest(data); setView("detail"); } else { alert("Não foi possível carregar os detalhes do simulado."); } setIsLoading(false); };
+  const handleInitiateTestFromBrowse = async (testId: string) => { setIsLoading(true); const { data } = await getTestWithQuestions(testId); if (data) { handleStartTest(data); } else { alert("Não foi possível iniciar o simulado."); } setIsLoading(false); }
+  const handleStartQuickTest = async () => { setIsLoading(true); const { data, error } = await getQuickTest(); if (error) { alert(error); } else if (data) { handleStartTest(data); } setIsLoading(false); };
+  const handleViewResults = async () => { setIsLoading(true); const { data, error } = await getStudentResultsHistory(); if (error) { alert(error); } else if (data) { setResultsHistory(data as AttemptHistory[]); setView("results"); } setIsLoading(false); };
+  const handleBackToDashboard = () => { setView("dashboard"); setSelectedTest(null); };
 
   const MainDashboard = () => (
     <>
@@ -268,9 +183,7 @@ export default function StudentTestDashboard({ dashboardData, initialAvailableTe
          <div className="p-8 text-center border-2 border-dashed rounded-lg glass-card">
            <h2 className="text-xl font-bold mb-2">Comece sua jornada!</h2>
            <p className="text-sm text-dark-text-muted mb-4">Faça seu primeiro simulado para ver suas estatísticas e acompanhar seu progresso.</p>
-           <button onClick={() => setView("browse")} className="bg-royal-blue text-white font-bold py-2 px-6 rounded-lg hover:bg-opacity-90">
-             Ver Simulados
-           </button>
+           <button onClick={() => setView("browse")} className="bg-royal-blue text-white font-bold py-2 px-6 rounded-lg hover:bg-opacity-90">Ver Simulados</button>
          </div>
       ) : (
         <>
@@ -298,34 +211,13 @@ export default function StudentTestDashboard({ dashboardData, initialAvailableTe
   );
 
   const renderContent = () => {
-    if (isLoading) {
-        return <div className="text-center p-8">Carregando...</div>;
-    }
+    if (isLoading) { return <div className="text-center p-8">Carregando...</div>; }
     switch (view) {
-      case "browse":
-        return (
-          <>
-            <button onClick={handleBackToDashboard} className="text-sm font-bold text-royal-blue mb-6">
-              <i className="fas fa-arrow-left mr-2"></i> Voltar para o Dashboard
-            </button>
-            <TestBrowser initialTests={initialAvailableTests} onStartTest={handleInitiateTestFromBrowse} onViewDetails={handleViewDetails} />
-          </>
-        );
-      case "attempt":
-        if (!selectedTest) {
-          setView("browse"); return null;
-        }
-        return <AttemptView test={selectedTest} onFinish={handleFinishAttempt} />;
-      case "detail":
-          if (!selectedTest) {
-              setView("browse"); return null;
-          }
-          return <TestDetailView test={selectedTest} onBack={() => setView("browse")} onStartTest={handleStartTest} />;
-      case "results":
-          return <ResultsView attempts={resultsHistory} onBack={handleBackToDashboard} />;
-      case "dashboard":
-      default:
-        return <MainDashboard />;
+      case "browse": return ( <><button onClick={handleBackToDashboard} className="text-sm font-bold text-royal-blue mb-6"><i className="fas fa-arrow-left mr-2"></i> Voltar para o Dashboard</button><TestBrowser initialTests={initialAvailableTests} onStartTest={handleInitiateTestFromBrowse} onViewDetails={handleViewDetails} /></> );
+      case "attempt": if (!selectedTest) { setView("browse"); return null; } return <AttemptView test={selectedTest} onFinish={handleFinishAttempt} />;
+      case "detail": if (!selectedTest) { setView("browse"); return null; } return <TestDetailView test={selectedTest} onBack={() => setView("browse")} onStartTest={handleStartTest} />;
+      case "results": return <ResultsView attempts={resultsHistory} onBack={handleBackToDashboard} />;
+      case "dashboard": default: return <MainDashboard />;
     }
   };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { submitTestAttempt } from '../actions';
 import type { TestWithQuestions, StudentAnswer } from '../actions';
@@ -38,10 +38,8 @@ export default function AttemptView({ test, onFinish }: Props) {
                 if (result.error) {
                     alert(`Erro ao enviar: ${result.error}`);
                 } else {
-                    // LÓGICA CORRIGIDA: Redirecionamento direto para a tela de escrita
                     if (test.is_knowledge_test && test.related_prompt_id) {
                         if (confirm("Parabéns! Você concluiu o teste.\nAcha que consegue escrever uma redação sobre esse tema?")) {
-                            // Navega para a página do Write, passando o ID do tema para abrir o editor diretamente
                             router.push(`/dashboard/applications/write?promptId=${test.related_prompt_id}`);
                         } else {
                             onFinish();

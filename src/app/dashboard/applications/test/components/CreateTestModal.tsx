@@ -6,7 +6,6 @@ import { createOrUpdateTest } from '../actions';
 import { useToast } from '@/contexts/ToastContext';
 import createClient from '@/utils/supabase/client';
 
-// Tipo para os temas de redação que serão buscados
 type EssayPrompt = {
   id: string;
   title: string;
@@ -24,12 +23,10 @@ export default function CreateTestModal({ onClose }: Props) {
   const [isPending, startTransition] = useTransition();
   const { addToast } = useToast();
   
-  // --- NOVOS ESTADOS PARA A FUNCIONALIDADE DO PROFESSOR ---
   const [isKnowledgeTest, setIsKnowledgeTest] = useState(false);
   const [essayPrompts, setEssayPrompts] = useState<EssayPrompt[]>([]);
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
 
-  // Efeito para buscar os temas de redação do Supabase quando o modal abre
   useEffect(() => {
     const fetchPrompts = async () => {
         const supabase = createClient();
@@ -83,7 +80,6 @@ export default function CreateTestModal({ onClose }: Props) {
       } else {
         addToast({ message: "Avaliação criada com sucesso!", type: 'success' });
         onClose();
-        // A página será recarregada automaticamente pelo revalidatePath na action
       }
     });
   };
@@ -97,7 +93,6 @@ export default function CreateTestModal({ onClose }: Props) {
         </div>
 
         <form id="create-test-form" onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-          {/* Título e Descrição */}
           <div>
             <label htmlFor="title" className="block text-sm font-medium mb-1">Título da Avaliação</label>
             <input id="title" type="text" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Simulado ENEM - Ciências Humanas"
@@ -109,7 +104,6 @@ export default function CreateTestModal({ onClose }: Props) {
               className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
           </div>
           
-          {/* Configurações de Visibilidade */}
           <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md border dark:border-gray-700">
             <input id="is_public" type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)}
               className="h-5 w-5 rounded border-gray-300 text-royal-blue focus:ring-royal-blue" />
@@ -119,13 +113,12 @@ export default function CreateTestModal({ onClose }: Props) {
             </div>
           </div>
 
-          {/* NOVO: Configurações do Teste de Conhecimento */}
           <div className="space-y-3 bg-blue-50 dark:bg-blue-900/30 p-3 rounded-md border border-blue-200 dark:border-blue-800">
             <div className="flex items-center gap-3">
                 <input id="is_knowledge_test" type="checkbox" checked={isKnowledgeTest} onChange={(e) => setIsKnowledgeTest(e.target.checked)}
                 className="h-5 w-5 rounded border-gray-300 text-royal-blue focus:ring-royal-blue" />
                 <div>
-                    <label htmlFor="is_knowledge_test" className="font-medium text-sm text-dark-text dark:text-white">É um "Teste de Conhecimento"?</label>
+                    <label htmlFor="is_knowledge_test" className="font-medium text-sm text-dark-text dark:text-white">É um &quot;Teste de Conhecimento&quot;?</label>
                     <p className="text-xs text-text-muted dark:text-gray-400">Este tipo de teste aparece no dashboard do aluno e sugere uma redação no final.</p>
                 </div>
             </div>
@@ -143,7 +136,6 @@ export default function CreateTestModal({ onClose }: Props) {
             )}
           </div>
           
-          {/* Editor de Questões */}
           <div className="pt-4 border-t dark:border-gray-600 space-y-4">
              <h4 className="font-bold text-md">Questões da Avaliação</h4>
              {questions.map((q, index) => (
