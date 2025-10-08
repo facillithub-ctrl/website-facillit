@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
 } from "recharts";
 import AvailableTestCard from "./AvailableTestCard";
 import AttemptView from "./AttemptView";
@@ -115,7 +115,6 @@ const KnowledgeTestWidget = ({ test, onStart }: { test: KnowledgeTest; onStart: 
 const TestBrowser = ({ initialTests, onStartTest, onViewDetails }: { initialTests: TestCardInfo[]; onStartTest: (testId: string) => void, onViewDetails: (testId: string) => void }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('Todos');
-
     const categories = useMemo(() => {
         const allCategories = initialTests.map(t => t.subject).filter(Boolean) as string[];
         return ['Todos', ...Array.from(new Set(allCategories))];
@@ -173,7 +172,24 @@ export default function StudentTestDashboard({ dashboardData, initialAvailableTe
   const handleViewDetails = async (testId: string) => { setIsLoading(true); const { data } = await getTestWithQuestions(testId); if (data) { setSelectedTest(data); setView("detail"); } else { alert("Não foi possível carregar os detalhes do simulado."); } setIsLoading(false); };
   const handleInitiateTestFromBrowse = async (testId: string) => { setIsLoading(true); const { data } = await getTestWithQuestions(testId); if (data) { handleStartTest(data); } else { alert("Não foi possível iniciar o simulado."); } setIsLoading(false); }
   const handleStartQuickTest = async () => { setIsLoading(true); const { data, error } = await getQuickTest(); if (error) { alert(error); } else if (data) { handleStartTest(data); } setIsLoading(false); };
-  const handleViewResults = async () => { setIsLoading(true); const { data, error } = await getStudentResultsHistory(); if (error) { alert(error); } else if (data) { setResultsHistory(data as AttemptHistory[]); setView("results"); } setIsLoading(false); };
+  
+  const handleViewResults = async () => {
+    setIsLoading(true);
+    const { data, error } = await getStudentResultsHistory();
+    if (error) {
+        alert(error);
+    } else if (data) {
+        // CORREÇÃO: Mapeia os dados para garantir a conformidade com o tipo `AttemptHistory`
+        const mappedData = data.map(attempt => ({
+            ...attempt,
+            tests: Array.isArray(attempt.tests) ? attempt.tests[0] : attempt.tests,
+        }));
+        setResultsHistory(mappedData as AttemptHistory[]);
+        setView("results");
+    }
+    setIsLoading(false);
+  };
+  
   const handleBackToDashboard = () => { setView("dashboard"); setSelectedTest(null); };
 
   const MainDashboard = () => (
