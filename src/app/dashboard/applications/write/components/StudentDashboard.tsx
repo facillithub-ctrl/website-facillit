@@ -9,7 +9,6 @@ import EssayCorrectionView from './EssayCorrectionView';
 import StatisticsWidget from './StatisticsWidget';
 import ProgressionChart from './ProgressionChart';
 import CountdownWidget from '@/components/dashboard/CountdownWidget';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 // --- TIPOS E PROPS ---
 
@@ -118,53 +117,79 @@ export default function StudentDashboard({ initialEssays, prompts, statistics, s
   if (view === 'view_correction' && currentEssay?.id) return <EssayCorrectionView essayId={currentEssay.id} onBack={handleBackToDashboard} />;
 
   return (
-    <div className="flex flex-col h-full">
-       <div className="flex justify-between items-center mb-6 flex-shrink-0">
+    <div>
+       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-dark-text dark:text-white-text">Meu Desempenho em Redação</h1>
         <button onClick={handleCreateNew} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90">
           <i className="fas fa-plus mr-2"></i> Nova Redação
         </button>
       </div>
       
-      <div className="flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* --- COLUNA ESQUERDA (Cards Superiores) --- */}
-        <div className="lg:col-span-1 flex flex-col gap-6">
-            <div className="glass-card p-6">
-                <CountdownWidget targetExam={targetExam} examDate={examDate} />
-            </div>
-            <div className="glass-card p-6 flex flex-col justify-center space-y-4">
-                <WritingStreak days={streak} />
-                <hr className="border-white/20"/>
-                <StateRanking rank={rankInfo?.rank ?? null} state={rankInfo?.state ?? null} />
-            </div>
-             <div className="glass-card p-6">
-                <ActionShortcuts />
-            </div>
+      {/* --- LINHA SUPERIOR DE CARDS --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+        {/* Card Verde */}
+        <div className="glass-card p-6">
+          <CountdownWidget targetExam={targetExam} examDate={examDate} />
         </div>
 
-        {/* --- COLUNA DIREITA (Cards Inferiores do seu mapa) --- */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
-            {/* Card Amarelo (Estatísticas) */}
-            <div className="glass-card p-6">
+        {/* Card Vermelho */}
+        <div className="glass-card p-6 lg:col-span-2 flex flex-col justify-center space-y-4">
+            <WritingStreak days={streak} />
+            <hr className="border-white/20"/>
+            <StateRanking rank={rankInfo?.rank ?? null} state={rankInfo?.state ?? null} />
+        </div>
+
+        {/* Card Azul */}
+        <div className="glass-card p-6">
+            <ActionShortcuts />
+        </div>
+      </div>
+
+      {/* --- LINHA INFERIOR DE CARDS --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Card Laranja: Progressão e Plano de Ação */}
+        <div className="lg:col-span-2">
+            {statistics ? (
+                <ProgressionChart
+                    data={statistics.progression}
+                />
+            ) : (
+                <div className="glass-card h-full flex items-center justify-center p-8">
+                    <p className="text-center dark:text-white-text">Seu gráfico de progressão e plano de ação aparecerão aqui.</p>
+                </div>
+            )}
+        </div>
+        
+        {/* Card Amarelo (Estatísticas) */}
+        <div className="lg:col-span-1">
+            <div className="glass-card p-6 h-full">
                 {statistics ? <StatisticsWidget stats={statistics} frequentErrors={frequentErrors}/> : (
                     <div className="flex items-center justify-center h-full">
                         <p className="text-center dark:text-white-text">Suas estatísticas aparecerão aqui.</p>
                     </div>
                 )}
             </div>
+        </div>
+      </div>
 
-            {/* Card Laranja (Progressão e Plano de Ação) */}
-            <div className="flex-grow">
-                {statistics ? (
-                    <ProgressionChart
-                        data={statistics.progression}
-                    />
-                ) : (
-                    <div className="glass-card h-full flex items-center justify-center p-8">
-                        <p className="text-center dark:text-white-text">Seu gráfico de progressão e plano de ação aparecerão aqui.</p>
+
+      {/* --- HISTÓRICO DE REDAÇÕES --- */}
+      <div>
+        <h2 className="text-2xl font-bold text-dark-text dark:text-white-text mb-4">Histórico de Redações</h2>
+        <div className="glass-card p-4">
+            <ul className="divide-y divide-white/20">
+                {essays.length > 0 ? essays.map(essay => (
+                  <li key={essay.id} onClick={() => handleSelectEssay(essay)} className="p-4 hover:bg-black/10 rounded-lg cursor-pointer flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-dark-text dark:text-white-text">{essay.title || "Redação sem título"}</p>
+                      <p className="text-sm text-gray-500 dark:text-dark-text-muted">{essay.status === 'draft' ? 'Rascunho' : `Enviada em: ${new Date(essay.submitted_at!).toLocaleDateString()}`}</p>
                     </div>
-                )}
-            </div>
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${essay.status === 'corrected' ? 'bg-green-100 text-green-800' : essay.status === 'submitted' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-200 text-gray-800'}`}>
+                      {essay.status === 'corrected' ? 'Corrigida' : essay.status === 'submitted' ? 'Aguardando correção' : 'Rascunho'}
+                    </span>
+                  </li>
+                )) : (<p className="p-4 text-center text-gray-500 dark:text-dark-text-muted">Você ainda não tem nenhuma redação. Comece uma nova!</p>)}
+            </ul>
         </div>
       </div>
     </div>

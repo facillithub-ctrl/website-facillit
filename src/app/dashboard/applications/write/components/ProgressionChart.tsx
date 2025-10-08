@@ -6,7 +6,6 @@ type ProgressionData = {
     grade: number;
 };
 
-// As props foram simplificadas, já que o plano de ação agora é um placeholder.
 type Props = {
     data: ProgressionData[];
 };
@@ -15,9 +14,9 @@ export default function ProgressionChart({ data }: Props) {
     return (
         <div className="glass-card p-6 h-full flex flex-col">
             {/* Metade Superior: Gráfico de Progressão */}
-            <div className="flex-1">
+            <div className="flex-1 min-h-[250px]">
                 <h3 className="font-bold text-lg mb-4 dark:text-white">Sua Progressão</h3>
-                <ResponsiveContainer width="100%" height="90%">
+                <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
                         <XAxis dataKey="date" tick={{ fill: '#a0a0a0' }} fontSize={12} />
@@ -38,11 +37,12 @@ export default function ProgressionChart({ data }: Props) {
             {/* Linha divisória */}
             <hr className="border-white/20 my-4" />
 
-            {/* Metade Inferior: Plano de Prática (Placeholder) */}
+            {/* Metade Inferior: Plano de Prática (Placeholder CORRIGIDO) */}
             <div className="flex-1">
                 <h3 className="font-bold text-lg dark:text-white mb-4">Plano de Prática</h3>
-                <div className="h-full flex items-center justify-center text-center bg-white/10 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                {/* O 'bg-black/10' foi removido para eliminar a sobreposição */}
+                <div className="h-full flex items-center justify-center text-center rounded-lg p-4">
+                    <p className="text-sm text-gray-300 dark:text-gray-300">
                         Em breve, você verá aqui sugestões de temas e exercícios com base nos seus resultados para praticar e evoluir ainda mais.
                     </p>
                 </div>
