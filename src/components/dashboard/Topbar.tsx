@@ -37,6 +37,65 @@ type Notification = {
   created_at: string;
 };
 
+// NOVO: Componente para gerenciar os módulos
+const ModuleManager = ({ userProfile, onClose }: { userProfile: UserProfile; onClose: () => void; }) => {
+    const [selectedModules, setSelectedModules] = useState(userProfile.active_modules || []);
+    const [isPending, startTransition] = useTransition();
+    const supabase = createClient();
+    const router = useRouter();
+
+    const toggleModule = (slug: string) => {
+        setSelectedModules(prev =>
+            prev.includes(slug) ? prev.filter(m => m !== slug) : [...prev, slug]
+        );
+    };
+
+    const handleSave = () => {
+        startTransition(async () => {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ active_modules: selectedModules })
+                .eq('id', userProfile.id);
+
+            if (!error) {
+                alert("Módulos atualizados!");
+                onClose();
+                router.refresh();
+            } else {
+                alert("Erro ao salvar: " + error.message);
+            }
+        });
+    };
+
+    return (
+        <div className="absolute top-full right-0 mt-4 w-[90vw] max-w-sm md:w-80 bg-white rounded-xl shadow-xl border z-10 p-4 dark:bg-gray-700 dark:border-gray-600">
+            <h3 className="font-bold text-center mb-4 dark:text-white">Gerenciar Módulos</h3>
+            <div className="grid grid-cols-3 gap-2">
+                {modulesData.map((module) => {
+                    const isSelected = selectedModules.includes(module.slug);
+                    return (
+                        <button
+                            key={module.slug}
+                            onClick={() => toggleModule(module.slug)}
+                            className={`relative flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${isSelected ? 'bg-royal-blue text-white border-royal-blue' : 'hover:border-royal-blue'}`}
+                        >
+                             <i className={`fas ${module.icon} text-2xl mb-1 ${isSelected ? 'text-white' : 'text-royal-blue'}`}></i>
+                             <span className="text-xs font-medium">{module.title}</span>
+                        </button>
+                    );
+                })}
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+                <button onClick={onClose} className="text-sm">Cancelar</button>
+                <button onClick={handleSave} disabled={isPending} className="text-sm font-bold bg-royal-blue text-white py-1 px-3 rounded-md disabled:bg-gray-400">
+                    {isPending ? 'Salvando...' : 'Salvar'}
+                </button>
+            </div>
+        </div>
+    );
+};
+
+
 export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
   const [isProfileOpen, setProfileOpen] = useState(false);
   const [isGridOpen, setGridOpen] = useState(false);
@@ -55,11 +114,10 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
 
   useEffect(() => {
     const fetchNotifications = async () => {
-      // FALHA #1 CORRIGIDA AQUI: Adicionado .eq('user_id', userProfile.id)
       const { data } = await supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', userProfile.id) // Filtra apenas para o usuário logado
+        .eq('user_id', userProfile.id)
         .order('created_at', { ascending: false });
       
       if (data) {
@@ -98,12 +156,10 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
   const hasUnread = notifications.some(n => !n.is_read);
 
   const handleNotificationClick = (notification: Notification) => {
-    // Marca como lida no client-side imediatamente para feedback visual rápido
     if (!notification.is_read) {
         setNotifications(current => current.map(n => n.id === notification.id ? { ...n, is_read: true } : n));
     }
     
-    // Inicia a transição para atualizar o banco de dados em segundo plano
     startTransition(async () => {
         if (!notification.is_read) {
             await supabase.from('notifications').update({ is_read: true }).eq('id', notification.id);
@@ -117,10 +173,8 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
   };
 
   const handleMarkAllAsRead = () => {
-    // Atualiza o estado local imediatamente
     setNotifications(current => current.map(n => ({ ...n, is_read: true })));
     
-    // Inicia a transição para o banco de dados
     startTransition(async () => {
       const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
       if (unreadIds.length > 0) {
@@ -131,7 +185,6 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
 
   return (
     <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0 dark:bg-gray-800 dark:border-gray-700">
-      {/* O resto do seu JSX permanece o mesmo */}
       <div className="flex items-center gap-4">
         <button onClick={toggleSidebar} className="text-gray-500 hover:text-royal-blue text-xl lg:hidden">
             <i className="fas fa-bars"></i>
@@ -151,27 +204,7 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
             <button onClick={() => setGridOpen(!isGridOpen)} className="text-gray-500 hover:text-royal-blue text-xl dark:text-gray-400">
                 <i className="fas fa-th"></i>
             </button>
-            {isGridOpen && (
-                <div className="absolute top-full right-0 mt-4 w-[90vw] max-w-sm md:w-80 bg-white rounded-xl shadow-xl border z-10 p-4 dark:bg-gray-700 dark:border-gray-600">
-                    <div className="grid grid-cols-3 gap-4">
-                        {modulesData.map((module) => {
-                            const isActive = userProfile.active_modules?.includes(module.slug);
-                            const content = (
-                                <>
-                                    <i className={`fas ${module.icon} text-2xl mb-2 ${isActive ? 'text-royal-blue' : 'text-gray-400'}`}></i>
-                                    <span className={`text-xs font-medium text-center ${isActive ? 'text-dark-text dark:text-white' : 'text-gray-500'}`}>{module.title}</span>
-                                    {!isActive && <i className="fas fa-lock text-xs text-gray-400 absolute top-2 right-2"></i>}
-                                </>
-                            );
-                            if (isActive) {
-                                return (<Link key={module.slug} href={`/dashboard/applications/${module.slug}`} className="relative flex flex-col items-center justify-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">{content}</Link>);
-                            } else {
-                                return (<div key={module.slug} className="relative flex flex-col items-center justify-center p-3 rounded-lg bg-gray-50 dark:bg-gray-800 cursor-not-allowed opacity-70" title={`${module.title} (inativo)`}>{content}</div>);
-                            }
-                        })}
-                    </div>
-                </div>
-            )}
+            {isGridOpen && <ModuleManager userProfile={userProfile} onClose={() => setGridOpen(false)} />}
         </div>
         
         <div className="relative" ref={notificationsRef}>

@@ -117,7 +117,8 @@ export default function RegisterPage() {
                     has_agreed_to_terms: true,
                     // Define o status de verificação para diretores/professores
                     verification_status: isDirector ? 'pending' : 'approved',
-                    has_completed_onboarding: !isDirector, // Onboarding só é concluído para não-diretores
+                    // CORREÇÃO APLICADA AQUI: Onboarding sempre inicia como 'false'
+                    has_completed_onboarding: false, 
                     updated_at: new Date().toISOString(),
                 });
 

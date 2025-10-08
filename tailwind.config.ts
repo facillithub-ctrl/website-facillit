@@ -19,7 +19,7 @@ const config: Config = {
         'dark-text': '#111114',
         'white-text': '#f8f9fa',
         'white': '#ffffff',
-        'background-light': '#dfdefe',
+        'background-light': '#e0e0e2',
         'text-muted': '#555',
         'dark-background': '#111114',
         'dark-card': '#1A1A1D',
