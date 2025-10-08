@@ -26,90 +26,173 @@ const StatCard = ({ title, value, icon }: { title: string, value: string | numbe
         </div>
     </div>
 );
-const ActionCard = ({ title, description, icon, actionText, onClick }: { title: string, description: string, icon: string, actionText: string, onClick: () => void }) => ( <div className="glass-card p-4 flex items-center gap-4"> <div className="bg-royal-blue/10 text-royal-blue w-12 h-12 flex items-center justify-center rounded-lg text-xl"> <i className={`fas ${icon}`}></i> </div> <div> <h3 className="font-bold text-dark-text dark:text-white">{title}</h3> <p className="text-sm text-dark-text-muted">{description}</p> <button onClick={onClick} className="text-sm font-bold text-royal-blue mt-1 hover:underline">{actionText}</button> </div> </div> );
-const PerformanceChart = ({ data }: { data: PerformanceData[] }) => ( <div className="glass-card p-6 h-[320px]"> <h3 className="font-bold mb-4 text-dark-text dark:text-white">Performance por Matéria</h3> <ResponsiveContainer width="100%" height="90%"> <BarChart data={data} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}> <XAxis type="number" hide domain={[0, 100]} /> <YAxis type="category" dataKey="materia" axisLine={false} tickLine={false} width={80} tick={{ fill: '#a0a0a0' }} /> <Tooltip cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }} contentStyle={{ backgroundColor: '#1A1A1D', border: '1px solid #2c2c31', borderRadius: '0.5rem' }} labelStyle={{ color: '#f8f9fa' }} formatter={(value: number, name, props) => {
-    if (props && props.payload && props.payload.simulados) {
-        return [`${(value as number).toFixed(1)}% • ${props.payload.simulados} simulados`, 'Acerto Médio'];
+
+const ActionCard = ({ title, description, icon, actionText, onClick }: { title: string, description: string, icon: string, actionText: string, onClick: () => void }) => (
+    <div className="glass-card p-4 flex items-center gap-4">
+        <div className="bg-royal-blue/10 text-royal-blue w-12 h-12 flex items-center justify-center rounded-lg text-xl">
+            <i className={`fas ${icon}`}></i>
+        </div>
+        <div>
+            <h3 className="font-bold text-dark-text dark:text-white">{title}</h3>
+            <p className="text-sm text-dark-text-muted">{description}</p>
+            <button onClick={onClick} className="text-sm font-bold text-royal-blue mt-1 hover:underline">{actionText}</button>
+        </div>
+    </div>
+);
+
+// Tooltip customizado para evitar o erro de 'style'
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload;
+        return (
+            <div className="p-2 rounded-lg" style={{ backgroundColor: '#1A1A1D', border: '1px solid #2c2c31' }}>
+                <p className="text-sm font-bold" style={{ color: '#f8f9fa' }}>{`${label}`}</p>
+                <p className="text-xs" style={{ color: '#a0a0a0' }}>
+                    {`Acerto Médio: ${data.nota.toFixed(1)}% • ${data.simulados} simulados`}
+                </p>
+            </div>
+        );
     }
-    return [value, name];
-}} /> <Bar dataKey="nota" barSize={16} radius={[0, 10, 10, 0]}> {data.map((entry) => ( <Cell key={`cell-${entry.materia}`} fill={subjectColors[entry.materia] || subjectColors.Default} /> ))} </Bar> </BarChart> </ResponsiveContainer> </div> );
-const RecentTests = ({ data }: { data: RecentAttempt[] }) => { const getIconForSubject = (subject: string | null) => { switch (subject) { case 'Matemática': return '∫'; case 'Física': return '⚡️'; case 'Química': return '⚗️'; default: return '📝'; }}; return ( <div className="glass-card p-6"> <h3 className="font-bold mb-4 text-dark-text dark:text-white">Últimos Simulados</h3> <div className="space-y-3"> {data.map((simulado, i) => ( <div key={i} className={`p-3 rounded-lg flex items-center justify-between bg-white/10`}> <div className="flex items-center gap-3"> <div className="text-xl">{getIconForSubject(simulado.tests.subject)}</div> <div> <p className="font-semibold text-sm text-dark-text dark:text-white">{simulado.tests.title}</p> <p className="text-xs text-dark-text-muted">{new Date(simulado.completed_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p> </div> </div> <div className="text-right"> <p className="font-bold text-lg text-lavender-blue">{(simulado.score).toFixed(1)}</p> <p className="text-xs text-dark-text-muted">acertos</p> </div> </div> ))} </div> </div> );};
-const TestBrowser = ({ tests, onStartTest }: { tests: TestCardInfo[], onStartTest: (testId: string) => void }) => ( <div> <h2 className="text-2xl font-bold text-dark-text dark:text-white mb-6">Simulados Disponíveis</h2> <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {tests.length > 0 ? tests.map(test => ( <AvailableTestCard key={test.id} test={test} onStart={onStartTest} /> )) : <p className="text-dark-text-muted col-span-full text-center">Nenhum simulado disponível no momento.</p>} </div> </div> );
+    return null;
+};
+
+
+const PerformanceChart = ({ data }: { data: PerformanceData[] }) => (
+    <div className="glass-card p-6 h-[320px]">
+        <h3 className="font-bold mb-4 text-dark-text dark:text-white">Performance por Matéria</h3>
+        <ResponsiveContainer width="100%" height="90%">
+            <BarChart data={data} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
+                <XAxis type="number" hide domain={[0, 100]} />
+                <YAxis type="category" dataKey="materia" axisLine={false} tickLine={false} width={80} tick={{ fill: '#a0a0a0' }} />
+                <Tooltip cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }} content={<CustomTooltip />} />
+                <Bar dataKey="nota" barSize={16} radius={[0, 10, 10, 0]}>
+                    {data.map((entry) => (
+                        <Cell key={`cell-${entry.materia}`} fill={subjectColors[entry.materia] || subjectColors.Default} />
+                    ))}
+                </Bar>
+            </BarChart>
+        </ResponsiveContainer>
+    </div>
+);
+
+const RecentTests = ({ data }: { data: RecentAttempt[] }) => {
+    const getIconForSubject = (subject: string | null) => {
+        switch (subject) {
+            case 'Matemática': return '∫';
+            case 'Física': return '⚡️';
+            case 'Química': return '⚗️';
+            default: return '📝';
+        }
+    };
+    return (
+        <div className="glass-card p-6">
+            <h3 className="font-bold mb-4 text-dark-text dark:text-white">Últimos Simulados</h3>
+            <div className="space-y-3">
+                {data.map((simulado, i) => (
+                    <div key={i} className={`p-3 rounded-lg flex items-center justify-between bg-white/10`}>
+                        <div className="flex items-center gap-3">
+                            <div className="text-xl">{getIconForSubject(simulado.tests.subject)}</div>
+                            <div>
+                                <p className="font-semibold text-sm text-dark-text dark:text-white">{simulado.tests.title}</p>
+                                <p className="text-xs text-dark-text-muted">{new Date(simulado.completed_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <p className="font-bold text-lg text-lavender-blue">{(simulado.score).toFixed(1)}</p>
+                            <p className="text-xs text-dark-text-muted">acertos</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const TestBrowser = ({ tests, onStartTest }: { tests: TestCardInfo[], onStartTest: (testId: string) => void }) => (
+    <div>
+        <h2 className="text-2xl font-bold text-dark-text dark:text-white mb-6">Simulados Disponíveis</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tests.length > 0 ? tests.map(test => (
+                <AvailableTestCard key={test.id} test={test} onStart={onStartTest} />
+            )) : <p className="text-dark-text-muted col-span-full text-center">Nenhum simulado disponível no momento.</p>}
+        </div>
+    </div>
+);
 
 export default function StudentTestDashboard({ dashboardData, availableTests }: Props) {
-  const [view, setView] = useState<'dashboard' | 'browse' | 'attempt'>('dashboard');
-  const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
+    const [view, setView] = useState<'dashboard' | 'browse' | 'attempt'>('dashboard');
+    const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
 
-  const handleStartTest = (testId: string) => {
-      setSelectedTestId(testId);
-      setView('attempt');
-  };
-  
-  const handleFinishAttempt = () => {
-    setView('dashboard');
-    window.location.reload();
-  };
+    const handleStartTest = (testId: string) => {
+        setSelectedTestId(testId);
+        setView('attempt');
+    };
 
-  const MainDashboard = () => (
-    <>
-      <h1 className="text-3xl font-bold text-dark-text dark:text-white mb-6">Meu Desempenho</h1>
-      
-      {!dashboardData ? (
-         <div className="p-8 text-center border-2 border-dashed rounded-lg glass-card">
-              <h2 className="text-xl font-bold mb-2">Comece sua jornada!</h2>
-              <p className="text-sm text-dark-text-muted mb-4">
-                  Faça seu primeiro simulado para ver suas estatísticas e acompanhar seu progresso.
-              </p>
-              <button onClick={() => setView('browse')} className="bg-royal-blue text-white font-bold py-2 px-6 rounded-lg hover:bg-opacity-90">
-                Ver Simulados
-              </button>
-          </div>
-      ) : (
+    const handleFinishAttempt = () => {
+        setView('dashboard');
+        window.location.reload();
+    };
+
+    const MainDashboard = () => (
         <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <StatCard title="Simulados Feitos" value={dashboardData.stats.simuladosFeitos} icon="fa-file-alt" />
-                <StatCard title="Média Geral" value={`${dashboardData.stats.mediaGeral.toFixed(0)}%`} icon="fa-chart-bar" />
-                <StatCard title="Taxa de Acerto" value={`${dashboardData.stats.taxaAcerto.toFixed(0)}%`} icon="fa-check-circle" />
-                <StatCard title="Tempo Médio" value={"~2m"} icon="fa-clock" />
-            </div>
+            <h1 className="text-3xl font-bold text-dark-text dark:text-white mb-6">Meu Desempenho</h1>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <ActionCard title="Teste Rápido" description="10 questões • 15 minutos" icon="fa-bolt" actionText="Começar agora" onClick={() => alert('Em breve!')}/>
-                <ActionCard title="Praticar" description="Escolha um simulado" icon="fa-stream" actionText="Ver todos" onClick={() => setView('browse')}/>
-                <ActionCard title="Meus Resultados" description="Análise detalhada" icon="fa-chart-pie" actionText="Ver relatórios" onClick={() => alert('Em breve!')}/>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {dashboardData.recentAttempts?.length > 0 && <RecentTests data={dashboardData.recentAttempts} />}
-                {dashboardData.performanceBySubject?.length > 0 && <PerformanceChart data={dashboardData.performanceBySubject} />}
-            </div>
-        </>
-      )}
-    </>
-  );
-
-  const renderContent = () => {
-    switch(view) {
-        case 'browse':
-            return (
-                <>
-                    <button onClick={() => setView('dashboard')} className="text-sm font-bold text-royal-blue mb-6">
-                        <i className="fas fa-arrow-left mr-2"></i> Voltar para o Dashboard
+            {!dashboardData ? (
+                <div className="p-8 text-center border-2 border-dashed rounded-lg glass-card">
+                    <h2 className="text-xl font-bold mb-2">Comece sua jornada!</h2>
+                    <p className="text-sm text-dark-text-muted mb-4">
+                        Faça seu primeiro simulado para ver suas estatísticas e acompanhar seu progresso.
+                    </p>
+                    <button onClick={() => setView('browse')} className="bg-royal-blue text-white font-bold py-2 px-6 rounded-lg hover:bg-opacity-90">
+                        Ver Simulados
                     </button>
-                    <TestBrowser tests={availableTests} onStartTest={handleStartTest} />
-                </>
-            );
-        case 'attempt':
-            if (!selectedTestId) {
-                setView('browse');
-                return null;
-            }
-            return <AttemptView testId={selectedTestId} onFinish={handleFinishAttempt} />;
-        case 'dashboard':
-        default:
-            return <MainDashboard />;
-    }
-  }
+                </div>
+            ) : (
+                <>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <StatCard title="Simulados Feitos" value={dashboardData.stats.simuladosFeitos} icon="fa-file-alt" />
+                        <StatCard title="Média Geral" value={`${dashboardData.stats.mediaGeral.toFixed(0)}%`} icon="fa-chart-bar" />
+                        <StatCard title="Taxa de Acerto" value={`${dashboardData.stats.taxaAcerto.toFixed(0)}%`} icon="fa-check-circle" />
+                        <StatCard title="Tempo Médio" value={"~2m"} icon="fa-clock" />
+                    </div>
 
-  return <div>{renderContent()}</div>;
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <ActionCard title="Teste Rápido" description="10 questões • 15 minutos" icon="fa-bolt" actionText="Começar agora" onClick={() => alert('Em breve!')} />
+                        <ActionCard title="Praticar" description="Escolha um simulado" icon="fa-stream" actionText="Ver todos" onClick={() => setView('browse')} />
+                        <ActionCard title="Meus Resultados" description="Análise detalhada" icon="fa-chart-pie" actionText="Ver relatórios" onClick={() => alert('Em breve!')} />
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {dashboardData.recentAttempts?.length > 0 && <RecentTests data={dashboardData.recentAttempts} />}
+                        {dashboardData.performanceBySubject?.length > 0 && <PerformanceChart data={dashboardData.performanceBySubject} />}
+                    </div>
+                </>
+            )}
+        </>
+    );
+
+    const renderContent = () => {
+        switch (view) {
+            case 'browse':
+                return (
+                    <>
+                        <button onClick={() => setView('dashboard')} className="text-sm font-bold text-royal-blue mb-6">
+                            <i className="fas fa-arrow-left mr-2"></i> Voltar para o Dashboard
+                        </button>
+                        <TestBrowser tests={availableTests} onStartTest={handleStartTest} />
+                    </>
+                );
+            case 'attempt':
+                if (!selectedTestId) {
+                    setView('browse');
+                    return null;
+                }
+                return <AttemptView testId={selectedTestId} onFinish={handleFinishAttempt} />;
+            case 'dashboard':
+            default:
+                return <MainDashboard />;
+        }
+    }
+
+    return <div>{renderContent()}</div>;
 }
