@@ -1,12 +1,11 @@
+// src/app/dashboard/applications/test/components/QuestionEditor.tsx
 "use client";
 
-import { useState } from 'react';
-import Image from 'next/image';
+import { useState, useEffect } from 'react';
 import RichTextEditor from './RichTextEditor';
 import createClient from '@/utils/supabase/client';
 
-// Tipos de dados
-type QuestionContent = {
+export type QuestionContent = {
   statement: string;
   image_url?: string | null;
   options?: string[];
@@ -27,46 +26,65 @@ type Props = {
 };
 
 export default function QuestionEditor({ question, onUpdate, onRemove }: Props) {
+  const [localQuestion, setLocalQuestion] = useState<Question>(question);
   const [isUploading, setIsUploading] = useState(false);
   const supabase = createClient();
 
+  useEffect(() => {
+    setLocalQuestion(question);
+  }, [question]);
+
+  const hasUnsavedChanges = JSON.stringify(localQuestion) !== JSON.stringify(question);
+
   const handleContentChange = (field: keyof QuestionContent, value: any) => {
-    onUpdate({
-      ...question,
-      content: { ...question.content, [field]: value },
-    });
+    setLocalQuestion(prev => ({
+      ...prev,
+      content: { ...prev.content, [field]: value },
+    }));
   };
 
   const handleOptionChange = (index: number, value: string) => {
-    const newOptions = [...(question.content.options || [])];
+    const newOptions = [...(localQuestion.content.options || [])];
     newOptions[index] = value;
     handleContentChange('options', newOptions);
   };
+  
+  const handleSaveChanges = () => {
+    onUpdate(localQuestion);
+  };
+
+  const handleDiscardChanges = () => {
+    setLocalQuestion(question);
+  };
 
   const addOption = () => {
-    const newOptions = [...(question.content.options || []), ''];
+    const newOptions = [...(localQuestion.content.options || []), ''];
     handleContentChange('options', newOptions);
   };
 
   const removeOption = (index: number) => {
-    const newOptions = (question.content.options || []).filter((_, i) => i !== index);
-    if (question.content.correct_option === index) {
-      handleContentChange('correct_option', undefined);
-    } else if (question.content.correct_option && question.content.correct_option > index) {
-        handleContentChange('correct_option', question.content.correct_option - 1);
+    const newOptions = (localQuestion.content.options || []).filter((_, i) => i !== index);
+    let newCorrectOption = localQuestion.content.correct_option;
+    if (newCorrectOption === index) {
+      newCorrectOption = undefined;
+    } else if (newCorrectOption && newCorrectOption > index) {
+      newCorrectOption = newCorrectOption - 1;
     }
-    handleContentChange('options', newOptions);
+    setLocalQuestion(prev => ({
+        ...prev,
+        content: {
+            ...prev.content,
+            options: newOptions,
+            correct_option: newCorrectOption,
+        }
+    }));
   };
 
-  // Lógica de upload de imagem para o enunciado
   const handleImageUpload = async (file: File): Promise<string | null> => {
     setIsUploading(true);
-    // Cria um nome de arquivo único para evitar conflitos
     const filePath = `question-images/${crypto.randomUUID()}-${file.name}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('tests') // Lembre-se de criar o bucket "tests" no seu Supabase Storage
-      .upload(filePath, file);
+    const { error: uploadError } = await supabase.storage.from('tests').upload(filePath, file);
 
     if (uploadError) {
       alert(`Erro no upload: ${uploadError.message}`);
@@ -77,49 +95,47 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
     const { data } = supabase.storage.from('tests').getPublicUrl(filePath);
     const newImageUrl = data.publicUrl;
 
-    // Salva a URL da imagem no estado da questão para referência, se necessário
     handleContentChange('image_url', newImageUrl);
 
     setIsUploading(false);
-    return newImageUrl; // Retorna a URL para o RichTextEditor inserir no conteúdo
+    return newImageUrl;
   };
 
   return (
-    <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-700/50 space-y-3">
-      <div className="flex justify-between items-center">
+    <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/50 space-y-3 relative">
+      <div className="flex justify-between items-start">
         <select
-          value={question.question_type}
-          onChange={(e) => onUpdate({ ...question, question_type: e.target.value as Question['question_type'] })}
+          value={localQuestion.question_type}
+          onChange={(e) => setLocalQuestion(prev => ({ ...prev, question_type: e.target.value as Question['question_type'] }))}
           className="font-bold p-1 border rounded-md dark:bg-gray-800 dark:border-gray-600"
         >
           <option value="multiple_choice">Múltipla Escolha</option>
           <option value="dissertation">Dissertativa</option>
         </select>
-        <button onClick={() => onRemove(question.id)} className="text-red-500 hover:text-red-700 text-sm">
-          <i className="fas fa-trash-alt mr-1"></i> Remover
+        <button type="button" onClick={() => onRemove(question.id)} className="text-red-500 hover:text-red-700 text-sm">
+          <i className="fas fa-trash-alt mr-1"></i> Remover Questão
         </button>
       </div>
       
       {isUploading && <p className="text-xs text-blue-500">Enviando imagem...</p>}
       
       <RichTextEditor
-        value={question.content.statement}
+        value={localQuestion.content.statement}
         onChange={(value) => handleContentChange('statement', value)}
         placeholder="Digite o enunciado da questão aqui..."
-        // Passa a função de upload para o editor
         onImageUpload={handleImageUpload}
       />
 
-      {question.question_type === 'multiple_choice' && (
+      {localQuestion.question_type === 'multiple_choice' && (
         <div className="space-y-2">
           <h5 className="text-sm font-semibold">Alternativas:</h5>
-          {(question.content.options || []).map((option, index) => (
+          {(localQuestion.content.options || []).map((option, index) => (
             <div key={index} className="flex items-center gap-2">
                <label className="flex items-center gap-2 font-mono">
                 <input
                     type="radio"
                     name={`correct_option_${question.id}`}
-                    checked={question.content.correct_option === index}
+                    checked={localQuestion.content.correct_option === index}
                     onChange={() => handleContentChange('correct_option', index)}
                     className="form-radio text-royal-blue"
                 />
@@ -132,12 +148,28 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
                 onChange={(e) => handleOptionChange(index, e.target.value)}
                 className="flex-grow p-2 border rounded-md text-sm dark:bg-gray-800 dark:border-gray-600"
               />
-              <button onClick={() => removeOption(index)} className="text-gray-500 hover:text-red-500 text-xs">
+              <button type="button" onClick={() => removeOption(index)} className="text-gray-500 hover:text-red-500 text-xs">
                 <i className="fas fa-times"></i>
               </button>
             </div>
           ))}
-          <button onClick={addOption} className="text-xs font-bold text-royal-blue">+ Adicionar alternativa</button>
+          <button type="button" onClick={addOption} className="text-xs font-bold text-royal-blue">+ Adicionar alternativa</button>
+        </div>
+      )}
+
+      {hasUnsavedChanges && (
+        <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border-t border-yellow-200 dark:border-yellow-800 flex justify-end items-center gap-3 rounded-b-lg -m-4 mt-4">
+            <span className="text-xs font-semibold text-yellow-800 dark:text-yellow-300">Você tem alterações não salvas.</span>
+            <button type="button" onClick={handleDiscardChanges} className="text-xs font-bold text-gray-600 dark:text-gray-300">
+                Cancelar
+            </button>
+            <button 
+                type="button"
+                onClick={handleSaveChanges} 
+                className="bg-royal-blue text-white font-bold py-1 px-3 rounded-md text-xs"
+            >
+                Salvar Alterações
+            </button>
         </div>
       )}
     </div>

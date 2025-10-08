@@ -1,9 +1,10 @@
+// src/app/dashboard/applications/test/components/CreateTestModal.tsx
 "use client";
 
 import { useState, useTransition } from 'react';
 import QuestionEditor, { type Question } from './QuestionEditor';
 import { createOrUpdateTest } from '../actions';
-import { useToast } from '@/contexts/ToastContext'; // Opcional: para notificações
+import { useToast } from '@/contexts/ToastContext';
 
 type Props = {
   onClose: () => void;
@@ -12,10 +13,10 @@ type Props = {
 export default function CreateTestModal({ onClose }: Props) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [isPublic, setIsPublic] = useState(true); // NOVO ESTADO
+  const [isPublic, setIsPublic] = useState(true);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isPending, startTransition] = useTransition();
-  const { addToast } = useToast(); // Opcional
+  const { addToast } = useToast();
 
   const addQuestion = () => {
     const newQuestion: Question = {
@@ -38,18 +39,18 @@ export default function CreateTestModal({ onClose }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title) {
-        addToast({ message: "O título da avaliação é obrigatório.", type: 'error' });
-        return;
+      addToast({ message: "O título da avaliação é obrigatório.", type: 'error' });
+      return;
     }
 
     startTransition(async () => {
-      const result = await createOrUpdateTest({ 
-        title, 
-        description, 
-        questions, 
-        is_public: isPublic 
+      const result = await createOrUpdateTest({
+        title,
+        description,
+        questions,
+        is_public: isPublic
       });
-      
+
       if (result.error) {
         addToast({ message: `Erro ao salvar: ${result.error}`, type: 'error' });
       } else {
@@ -62,9 +63,9 @@ export default function CreateTestModal({ onClose }: Props) {
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+        <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center flex-shrink-0">
           <h3 className="text-lg font-bold">Criar Nova Avaliação</h3>
-          <button onClick={onClose} className="text-gray-500 text-2xl">&times;</button>
+          <button type="button" onClick={onClose} className="text-gray-500 text-2xl">&times;</button>
         </div>
 
         <form id="create-test-form" onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
@@ -87,7 +88,7 @@ export default function CreateTestModal({ onClose }: Props) {
               className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
             />
           </div>
-
+          
           <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md border dark:border-gray-700">
             <input
               id="is_public" type="checkbox" checked={isPublic}
@@ -99,7 +100,7 @@ export default function CreateTestModal({ onClose }: Props) {
                 Simulado Público
               </label>
               <p className="text-xs text-text-muted dark:text-gray-400">
-                Se marcado, este simulado será visível para todos os alunos na plataforma, não apenas os institucionais.
+                Se marcado, este simulado será visível para todos os alunos na plataforma.
               </p>
             </div>
           </div>
@@ -109,7 +110,11 @@ export default function CreateTestModal({ onClose }: Props) {
              {questions.map((q, index) => (
                 <div key={q.id}>
                     <p className="font-semibold mb-2 text-sm">Questão {index + 1}</p>
-                    <QuestionEditor question={q} onUpdate={updateQuestion} onRemove={removeQuestion} />
+                    <QuestionEditor 
+                        question={q}
+                        onUpdate={updateQuestion}
+                        onRemove={removeQuestion}
+                    />
                 </div>
              ))}
              <button type="button" onClick={addQuestion} className="w-full py-2 border-2 border-dashed rounded-lg text-text-muted hover:border-royal-blue hover:text-royal-blue transition">
