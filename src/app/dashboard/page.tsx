@@ -42,6 +42,7 @@ const WriteDashboardWidget = ({ lastEssay }: { lastEssay: { id: string, title: s
     )
 }
 
+// CORREÇÃO: O tipo do 'lastAttempt' foi ajustado para corresponder ao que vem do Supabase
 const TestDashboardWidget = ({ lastAttempt }: { lastAttempt: { score: number | null, tests: { title: string | null } | null } | null }) => {
     return (
         <div className="glass-card p-6 flex flex-col h-full">
@@ -77,6 +78,8 @@ export default async function DashboardPage() {
 
     const profile = profileResult.data;
     const lastEssay = lastEssayResult.data;
+    
+    // CORREÇÃO: Acessa o objeto `tests` diretamente, pois a `action` já o retorna como objeto, não array.
     const lastTestAttempt = lastTestResult.data;
 
     let examDate: { name: string, exam_date: string } | null = null;
