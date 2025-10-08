@@ -1,228 +1,247 @@
 "use client";
 
-import { useEffect, useState, ReactElement, ReactNode } from 'react';
-import { Essay, EssayCorrection, Annotation, getEssayDetails, getCorrectionForEssay, getAIFeedbackForEssay, AIFeedback } from '../actions';
+import { useState, useTransition, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { Essay, EssayPrompt, saveOrUpdateEssay, checkForPlagiarism } from '../actions';
+import PromptSelector from './PromptSelector';
+import createClient from '@/utils/supabase/client';
 import Image from 'next/image';
-import { VerificationBadge } from '@/components/VerificationBadge';
-import FeedbackTabs from './FeedbackTabs';
+import VersionHistory from './VersionHistory';
+import Timer from './Timer';
+import PlagiarismResultModal, { type PlagiarismResult } from './PlagiarismResultModal';
 
-// --- TIPOS E SUB-COMPONENTES ---
-
-type CorrectionWithDetails = EssayCorrection & {
-  profiles: { full_name: string | null; verification_badge: string | null };
+type Props = {
+  essay: Partial<Essay> | null;
+  prompts: EssayPrompt[];
+  onBack: () => void;
 };
 
-type FullEssayDetails = Essay & {
-  correction: CorrectionWithDetails | null;
-  profiles: { full_name: string | null } | null;
-};
+export default function EssayEditor({ essay, prompts, onBack }: Props) {
+  const [currentEssay, setCurrentEssay] = useState(essay || {});
+  const [consent, setConsent] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const supabase = createClient();
+  const [selectedPrompt, setSelectedPrompt] = useState<EssayPrompt | null>(
+    prompts.find(p => p.id === essay?.prompt_id) || null
+  );
+  const [showHistory, setShowHistory] = useState(false);
+  const [isSimulado, setIsSimulado] = useState(false);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isCheckingPlagiarism, setIsCheckingPlagiarism] = useState(false);
+  const [plagiarismResult, setPlagiarismResult] = useState<PlagiarismResult | null>(null);
 
-const competencyDetails = [
-  { title: "Competência 1: Domínio da Escrita Formal", description: "Avalia o domínio da modalidade escrita formal da língua portuguesa e da norma-padrão." },
-  { title: "Competência 2: Compreensão do Tema e Estrutura", description: "Avalia a compreensão da proposta de redação e a aplicação de conceitos de várias áreas do conhecimento para desenvolver o tema, dentro da estrutura do texto dissertativo-argumentativo." },
-  { title: "Competência 3: Argumentação", description: "Avalia a capacidade de selecionar, relacionar, organizar e interpretar informações, fatos e opiniões em defesa de um ponto de vista." },
-  { title: "Competência 4: Coesão e Coerência", description: "Avalia o uso de mecanismos linguísticos (conjunções, preposições, etc.) para construir uma argumentação coesa e coerente." },
-  { title: "Competência 5: Proposta de Intervenção", description: "Avalia a elaboração de uma proposta de intervenção para o problema abordado, que respeite os direitos humanos." },
-];
+  useEffect(() => {
+    if (isSimulado) {
+      autoSaveTimerRef.current = setInterval(() => {
+        setCurrentEssay(prevEssay => {
+          if(prevEssay.content && prevEssay.id) {
+            console.log("Salvando rascunho automaticamente...");
+            startTransition(async () => {
+              await saveOrUpdateEssay({ ...prevEssay, status: 'draft' });
+            });
+          }
+          return prevEssay;
+        });
+      }, 60000);
+    } else {
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current);
+      }
+    }
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current);
+      }
+    };
+  }, [isSimulado, startTransition]);
 
-const markerStyles = {
-    erro: { flag: 'text-red-500', highlight: 'bg-red-200 dark:bg-red-500/30 border-b-2 border-red-400' },
-    acerto: { flag: 'text-green-500', highlight: 'bg-green-200 dark:bg-green-500/30' },
-    sugestao: { flag: 'text-blue-500', highlight: 'bg-blue-200 dark:bg-blue-500/30' },
-};
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-const renderAnnotatedText = (text: string, annotations: Annotation[] | null | undefined): ReactElement => {
-    const textAnnotations = annotations?.filter(a => a.type === 'text' && a.selection) || [];
-    if (!text || textAnnotations.length === 0) {
-        return <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: text.replace(/\n/g, '<br />') }} />;
+    setUploading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        alert("Erro: Utilizador não autenticado.");
+        setUploading(false);
+        return;
     }
 
-    let result: (string | ReactElement)[] = [text];
+    const filePath = `submissions/${user.id}/${Date.now()}_${file.name}`;
+    const { error: uploadError } = await supabase.storage.from('essays').upload(filePath, file);
 
-    textAnnotations.forEach((anno, i) => {
-        const newResult: (string | ReactElement)[] = [];
-        result.forEach((node) => {
-            if (typeof node !== 'string') {
-                newResult.push(node);
-                return;
-            }
-            const parts = node.split(anno.selection!);
-            for (let j = 0; j < parts.length; j++) {
-                newResult.push(parts[j]);
-                if (j < parts.length - 1) {
-                    newResult.push(
-                        <mark key={`${anno.id}-${i}-${j}`} className={`${markerStyles[anno.marker].highlight} relative group cursor-pointer px-1 rounded-sm`}>
-                            {anno.selection}
-                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">{anno.comment}</span>
-                        </mark>
-                    );
-                }
-            }
-        });
-        result = newResult;
+    if (uploadError) {
+      alert(`Erro no upload: ${uploadError.message}`);
+      setUploading(false);
+      return;
+    }
+
+    const { data } = supabase.storage.from('essays').getPublicUrl(filePath);
+    setCurrentEssay(prev => ({ ...prev, image_submission_url: data.publicUrl, content: '' }));
+    setUploading(false);
+  };
+
+  const handleSave = (status: 'draft' | 'submitted') => {
+    if (status === 'submitted') {
+        if (!currentEssay.content && !currentEssay.image_submission_url) {
+            alert('Você precisa de escrever um texto ou enviar uma imagem da sua redação para submeter.');
+            return;
+        }
+        if (!consent) {
+            alert('Você precisa de concordar com os termos antes de enviar.');
+            return;
+        }
+    }
+
+    startTransition(async () => {
+      const updatedData = {
+        ...currentEssay,
+        status,
+        prompt_id: selectedPrompt?.id,
+        consent_to_ai_training: consent,
+      };
+      const result = await saveOrUpdateEssay(updatedData);
+      
+      if (!result.error) {
+        if(status === 'submitted') setIsSimulado(false);
+        alert(status === 'draft' ? 'Rascunho salvo com sucesso!' : 'Redação enviada com sucesso!');
+        if(status === 'submitted') onBack();
+      } else {
+        alert(`Erro: ${result.error}`);
+      }
     });
+  };
 
-    return (
-        <div>
-            {result.map((node, index) =>
-                typeof node === 'string'
-                    ? <span key={index} dangerouslySetInnerHTML={{ __html: node.replace(/\n/g, '<br />') }} />
-                    : node
-            )}
+  const handleRestoreVersion = (content: string) => {
+      if(confirm("Você tem certeza que quer restaurar esta versão? O conteúdo atual no editor será substituído.")) {
+          setCurrentEssay(prev => ({ ...prev, content }));
+          setShowHistory(false);
+      }
+  };
+
+  const handlePlagiarismCheck = async () => {
+    if (!currentEssay.content || currentEssay.content.trim().length < 100) {
+      alert("Escreva pelo menos 100 caracteres para verificar o plágio.");
+      return;
+    }
+    setIsCheckingPlagiarism(true);
+    const result = await checkForPlagiarism();
+    if (result.data) {
+      setPlagiarismResult(result.data);
+    } else {
+      alert(result.error);
+    }
+    setIsCheckingPlagiarism(false);
+  };
+  
+  const handleExport = () => {
+      const blob = new Blob([currentEssay.content || ''], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${currentEssay.title || 'redacao'}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
+
+  if (!selectedPrompt && !essay) {
+    return <PromptSelector prompts={prompts} onSelect={setSelectedPrompt} onBack={onBack} />;
+  }
+
+  return (
+    <div className="relative">
+        <PlagiarismResultModal result={plagiarismResult} onClose={() => setPlagiarismResult(null)} />
+        <div className="flex justify-between items-center mb-4">
+            <button onClick={onBack} className="text-sm text-royal-blue font-bold">
+                <i className="fas fa-arrow-left mr-2"></i> Voltar para minhas redações
+            </button>
+            {isSimulado && <Timer isRunning={isSimulado} durationInSeconds={5400} onTimeUp={() => alert("O tempo acabou!")} />}
         </div>
-    );
-};
 
-const CompetencyModal = ({ competencyIndex, onClose }: { competencyIndex: number | null, onClose: () => void }) => {
-    if (competencyIndex === null) return null;
-    const { title, description } = competencyDetails[competencyIndex];
-
-    return (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center" onClick={onClose}>
-            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
-                <h3 className="text-lg font-bold mb-2 dark:text-white-text">{title}</h3>
-                <p className="text-sm text-text-muted dark:text-dark-text-muted">{description}</p>
-                <button onClick={onClose} className="mt-4 bg-royal-blue text-white py-2 px-4 rounded-lg text-sm font-bold">Entendi</button>
+        <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
+            <div className="mb-6 pb-6 border-b dark:border-dark-border">
+                <h2 className="text-xl font-bold dark:text-white-text">{selectedPrompt?.title}</h2>
+                <p className="text-sm text-gray-500 dark:text-dark-text-muted">{selectedPrompt?.source}</p>
             </div>
-        </div>
-    );
-};
+            
+            <input
+                type="text"
+                placeholder="Título da sua redação"
+                value={currentEssay.title || ''}
+                onChange={(e) => setCurrentEssay(prev => ({ ...prev, title: e.target.value }))}
+                className="w-full text-2xl font-bold p-2 mb-4 bg-transparent focus:outline-none focus:ring-1 focus:ring-royal-blue rounded-md dark:text-white-text"
+            />
 
-export default function EssayCorrectionView({ essayId, onBack }: {essayId: string, onBack: () => void}) {
-    const [details, setDetails] = useState<FullEssayDetails | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [modalCompetency, setModalCompetency] = useState<number | null>(null);
-    const [viewMode, setViewMode] = useState<'corrected' | 'comparison'>('corrected');
-
-    useEffect(() => {
-        const fetchDetails = async () => {
-            setIsLoading(true);
-            const essayResult = await getEssayDetails(essayId);
-            if (essayResult.data) {
-                const [correctionResult, aiFeedbackResult] = await Promise.all([
-                    getCorrectionForEssay(essayId),
-                    getAIFeedbackForEssay(essayId)
-                ]);
-
-                const correctionData = correctionResult.data;
-                const aiFeedbackData = aiFeedbackResult.data;
-
-                const finalCorrection: CorrectionWithDetails | null = correctionData
-                    ? {
-                        ...correctionData,
-                        ai_feedback: aiFeedbackData || null,
-                      } as CorrectionWithDetails
-                    : null;
-
-                setDetails({
-                    ...(essayResult.data as FullEssayDetails),
-                    correction: finalCorrection,
-                });
-            }
-            setIsLoading(false);
-        };
-        fetchDetails();
-    }, [essayId]);
-
-
-    if (isLoading) return <div className="text-center p-8">A carregar a sua redação...</div>;
-    if (!details) return <div className="text-center p-8">Não foi possível carregar os detalhes da redação.</div>;
-
-    const { title, content, correction, image_submission_url } = details;
-    const annotations = correction?.annotations;
-
-    const isTextView = content && !image_submission_url;
-
-    return (
-        <div>
-            <CompetencyModal competencyIndex={modalCompetency} onClose={() => setModalCompetency(null)} />
-            <div className="flex justify-between items-center mb-4">
-                <button onClick={onBack} className="text-sm text-royal-blue font-bold">
-                    <i className="fas fa-arrow-left mr-2"></i> Voltar
+            {currentEssay.image_submission_url ? (
+              <div className="text-center p-4 border-2 border-dashed rounded-lg">
+                <Image src={currentEssay.image_submission_url} alt="Redação enviada" width={500} height={700} className="max-w-full max-h-96 mx-auto rounded-lg" />
+                <button onClick={() => setCurrentEssay(prev => ({...prev, image_submission_url: null}))} className="mt-4 text-sm text-red-500 font-bold">
+                  Remover imagem e escrever
                 </button>
-                {isTextView && correction && (
-                    <button 
-                        onClick={() => setViewMode(prev => prev === 'corrected' ? 'comparison' : 'corrected')} 
-                        className="text-sm bg-gray-200 dark:bg-gray-700 px-3 py-1.5 rounded-md font-semibold"
-                    >
-                       <i className={`fas ${viewMode === 'corrected' ? 'fa-exchange-alt' : 'fa-eye'} mr-2`}></i>
-                       {viewMode === 'corrected' ? 'Comparar Versões' : 'Ver Correção'}
-                    </button>
-                )}
-            </div>
-
-            {viewMode === 'comparison' && isTextView ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div>
-                        <h2 className="font-bold text-xl mb-4 dark:text-white-text">Texto Original</h2>
-                        <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border text-gray-700 dark:text-dark-text-muted whitespace-pre-wrap leading-relaxed">
-                            <div dangerouslySetInnerHTML={{ __html: content.replace(/\n/g, '<br />') }} />
-                        </div>
-                    </div>
-                    <div>
-                        <h2 className="font-bold text-xl mb-4 dark:text-white-text">Texto Corrigido</h2>
-                        <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border text-gray-700 dark:text-dark-text-muted leading-relaxed">
-                            {renderAnnotatedText(content, annotations)}
-                        </div>
-                    </div>
-                </div>
+              </div>
             ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
-                        <h2 className="font-bold text-xl mb-4 dark:text-white-text">{title}</h2>
-                        
-                        {image_submission_url ? (
-                            <div className="relative w-full h-auto">
-                                <Image src={image_submission_url} alt="Redação enviada" width={800} height={1100} className="rounded-lg object-contain"/>
-                                {annotations?.filter(a => a.type === 'image').map(a => (
-                                    <div key={a.id} className="absolute transform -translate-x-1 -translate-y-4 group text-xl" style={{ left: `${a.position?.x}%`, top: `${a.position?.y}%` }}>
-                                        <i className={`fas fa-flag ${markerStyles[a.marker].flag}`}></i>
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                                            {a.comment}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-gray-700 dark:text-dark-text-muted leading-relaxed">
-                                {content ? renderAnnotatedText(content, annotations) : <p>Esta redação não possui conteúdo textual para ser exibido.</p>}
-                            </div>
-                        )}
+              <>
+                <textarea
+                    placeholder="Comece a escrever aqui..."
+                    value={currentEssay.content || ''}
+                    onChange={(e) => setCurrentEssay(prev => ({ ...prev, content: e.target.value }))}
+                    className="w-full h-96 p-4 border rounded-md dark:bg-dark-card dark:border-dark-border focus:outline-none focus:ring-2 focus:ring-royal-blue dark:text-white-text"
+                />
+                <div className="text-center my-4">
+                  <span className="text-sm text-text-muted dark:text-dark-text-muted">OU</span>
+                </div>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/png, image/jpeg, image/jpg" className="hidden" />
+                <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="w-full py-3 border-2 border-dashed rounded-lg text-text-muted hover:border-royal-blue hover:text-royal-blue transition">
+                  {uploading ? 'A enviar...' : 'Clique para enviar uma foto da sua redação'}
+                </button>
+              </>
+            )}
+            
+            {currentEssay.id && !currentEssay.image_submission_url && (
+                <div>
+                    <div className="flex flex-wrap items-center gap-4 mt-4">
+                        <button onClick={() => setShowHistory(!showHistory)} className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-royal-blue disabled:opacity-50" disabled={!currentEssay.id}>
+                            <i className="fas fa-history mr-2"></i>{showHistory ? 'Ocultar Histórico' : 'Ver Histórico'}
+                        </button>
+                        <button onClick={handlePlagiarismCheck} disabled={isCheckingPlagiarism} className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-royal-blue disabled:opacity-50">
+                            <i className={`fas ${isCheckingPlagiarism ? 'fa-spinner fa-spin' : 'fa-search'} mr-2`}></i>Verificar Plágio
+                        </button>
+                        <button onClick={handleExport} className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-royal-blue">
+                            <i className="fas fa-file-export mr-2"></i>Exportar
+                        </button>
                     </div>
-
-                    <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="font-bold text-xl dark:text-white-text">Correção</h2>
-                            {correction && <div className="text-2xl font-bold dark:text-white-text">{correction.final_grade}</div>}
-                        </div>
-
-                        {correction ? (
-                            <div className="space-y-4">
-                                {competencyDetails.map((_, i) => (
-                                    <div key={i} className="flex justify-between items-center p-3 rounded-md bg-gray-50 dark:bg-gray-700/50">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium text-sm dark:text-white-text">Competência {i + 1}</span>
-                                            <button onClick={() => setModalCompetency(i)} className="text-xs text-royal-blue">
-                                                <i className="fas fa-info-circle"></i>
-                                            </button>
-                                        </div>
-                                        <span className="font-bold text-sm dark:text-white-text">
-                                            {correction[`grade_c${i + 1}` as keyof EssayCorrection] as React.ReactNode}
-                                        </span>
-                                    </div>
-                                ))}
-                                <div className="border-t dark:border-gray-700 pt-4">
-                                <FeedbackTabs
-                                    correction={correction}
-                                />
-                            </div>
-                            </div>
-                        ) : (
-                            <p className="text-center text-gray-500 py-8">A sua redação ainda está na fila para ser corrigida.</p>
-                        )}
-                    </div>
+                    {showHistory && <VersionHistory essayId={currentEssay.id as string} onSelectVersion={handleRestoreVersion} />}
                 </div>
             )}
+
+            <div className="mt-6 border-t dark:border-dark-border pt-6">
+                 {!isSimulado && (
+                    <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg mb-6">
+                        <p className="text-sm font-medium mb-2">Deseja praticar em condições de prova?</p>
+                        <button onClick={() => setIsSimulado(true)} className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
+                            <i className="fas fa-stopwatch mr-2"></i> Iniciar Modo Simulado (90 min)
+                        </button>
+                    </div>
+                 )}
+                 <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="h-5 w-5 rounded border-gray-300 text-royal-blue focus:ring-royal-blue" />
+                    <span className="text-sm text-gray-600 dark:text-dark-text-muted">
+                        Eu li e concordo com a <Link href="/recursos/direito-autoral" target="_blank" className="underline font-bold">Política de Direitos Autorais</Link> e consinto com o uso da minha redação para o treinamento da inteligência artificial.
+                    </span>
+                </label>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-4">
+                <button onClick={() => handleSave('draft')} disabled={isPending} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 disabled:opacity-50">
+                    {isPending ? 'Salvando...' : 'Salvar Rascunho'}
+                </button>
+                <button onClick={() => handleSave('submitted')} disabled={isPending || !consent} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 disabled:opacity-50">
+                    {isPending ? 'Enviando...' : 'Enviar para Correção'}
+                </button>
+            </div>
         </div>
-    );
+    </div>
+  );
 }

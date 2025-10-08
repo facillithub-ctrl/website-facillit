@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Essay, EssayPrompt, getEssaysForStudent } from '../actions';
@@ -77,6 +77,28 @@ const ActionShortcuts = () => (
     </div>
 );
 
+// NOVO WIDGET para usar a prop 'currentEvents'
+const CurrentEventsWidget = ({ events }: { events: CurrentEvent[] }) => (
+    <div className="glass-card p-6 h-full flex flex-col">
+        <h3 className="font-bold text-lg mb-4 dark:text-white">Fique por Dentro</h3>
+        {events.length > 0 ? (
+            <ul className="space-y-3 overflow-y-auto flex-1">
+                {events.map(event => (
+                    <li key={event.id}>
+                        <a href={event.link} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-md hover:bg-black/10 transition-colors">
+                            <p className="font-semibold text-sm dark:text-white">{event.title}</p>
+                            {event.summary && <p className="text-xs text-dark-text-muted mt-1">{event.summary}</p>}
+                        </a>
+                    </li>
+                ))}
+            </ul>
+        ) : (
+            <p className="text-sm text-dark-text-muted m-auto text-center">Nenhuma notícia recente disponível.</p>
+        )}
+    </div>
+);
+
+
 // --- COMPONENTE PRINCIPAL ---
 
 export default function StudentDashboard({ initialEssays, prompts, statistics, streak, rankInfo, frequentErrors, currentEvents, targetExam, examDate }: Props) {
@@ -84,6 +106,11 @@ export default function StudentDashboard({ initialEssays, prompts, statistics, s
   const [view, setView] = useState<'dashboard' | 'edit' | 'view_correction'>('dashboard');
   const [currentEssay, setCurrentEssay] = useState<Partial<Essay> | null>(null);
   const searchParams = useSearchParams();
+
+  const handleSelectEssay = useCallback((essay: Partial<Essay>) => {
+    setCurrentEssay(essay);
+    setView(essay.status === 'corrected' ? 'view_correction' : 'edit');
+  }, []);
 
   useEffect(() => {
     const essayIdFromUrl = searchParams.get('essayId');
@@ -93,12 +120,7 @@ export default function StudentDashboard({ initialEssays, prompts, statistics, s
         handleSelectEssay(essayToOpen);
       }
     }
-  }, [searchParams, initialEssays]);
-
-  const handleSelectEssay = (essay: Partial<Essay>) => {
-    setCurrentEssay(essay);
-    setView(essay.status === 'corrected' ? 'view_correction' : 'edit');
-  };
+  }, [searchParams, initialEssays, handleSelectEssay]);
 
   const handleCreateNew = () => {
     setCurrentEssay(null);
@@ -127,27 +149,23 @@ export default function StudentDashboard({ initialEssays, prompts, statistics, s
       
       {/* --- LINHA SUPERIOR DE CARDS --- */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-        {/* Card Verde */}
         <div className="glass-card p-6">
           <CountdownWidget targetExam={targetExam} examDate={examDate} />
         </div>
 
-        {/* Card Vermelho */}
         <div className="glass-card p-6 lg:col-span-2 flex flex-col justify-center space-y-4">
             <WritingStreak days={streak} />
             <hr className="border-white/20"/>
             <StateRanking rank={rankInfo?.rank ?? null} state={rankInfo?.state ?? null} />
         </div>
 
-        {/* Card Azul */}
         <div className="glass-card p-6">
             <ActionShortcuts />
         </div>
       </div>
 
-      {/* --- LINHA INFERIOR DE CARDS --- */}
+      {/* --- LINHA DO MEIO DE CARDS (ATUALIZADA) --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Card Laranja: Progressão e Plano de Ação */}
         <div className="lg:col-span-2">
             {statistics ? (
                 <ProgressionChart
@@ -160,7 +178,6 @@ export default function StudentDashboard({ initialEssays, prompts, statistics, s
             )}
         </div>
         
-        {/* Card Amarelo (Estatísticas) */}
         <div className="lg:col-span-1">
             <div className="glass-card p-6 h-full">
                 {statistics ? <StatisticsWidget stats={statistics} frequentErrors={frequentErrors}/> : (
@@ -172,26 +189,32 @@ export default function StudentDashboard({ initialEssays, prompts, statistics, s
         </div>
       </div>
 
-
-      {/* --- HISTÓRICO DE REDAÇÕES --- */}
-      <div>
-        <h2 className="text-2xl font-bold text-dark-text dark:text-white-text mb-4">Histórico de Redações</h2>
-        <div className="glass-card p-4">
-            <ul className="divide-y divide-white/20">
-                {essays.length > 0 ? essays.map(essay => (
-                  <li key={essay.id} onClick={() => handleSelectEssay(essay)} className="p-4 hover:bg-black/10 rounded-lg cursor-pointer flex justify-between items-center">
-                    <div>
-                      <p className="font-bold text-dark-text dark:text-white-text">{essay.title || "Redação sem título"}</p>
-                      <p className="text-sm text-gray-500 dark:text-dark-text-muted">{essay.status === 'draft' ? 'Rascunho' : `Enviada em: ${new Date(essay.submitted_at!).toLocaleDateString()}`}</p>
-                    </div>
-                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${essay.status === 'corrected' ? 'bg-green-100 text-green-800' : essay.status === 'submitted' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-200 text-gray-800'}`}>
-                      {essay.status === 'corrected' ? 'Corrigida' : essay.status === 'submitted' ? 'Aguardando correção' : 'Rascunho'}
-                    </span>
-                  </li>
-                )) : (<p className="p-4 text-center text-gray-500 dark:text-dark-text-muted">Você ainda não tem nenhuma redação. Comece uma nova!</p>)}
-            </ul>
+      {/* --- NOVA LINHA INFERIOR DE CARDS --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2">
+            <h2 className="text-2xl font-bold text-dark-text dark:text-white-text mb-4">Histórico de Redações</h2>
+            <div className="glass-card p-4">
+                <ul className="divide-y divide-white/20">
+                    {essays.length > 0 ? essays.map(essay => (
+                      <li key={essay.id} onClick={() => handleSelectEssay(essay)} className="p-4 hover:bg-black/10 rounded-lg cursor-pointer flex justify-between items-center">
+                        <div>
+                          <p className="font-bold text-dark-text dark:text-white-text">{essay.title || "Redação sem título"}</p>
+                          <p className="text-sm text-gray-500 dark:text-dark-text-muted">{essay.status === 'draft' ? 'Rascunho' : `Enviada em: ${new Date(essay.submitted_at!).toLocaleDateString()}`}</p>
+                        </div>
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${essay.status === 'corrected' ? 'bg-green-100 text-green-800' : essay.status === 'submitted' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-200 text-gray-800'}`}>
+                          {essay.status === 'corrected' ? 'Corrigida' : essay.status === 'submitted' ? 'Aguardando correção' : 'Rascunho'}
+                        </span>
+                      </li>
+                    )) : (<p className="p-4 text-center text-gray-500 dark:text-dark-text-muted">Você ainda não tem nenhuma redação. Comece uma nova!</p>)}
+                </ul>
+            </div>
+        </div>
+        <div className="lg:col-span-1">
+             <h2 className="text-2xl font-bold text-dark-text dark:text-white-text mb-4">Notícias</h2>
+             <CurrentEventsWidget events={currentEvents} />
         </div>
       </div>
+
     </div>
   );
 }
