@@ -2,7 +2,7 @@ import createSupabaseServerClient from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import StudentTestDashboard from './components/StudentTestDashboard';
 import TeacherTestDashboard from './components/TeacherTestDashboard';
-import { getTestsForTeacher, getStudentTestDashboardData } from './actions';
+import { getTestsForTeacher, getStudentTestDashboardData, getAvailableTestsForStudent } from './actions';
 
 export default async function TestPage() {
   const supabase = await createSupabaseServerClient();
@@ -24,9 +24,10 @@ export default async function TestPage() {
 
   // ROTA PARA ALUNO
   if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
-    // Chama a nova action que busca todos os dados
     const { data: dashboardData } = await getStudentTestDashboardData();
-    return <StudentTestDashboard dashboardData={dashboardData} />;
+    const { data: availableTests } = await getAvailableTestsForStudent();
+    
+    return <StudentTestDashboard dashboardData={dashboardData} availableTests={availableTests || []} />;
   }
 
   // ROTA PARA PROFESSOR
