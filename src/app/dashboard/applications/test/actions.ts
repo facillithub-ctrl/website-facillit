@@ -3,7 +3,7 @@
 import createSupabaseServerClient from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-// Tipos de dados (já definidos anteriormente)
+// Tipos de dados...
 export type QuestionContent = {
   statement: string;
   image_url?: string | null;
@@ -12,19 +12,26 @@ export type QuestionContent = {
 };
 
 export type Question = {
-  id: string;
+  id: string; // Vem do DB
+  test_id: string; // Vem do DB
   question_type: 'multiple_choice' | 'dissertation';
   content: QuestionContent;
   points: number;
 };
 
-export type Test = {
+// Este tipo agora representa um teste COM suas questões
+export type TestWithQuestions = {
   id: string;
   title: string;
-  description: string | null; // Adicionado
+  description: string | null;
   created_by: string;
-  questions: Question[];
+  created_at: string;
+  questions: Question[]; // Array de questões
 };
+
+// Este tipo representa um teste simples, para a lista
+export type Test = Omit<TestWithQuestions, 'questions'>;
+
 
 export type TestAttempt = {
   id: string;
@@ -36,8 +43,8 @@ export type TestAttempt = {
   completed_at: string | null;
 };
 
-// --- IMPLEMENTAÇÃO DA FUNÇÃO DE SALVAR ---
-export async function createOrUpdateTest(testData: { title: string; description: string | null; questions: Question[] }) {
+
+export async function createOrUpdateTest(testData: { title: string; description: string | null; questions: Omit<Question, 'id' | 'test_id'>[] }) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -45,7 +52,6 @@ export async function createOrUpdateTest(testData: { title: string; description:
     return { error: 'Usuário não autenticado.' };
   }
 
-  // 1. Insere o teste principal na tabela 'tests'
   const { data: testResult, error: testError } = await supabase
     .from('tests')
     .insert({
@@ -61,7 +67,6 @@ export async function createOrUpdateTest(testData: { title: string; description:
     return { error: `Erro ao criar a avaliação: ${testError.message}` };
   }
 
-  // 2. Prepara as questões para serem inseridas, vinculando-as ao ID do teste criado
   if (testData.questions.length > 0) {
     const questionsToInsert = testData.questions.map(q => ({
       test_id: testResult.id,
@@ -70,48 +75,64 @@ export async function createOrUpdateTest(testData: { title: string; description:
       points: q.points,
     }));
 
-    // 3. Insere todas as questões na tabela 'questions'
     const { error: questionsError } = await supabase
       .from('questions')
       .insert(questionsToInsert);
 
     if (questionsError) {
       console.error('Erro ao salvar questões:', questionsError);
-      // O ideal aqui seria deletar o teste que foi criado para não deixar dados órfãos,
-      // mas por simplicidade, apenas retornamos o erro.
       return { error: `Erro ao salvar as questões: ${questionsError.message}` };
     }
   }
 
-  // 4. Revalida o cache da página para que a lista de testes seja atualizada
   revalidatePath('/dashboard/applications/test');
   
   return { data: testResult, error: null };
 }
 
-
-// --- DEMAIS FUNÇÕES (placeholders) ---
-export async function getTestsForStudent() {
-  return { data: [], error: null };
-}
-
+// CORRIGIDO: Busca apenas os testes, sem as questões
 export async function getTestsForTeacher() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { data: [], error: "Usuário não autenticado." };
+  if (!user) return { data: null, error: "Usuário não autenticado." };
 
   const { data, error } = await supabase
     .from('tests')
-    .select('*')
+    .select('*') // Alterado de '*, questions(*)' para '*'
     .eq('created_by', user.id)
     .order('created_at', { ascending: false });
   
   if (error) {
     console.error("Erro ao buscar testes:", error);
-    return { data: [], error: error.message };
+    return { data: null, error: error.message };
   }
 
   return { data, error: null };
+}
+
+// NOVO: Busca um único teste com todas as suas questões
+export async function getTestWithQuestions(testId: string): Promise<{ data: TestWithQuestions | null, error: string | null }> {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: "Usuário não autenticado." };
+
+    const { data, error } = await supabase
+        .from('tests')
+        .select('*, questions(*)')
+        .eq('id', testId)
+        .eq('created_by', user.id) // Garante que o professor só possa ver o seu próprio teste
+        .single();
+
+    if (error) {
+        console.error("Erro ao buscar detalhes do teste:", error);
+        return { data: null, error: error.message };
+    }
+
+    return { data, error: null };
+}
+
+export async function getTestsForStudent() {
+  return { data: [], error: null };
 }
 
 export async function submitTestAttempt(attemptData: Partial<TestAttempt>) {

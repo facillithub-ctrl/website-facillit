@@ -2,6 +2,7 @@ import createSupabaseServerClient from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import StudentTestDashboard from './components/StudentTestDashboard';
 import TeacherTestDashboard from './components/TeacherTestDashboard';
+import { getTestsForTeacher } from './actions'; // Importa a nova função
 
 export default async function TestPage() {
   const supabase = await createSupabaseServerClient();
@@ -23,11 +24,14 @@ export default async function TestPage() {
 
   // Renderiza a dashboard apropriada com base no perfil do usuário
   if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
-    return <StudentTestDashboard />;
+    // Para o aluno, por enquanto, não buscamos nenhum teste
+    return <StudentTestDashboard initialTests={[]} />;
   }
 
   if (['professor', 'gestor', 'administrator'].includes(profile.user_category || '')) {
-    return <TeacherTestDashboard />;
+    // Busca os testes criados pelo professor/gestor
+    const { data: teacherTests } = await getTestsForTeacher();
+    return <TeacherTestDashboard initialTests={teacherTests || []} />;
   }
 
   // Fallback para qualquer outro tipo de perfil

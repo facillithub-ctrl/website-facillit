@@ -1,8 +1,12 @@
 "use client";
 
-// Placeholder para a futura dashboard do aluno no módulo Test
+import type { Test } from '../actions';
 
-export default function StudentTestDashboard() {
+type Props = {
+  initialTests: Test[];
+};
+
+export default function StudentTestDashboard({ initialTests }: Props) {
   return (
     <div>
       <h1 className="text-3xl font-bold text-dark-text dark:text-white">Simulados e Provas</h1>
