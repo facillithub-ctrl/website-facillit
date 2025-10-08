@@ -501,7 +501,7 @@ export async function getAIFeedbackForEssay(essayId: string) {
     return { data };
 }
 
-export async function checkForPlagiarism(_text: string): Promise<{ data?: { similarity_percentage: number; matches: { source: string; text: string }[] }; error?: string }> {
+export async function checkForPlagiarism(): Promise<{ data?: { similarity_percentage: number; matches: { source: string; text: string }[] }; error?: string }> {
     try {
         await new Promise(resolve => setTimeout(resolve, 2000));
 

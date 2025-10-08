@@ -100,7 +100,7 @@ const ActionCard = ({
 type CustomTooltipPayloadItem = {
   value?: number | string;
   name?: string;
-  payload?: PerformanceData | Record<string, any>;
+  payload?: PerformanceData | Record<string, unknown>;
 };
 
 type CustomTooltipProps = {
