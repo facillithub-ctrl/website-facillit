@@ -39,6 +39,7 @@ export type TestAttempt = {
   score: number | null;
   started_at: string;
   completed_at: string | null;
+  status: 'in_progress' | 'completed' | 'graded';
 };
 
 
@@ -114,7 +115,6 @@ export async function getTestWithQuestions(testId: string) {
 export async function getAvailableTestsForStudent() {
     const supabase = await createSupabaseServerClient();
 
-    // Esta query agrega os dados necessários para os cards
     const { data, error } = await supabase
         .from('tests')
         .select(`
@@ -135,7 +135,6 @@ export async function getAvailableTestsForStudent() {
         return { data: null, error: error.message };
     }
 
-    // Mapeia os dados para o formato do componente
     const formattedData = data.map(test => {
         const attempts = test.test_attempts;
         const total_attempts = attempts.length;
@@ -176,7 +175,8 @@ export async function getStudentTestDashboardData() {
     if (performanceRes.error) return { data: null, error: `Erro (performance): ${performanceRes.error.message}` };
     if (recentRes.error) return { data: null, error: `Erro (recent): ${recentRes.error.message}` };
     
-    if (statsRes.data.simuladosFeitos === 0) {
+    // CORREÇÃO: Acessa a propriedade correta retornada pela RPC
+    if (!statsRes.data || statsRes.data.simuladosFeitos === 0) {
         return { data: null, error: null };
     }
 
@@ -191,7 +191,7 @@ export async function getStudentTestDashboardData() {
 }
 
 // Salva a tentativa do aluno no banco
-export async function submitTestAttempt(attemptData: Omit<TestAttempt, 'id' | 'student_id' | 'started_at' | 'completed_at' | 'score'> & { score: number }) {
+export async function submitTestAttempt(attemptData: { test_id: string; answers: { questionId: string; answer: string | number | null; }[]; score: number; }) {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Usuário não autenticado.' };
@@ -199,8 +199,10 @@ export async function submitTestAttempt(attemptData: Omit<TestAttempt, 'id' | 's
     const { data, error } = await supabase
       .from('test_attempts')
       .insert({
-        ...attemptData,
+        test_id: attemptData.test_id,
         student_id: user.id,
+        answers: attemptData.answers, // Salva as respostas
+        score: attemptData.score,
         status: 'graded', // Marcamos como corrigido
         completed_at: new Date().toISOString()
       })

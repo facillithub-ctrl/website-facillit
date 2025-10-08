@@ -3,7 +3,8 @@
 import { useEffect, useState, useTransition } from 'react';
 import { getTestWithQuestions, submitTestAttempt } from '../actions';
 import type { TestWithQuestions } from '../actions';
-import Timer from '../../write/components/Timer'; // CORRIGIDO: O caminho correto para o Timer
+// CORREÇÃO: Ajustado o caminho de importação para o local original do Timer.
+import Timer from '../../write/components/Timer';
 
 type Answer = { questionId: string; answer: number | string | null };
 
