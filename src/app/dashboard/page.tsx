@@ -42,7 +42,6 @@ const WriteDashboardWidget = ({ lastEssay }: { lastEssay: { id: string, title: s
     )
 }
 
-// O tipo de 'lastAttempt' foi corrigido para aceitar o que a API retorna
 const TestDashboardWidget = ({ lastAttempt }: { lastAttempt: { score: number | null, tests: { title: string | null } | null } | null }) => {
     return (
         <div className="glass-card p-6 flex flex-col h-full">
@@ -79,6 +78,13 @@ export default async function DashboardPage() {
     const profile = profileResult.data;
     const lastEssay = lastEssayResult.data;
     const lastTestAttempt = lastTestResult.data;
+    
+    // Correction: Ensure the 'tests' property is an object, not an array.
+    const lastAttemptForWidget = lastTestAttempt ? {
+        score: lastTestAttempt.score,
+        tests: Array.isArray(lastTestAttempt.tests) ? lastTestAttempt.tests[0] : lastTestAttempt.tests,
+    } : null;
+
 
     let examDate: { name: string, exam_date: string } | null = null;
     if (profile?.target_exam) {
@@ -109,8 +115,7 @@ export default async function DashboardPage() {
 
                 <WriteDashboardWidget lastEssay={lastEssay} />
                 
-                {/* CORREÇÃO APLICADA: Forçamos a tipagem correta para garantir que não haja erro de build */}
-                <TestDashboardWidget lastAttempt={lastTestAttempt as { score: number | null; tests: { title: string | null } | null }} />
+                <TestDashboardWidget lastAttempt={lastAttemptForWidget} />
 
                 <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg shadow dark:bg-gray-800 dark:border-yellow-600 lg:col-span-2">
                     <div className="flex">
