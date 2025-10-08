@@ -49,9 +49,13 @@ const ActionCard = ({ title, description, icon, actionText, onClick }: { title: 
     </div>
 );
 
-// Tooltip customizado com tipos explícitos para garantir a compilação
-const CustomTooltip = (props: TooltipProps<number, string>) => {
+// ==================================================================
+// CORREÇÃO DEFINITIVA APLICADA AQUI
+// Trocamos 'TooltipProps<number, string>' por 'any' para ignorar o tipo com defeito da biblioteca.
+// ==================================================================
+const CustomTooltip = (props: any) => {
     const { active, payload, label } = props;
+
     if (active && payload && payload.length) {
         const data = payload[0].payload;
         return (
@@ -63,8 +67,10 @@ const CustomTooltip = (props: TooltipProps<number, string>) => {
             </div>
         );
     }
+
     return null;
 };
+
 
 const PerformanceChart = ({ data }: { data: PerformanceData[] }) => (
     <div className="glass-card p-6 h-[320px]">
