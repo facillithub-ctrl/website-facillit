@@ -1,8 +1,8 @@
-
 "use client";
 
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { TooltipProps } from 'recharts';
 import AvailableTestCard from './AvailableTestCard';
 import AttemptView from './AttemptView';
 
@@ -10,15 +10,16 @@ import AttemptView from './AttemptView';
 type TestCardInfo = { id: string; title: string; subject: string | null; question_count: number; duration_minutes: number; difficulty: 'Fácil' | 'Médio' | 'Difícil'; avg_score: number; total_attempts: number; points: number; };
 type PerformanceData = { materia: string; nota: number; simulados: number };
 type RecentAttempt = { tests: { title: string; subject: string | null; }; completed_at: string; score: number };
-type DashboardData = { stats: { simuladosFeitos: number; mediaGeral: number; taxaAcerto: number; }; performanceBySubject: PerformanceData[]; recentAttempts: RecentAttempt[]; };
-type Props = { dashboardData: DashboardData | null; availableTests: TestCardInfo[]; };
-
-// Tipos para o CustomTooltip
-type CustomTooltipProps = {
-  active?: boolean;
-  payload?: { payload: PerformanceData }[];
-  label?: string;
+type DashboardData = {
+    stats: {
+        simuladosFeitos: number;
+        mediaGeral: number;
+        taxaAcerto: number;
+    };
+    performanceBySubject: PerformanceData[];
+    recentAttempts: RecentAttempt[];
 };
+type Props = { dashboardData: DashboardData | null; availableTests: TestCardInfo[]; };
 
 const subjectColors: { [key: string]: string } = { 'Matemática': '#8b5cf6', 'Física': '#ec4899', 'Química': '#3b82f6', 'Biologia': '#22c55e', 'Português': '#f97316', 'Default': '#6b7280' };
 
@@ -49,7 +50,8 @@ const ActionCard = ({ title, description, icon, actionText, onClick }: { title: 
 );
 
 // Tooltip customizado com tipos explícitos para garantir a compilação
-const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+const CustomTooltip = (props: TooltipProps<number, string>) => {
+    const { active, payload, label } = props;
     if (active && payload && payload.length) {
         const data = payload[0].payload;
         return (
