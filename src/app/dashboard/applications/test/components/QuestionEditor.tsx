@@ -33,7 +33,7 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
     setLocalQuestion(question);
   }, [question]);
 
-  const handleContentChange = (field: keyof QuestionContent, value: any) => {
+  const handleContentChange = (field: keyof QuestionContent, value: string | string[] | number | undefined) => {
     setLocalQuestion(prev => ({
       ...prev,
       content: { ...prev.content, [field]: value },
@@ -126,7 +126,6 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
         onChange={(value) => handleContentChange('statement', value)}
         placeholder="Digite o enunciado da questão aqui..."
         onImageUpload={handleImageUpload}
-        onBlur={handleSaveChanges}
       />
 
       {localQuestion.question_type === 'multiple_choice' && (
