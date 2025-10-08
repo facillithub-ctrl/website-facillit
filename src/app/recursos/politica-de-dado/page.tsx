@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
@@ -31,6 +34,8 @@ const PolicyTable = ({ headers, rows }: { headers: string[], rows: string[][] })
 );
 
 export default function PoliticaDeDadosPage() {
+    const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+
     const modules = [
         { id: 'write', title: 'Facillit Write' },
         { id: 'edu', title: 'Facillit Edu' },
@@ -58,8 +63,9 @@ export default function PoliticaDeDadosPage() {
                 </section>
 
                 <section className="py-12 bg-white">
-                    <div className="container mx-auto px-6 max-w-6xl flex flex-col lg:flex-row gap-12">
-                        <aside className="lg:w-1/4 self-start sticky top-28">
+                    <div className="container mx-auto px-6 max-w-6xl flex flex-col lg:flex-row gap-8 lg:gap-12">
+                        {/* --- BARRA LATERAL PARA TELAS GRANDES --- */}
+                        <aside className="hidden lg:block lg:w-1/4 self-start sticky top-28">
                             <h3 className="font-bold text-lg mb-4">Navegue pelos Módulos</h3>
                             <ul className="space-y-2">
                                 {modules.map(module => (
@@ -70,6 +76,28 @@ export default function PoliticaDeDadosPage() {
                             </ul>
                         </aside>
 
+                        {/* --- MENU DROPDOWN PARA TELAS PEQUENAS (MOBILE) --- */}
+                        <div className="lg:hidden mb-4">
+                            <button 
+                                onClick={() => setMobileMenuOpen(!isMobileMenuOpen)}
+                                className="w-full flex justify-between items-center p-4 border rounded-lg font-bold text-lg"
+                            >
+                                Navegue pelos Módulos
+                                <i className={`fas fa-chevron-down transition-transform ${isMobileMenuOpen ? 'rotate-180' : ''}`}></i>
+                            </button>
+                            {isMobileMenuOpen && (
+                                <nav className="mt-2 border rounded-lg p-4">
+                                    <ul className="space-y-2">
+                                        {modules.map(module => (
+                                            <li key={module.id}>
+                                                <a href={`#${module.id}`} onClick={() => setMobileMenuOpen(false)} className="block p-2 rounded-md text-text-muted hover:bg-gray-100 hover:text-royal-blue font-medium transition-colors">{module.title}</a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </nav>
+                            )}
+                        </div>
+                        
                         <div className="lg:w-3/4 prose lg:prose-xl max-w-none space-y-12 text-text-muted">
                             
                             <ModulePolicySection id="write" title="Facillit Write" content={
