@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import CreateTestModal from './CreateTestModal';
-import TestDetailView from './TestDetailView'; // Importa a nova view
-import { getTestWithQuestions } from '../actions'; // Importa a nova action
+import TestDetailView from './TestDetailView';
+import { getTestWithQuestions } from '../actions';
 import type { Test, TestWithQuestions } from '../actions';
 
 type Props = {
@@ -13,7 +13,6 @@ type Props = {
 export default function TeacherTestDashboard({ initialTests }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tests] = useState(initialTests);
-
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
   const [selectedTest, setSelectedTest] = useState<TestWithQuestions | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -23,11 +22,12 @@ export default function TeacherTestDashboard({ initialTests }: Props) {
     const { data, error } = await getTestWithQuestions(testId);
     if (error) {
       alert("Erro ao carregar detalhes da avaliação: " + error);
+      setIsLoading(false);
     } else if (data) {
       setSelectedTest(data);
       setCurrentView('detail');
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleBackToList = () => {
@@ -36,7 +36,7 @@ export default function TeacherTestDashboard({ initialTests }: Props) {
   };
 
   if (isLoading) {
-    return <div>Carregando...</div>;
+    return <div className="text-center p-8">Carregando...</div>;
   }
   
   if (currentView === 'detail' && selectedTest) {
@@ -59,32 +59,39 @@ export default function TeacherTestDashboard({ initialTests }: Props) {
       
       <p className="text-text-muted dark:text-gray-400 mb-6">Crie, atribua e analise o desempenho de suas turmas.</p>
       
-      <div className="bg-white dark:bg-dark-card rounded-lg shadow p-4">
-        <h2 className="text-xl font-bold mb-4 px-2 text-dark-text dark:text-white">Minhas Avaliações</h2>
-        <ul className="divide-y dark:divide-gray-700">
-          {tests.length > 0 ? tests.map(test => (
-            <li 
-              key={test.id} 
-              className="p-4 flex justify-between items-center"
-            >
-              <div 
-                className="cursor-pointer hover:underline"
-                onClick={() => handleViewDetails(test.id)}
-              >
-                <p className="font-bold text-dark-text dark:text-white">{test.title}</p>
+      <div>
+        <h2 className="text-xl font-bold mb-4 text-dark-text dark:text-white">Minhas Avaliações</h2>
+        {tests.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {tests.map(test => (
+                    <div key={test.id} className="bg-white dark:bg-dark-card rounded-lg shadow p-5 flex flex-col">
+                        <h3 
+                            className="font-bold text-lg text-dark-text dark:text-white cursor-pointer hover:underline"
+                            onClick={() => handleViewDetails(test.id)}
+                        >
+                            {test.title}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1 flex-grow">
+                            {test.description || 'Nenhuma descrição fornecida.'}
+                        </p>
+                        <div className="text-xs text-gray-400 mt-4">
+                            Criado em {new Date(test.created_at).toLocaleDateString('pt-BR')}
+                        </div>
+                        <div className="mt-4 border-t dark:border-gray-700 pt-3 flex justify-end gap-3">
+                            <button onClick={() => handleViewDetails(test.id)} className="text-royal-blue hover:underline text-sm font-semibold">Ver Detalhes</button>
+                            <button onClick={() => alert("Função de excluir em desenvolvimento.")} className="text-red-500 hover:underline text-sm font-semibold">Excluir</button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        ) : (
+            <div className="p-8 text-center border-2 border-dashed rounded-lg bg-white dark:bg-dark-card">
+                <h2 className="text-xl font-bold mb-2">Nenhuma avaliação criada</h2>
                 <p className="text-sm text-gray-500">
-                  Criado em {new Date(test.created_at).toLocaleDateString('pt-BR')}
+                    Clique em "Nova Avaliação" para começar.
                 </p>
-              </div>
-              <div className="space-x-2">
-                <button onClick={() => alert("Função de editar em desenvolvimento.")} className="text-blue-500 hover:underline text-sm">Editar</button>
-                <button onClick={() => alert("Função de excluir em desenvolvimento.")} className="text-red-500 hover:underline text-sm">Excluir</button>
-              </div>
-            </li>
-          )) : (
-            <p className="p-4 text-center text-gray-500">Nenhuma avaliação criada ainda. Clique em "Nova Avaliação" para começar.</p>
-          )}
-        </ul>
+            </div>
+        )}
       </div>
     </div>
   );
