@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { TooltipProps } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, TooltipProps } from 'recharts';
 import AvailableTestCard from './AvailableTestCard';
 import AttemptView from './AttemptView';
 
@@ -49,11 +48,7 @@ const ActionCard = ({ title, description, icon, actionText, onClick }: { title: 
     </div>
 );
 
-// ==================================================================
-// CORREÇÃO DEFINITIVA APLICADA AQUI
-// Trocamos 'TooltipProps<number, string>' por 'any' para ignorar o tipo com defeito da biblioteca.
-// ==================================================================
-const CustomTooltip = (props: any) => {
+const CustomTooltip = (props: TooltipProps<number, string>) => {
     const { active, payload, label } = props;
 
     if (active && payload && payload.length) {
