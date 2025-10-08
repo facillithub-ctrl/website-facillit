@@ -5,10 +5,12 @@ import { useRef } from 'react';
 type Props = {
   value: string;
   onChange: (value: string) => void;
+  // NOVO: A função de upload agora é uma propriedade obrigatória
+  onImageUpload: (file: File) => Promise<string | null>;
   placeholder?: string;
 };
 
-// Componente da barra de ferramentas
+// Componente da barra de ferramentas (permanece o mesmo)
 const Toolbar = ({ editorRef, onImageUpload }: { editorRef: React.RefObject<HTMLDivElement>, onImageUpload: (file: File) => Promise<string | null> }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -25,12 +27,12 @@ const Toolbar = ({ editorRef, onImageUpload }: { editorRef: React.RefObject<HTML
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Executa a função de upload recebida por props
     const imageUrl = await onImageUpload(file);
     if (imageUrl) {
       editorRef.current?.focus();
       document.execCommand('insertHTML', false, `<img src="${imageUrl}" alt="Imagem da questão" class="max-w-full rounded-md my-2" />`);
     }
-    // Reseta o input para permitir o upload da mesma imagem novamente
     if(fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -47,7 +49,7 @@ const Toolbar = ({ editorRef, onImageUpload }: { editorRef: React.RefObject<HTML
 
 
 // Componente principal do Editor
-export default function RichTextEditor({ value, onChange, placeholder }: Props) {
+export default function RichTextEditor({ value, onChange, onImageUpload, placeholder }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
 
   const handleInput = () => {
@@ -55,17 +57,11 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
       onChange(editorRef.current.innerHTML);
     }
   };
-  
-  // A função de upload será passada por props
-  const handleImageUpload = async (file: File): Promise<string | null> => {
-      // Placeholder: A lógica de upload real ficará no componente pai (QuestionEditor)
-      console.log("Upload de imagem acionado no editor:", file.name);
-      return null; 
-  };
 
   return (
     <div className="border rounded-md dark:border-gray-600">
-      <Toolbar editorRef={editorRef} onImageUpload={handleImageUpload} />
+      {/* Passa a função de upload diretamente para a Toolbar */}
+      <Toolbar editorRef={editorRef} onImageUpload={onImageUpload} />
       <div
         ref={editorRef}
         contentEditable

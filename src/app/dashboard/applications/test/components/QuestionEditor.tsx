@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import RichTextEditor from './RichTextEditor'; // Importa o novo editor
-import createClient from '@/utils/supabase/client'; // Importa o cliente Supabase
+import RichTextEditor from './RichTextEditor';
+import createClient from '@/utils/supabase/client';
 
-// Tipos de dados (permanecem os mesmos)
+// Tipos de dados
 type QuestionContent = {
-  statement: string; // Agora armazena HTML
-  image_url?: string | null; // URL da imagem do enunciado
+  statement: string;
+  image_url?: string | null;
   options?: string[];
   correct_option?: number;
 };
@@ -61,10 +61,11 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
   // Lógica de upload de imagem para o enunciado
   const handleImageUpload = async (file: File): Promise<string | null> => {
     setIsUploading(true);
-    const filePath = `question-images/${Date.now()}-${file.name}`;
+    // Cria um nome de arquivo único para evitar conflitos
+    const filePath = `question-images/${crypto.randomUUID()}-${file.name}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('tests') // Você pode precisar criar este bucket no seu Supabase
+      .from('tests') // Lembre-se de criar o bucket "tests" no seu Supabase Storage
       .upload(filePath, file);
 
     if (uploadError) {
@@ -76,11 +77,11 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
     const { data } = supabase.storage.from('tests').getPublicUrl(filePath);
     const newImageUrl = data.publicUrl;
 
-    // Atualiza o estado da questão com a URL da imagem
+    // Salva a URL da imagem no estado da questão para referência, se necessário
     handleContentChange('image_url', newImageUrl);
 
     setIsUploading(false);
-    return newImageUrl;
+    return newImageUrl; // Retorna a URL para o RichTextEditor inserir no conteúdo
   };
 
   return (
@@ -98,30 +99,15 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
           <i className="fas fa-trash-alt mr-1"></i> Remover
         </button>
       </div>
-
-      {/* NOVO: Input para imagem do enunciado */}
-      <div>
-        <label className="block text-sm font-medium mb-1">Imagem do Enunciado (Opcional)</label>
-        <input 
-          type="file"
-          accept="image/*"
-          onChange={(e) => e.target.files && handleImageUpload(e.target.files[0])}
-          disabled={isUploading}
-          className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-royal-blue hover:file:bg-blue-100"
-        />
-        {isUploading && <p className="text-xs text-blue-500 mt-1">Enviando...</p>}
-        {question.content.image_url && (
-          <div className="mt-2">
-            <Image src={question.content.image_url} alt="Preview da imagem da questão" width={200} height={100} className="rounded-md object-cover" />
-          </div>
-        )}
-      </div>
-
-      {/* Substitui o textarea pelo RichTextEditor */}
+      
+      {isUploading && <p className="text-xs text-blue-500">Enviando imagem...</p>}
+      
       <RichTextEditor
         value={question.content.statement}
         onChange={(value) => handleContentChange('statement', value)}
         placeholder="Digite o enunciado da questão aqui..."
+        // Passa a função de upload para o editor
+        onImageUpload={handleImageUpload}
       />
 
       {question.question_type === 'multiple_choice' && (
@@ -137,7 +123,7 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
                     onChange={() => handleContentChange('correct_option', index)}
                     className="form-radio text-royal-blue"
                 />
-                 {String.fromCharCode(65 + index)}) {/* Converte 0, 1, 2... para A, B, C... */}
+                 {String.fromCharCode(65 + index)})
                </label>
               <input
                 type="text"

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from 'react';
-import type { Test } from '../actions';
-import QuestionEditor, { type Question } from './QuestionEditor'; // Importa o novo componente
+import QuestionEditor, { type Question } from './QuestionEditor';
+import { createOrUpdateTest } from '../actions'; // Importa a action
 
 type Props = {
   onClose: () => void;
@@ -34,11 +34,20 @@ export default function CreateTestModal({ onClose }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!title) {
+        alert("O título da avaliação é obrigatório.");
+        return;
+    }
+
     startTransition(async () => {
-      const testData = { title, description, questions };
-      console.log("Salvando avaliação com questões:", testData);
-      alert("Funcionalidade de salvar em desenvolvimento.");
-      onClose();
+      const result = await createOrUpdateTest({ title, description, questions });
+      
+      if (result.error) {
+        alert(`Erro ao salvar: ${result.error}`);
+      } else {
+        alert("Avaliação criada com sucesso!");
+        onClose();
+      }
     });
   };
 
