@@ -3,7 +3,7 @@
 import createSupabaseServerClient from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-// --- TIPOS ---
+// --- (Tipos existentes permanecem os mesmos) ---
 export type QuestionContent = {
   statement: string;
   image_url?: string | null;
@@ -44,8 +44,7 @@ export type TestAttempt = {
   status: 'in_progress' | 'completed' | 'graded';
 };
 
-
-// --- FUNÇÕES DO PROFESSOR ---
+// --- (Funções do Professor existentes permanecem as mesmas) ---
 
 export async function createOrUpdateTest(testData: { title: string; description: string | null; questions: Omit<Question, 'id' | 'test_id'>[], is_public: boolean }) {
   const supabase = await createSupabaseServerClient();
@@ -127,8 +126,7 @@ export async function getTestWithQuestions(testId: string): Promise<{ data: Test
     return { data, error: null };
 }
 
-
-// --- FUNÇÕES DO ALUNO ---
+// --- (Funções do Aluno existentes) ---
 
 export async function getAvailableTestsForStudent() {
     const supabase = await createSupabaseServerClient();
@@ -268,4 +266,87 @@ export async function submitTestAttempt(
 
     revalidatePath('/dashboard/applications/test');
     return { data };
+}
+
+export async function getLatestTestAttemptForDashboard() {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { data: null, error: 'Usuário não autenticado.' };
+
+  const { data, error } = await supabase
+    .from('test_attempts')
+    .select('score, tests ( title )')
+    .eq('student_id', user.id)
+    .eq('status', 'graded')
+    .order('completed_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    return { data: null, error: error.message };
+  }
+
+  return { data };
+}
+
+
+// =============================================================================
+// == NOVAS FUNÇÕES ADICIONADAS ================================================
+// =============================================================================
+
+export async function getQuickTest() {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: "Usuário não autenticado." };
+
+    // Esta é uma RPC (Remote Procedure Call) no Supabase que busca 10 questões aleatórias.
+    // Você precisará criar essa função no seu banco de dados Supabase.
+    const { data, error } = await supabase.rpc('get_random_questions', { p_limit: 10 });
+    
+    if (error) {
+        console.error("Erro ao buscar teste rápido:", error);
+        return { data: null, error: "Não foi possível carregar as questões para o teste rápido." };
+    }
+
+    // Criamos um objeto de "Test" simulado para a interface
+    const quickTest: TestWithQuestions = {
+        id: 'quick-test',
+        title: 'Teste Rápido',
+        description: '10 questões aleatórias para testar seus conhecimentos.',
+        created_by: 'system',
+        created_at: new Date().toISOString(),
+        duration_minutes: 15,
+        questions: data
+    };
+
+    return { data: quickTest, error: null };
+}
+
+export async function getStudentResultsHistory() {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'Usuário não autenticado.' };
+
+    const { data, error } = await supabase
+        .from('test_attempts')
+        .select(`
+            id,
+            completed_at,
+            score,
+            tests (
+                title,
+                subject,
+                questions ( count )
+            )
+        `)
+        .eq('student_id', user.id)
+        .eq('status', 'graded')
+        .order('completed_at', { ascending: false });
+
+    if (error) {
+        console.error("Erro ao buscar histórico de resultados:", error);
+        return { data: null, error: error.message };
+    }
+    
+    return { data, error: null };
 }

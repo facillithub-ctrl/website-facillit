@@ -72,7 +72,9 @@ export default function Sidebar({ userProfile, isMobileOpen, setIsMobileOpen, is
         className={`fixed lg:relative top-0 left-0 h-full text-white p-4 flex flex-col z-40 transition-all duration-300
           ${isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'}
           lg:translate-x-0 ${isDesktopCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
-        style={{ background: 'linear-gradient(180deg, #1a237e, #2e14ed, #4a148c)' }}
+        style={{ background: 'linear-gradient(180deg, #2E14ED, #190894, #5E55F9)' }}
+
+
       >
         <div className="flex items-center justify-between mb-8 h-8">
             <div className={`flex items-center gap-3 ${isDesktopCollapsed ? 'lg:justify-center lg:w-full' : ''}`}>

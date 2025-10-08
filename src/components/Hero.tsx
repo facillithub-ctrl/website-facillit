@@ -97,7 +97,7 @@ export default function Hero() {
       <section 
         id="hero" 
         className="relative min-h-screen flex flex-col justify-center items-center text-center text-white p-5 overflow-hidden"
-        style={{ background: 'linear-gradient(45deg, #1a237e, #2e14ed, #4a148c)' }}
+        style={{ background: 'linear-gradient(135deg, #2E14ED 0%, #190894 50%, #5E55F9 100%)' }}
       >
         <Particles
           id="tsparticles"

@@ -12,8 +12,9 @@ import {
 } from "recharts";
 import AvailableTestCard from "./AvailableTestCard";
 import AttemptView from "./AttemptView";
-import TestDetailView from "./TestDetailView"; // Importado para ver detalhes
-import { getTestWithQuestions, type TestWithQuestions } from '../actions'; // Importado
+import TestDetailView from "./TestDetailView";
+import ResultsView from "./ResultsView";
+import { getTestWithQuestions, type TestWithQuestions, getQuickTest, getStudentResultsHistory } from '../actions';
 
 // --- TIPOS ---
 type TestCardInfo = {
@@ -30,9 +31,9 @@ type TestCardInfo = {
 type PerformanceData = { materia: string; nota: number; simulados: number };
 
 type RecentAttempt = {
-  tests: { title: string; subject: string | null }[];
+  tests: { title: string; subject: string | null }[] | null;
   completed_at: string;
-  score: number;
+  score: number | null;
 };
 
 type DashboardData = {
@@ -44,9 +45,21 @@ type DashboardData = {
   performanceBySubject: PerformanceData[];
   recentAttempts: RecentAttempt[];
 };
+
+type AttemptHistory = {
+  id: string;
+  completed_at: string | null;
+  score: number | null;
+  tests: {
+    title: string | null;
+    subject: string | null;
+    questions: { count: number }[] | null;
+  } | null;
+};
+
 type Props = { dashboardData: DashboardData | null; availableTests: TestCardInfo[] };
 
-// ... (Restante dos subcomponentes StatCard, ActionCard, etc. permanecem iguais)
+// --- SUB-COMPONENTES (sem alterações) ---
 const subjectColors: { [key: string]: string } = {
   Matemática: "#8b5cf6",
   Física: "#ec4899",
@@ -66,19 +79,7 @@ const StatCard = ({ title, value, icon }: { title: string; value: string | numbe
     </div>
   </div>
 );
-const ActionCard = ({
-  title,
-  description,
-  icon,
-  actionText,
-  onClick,
-}: {
-  title: string;
-  description: string;
-  icon: string;
-  actionText: string;
-  onClick: () => void;
-}) => (
+const ActionCard = ({ title, description, icon, actionText, onClick }: { title: string; description: string; icon: string; actionText: string; onClick: () => void;}) => (
   <div className="glass-card p-4 flex items-center gap-4">
     <div className="bg-royal-blue/10 text-royal-blue w-12 h-12 flex items-center justify-center rounded-lg text-xl">
       <i className={`fas ${icon}`}></i>
@@ -92,16 +93,8 @@ const ActionCard = ({
     </div>
   </div>
 );
-type CustomTooltipPayloadItem = {
-  value?: number | string;
-  name?: string;
-  payload?: PerformanceData | Record<string, unknown>;
-};
-type CustomTooltipProps = {
-  active?: boolean;
-  label?: string | number;
-  payload?: CustomTooltipPayloadItem[];
-};
+type CustomTooltipPayloadItem = { value?: number | string; name?: string; payload?: PerformanceData | Record<string, unknown>; };
+type CustomTooltipProps = { active?: boolean; label?: string | number; payload?: CustomTooltipPayloadItem[]; };
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const first = payload[0];
@@ -119,21 +112,19 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
   return null;
 };
 const PerformanceChart = ({ data }: { data: PerformanceData[] }) => (
-  <div className="glass-card p-6 h-[320px]">
-    <h3 className="font-bold mb-4 text-dark-text dark:text-white">Performance por Matéria</h3>
-    <ResponsiveContainer width="100%" height="90%">
-      <BarChart data={data} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
-        <XAxis type="number" hide domain={[0, 100]} />
-        <YAxis type="category" dataKey="materia" axisLine={false} tickLine={false} width={80} tick={{ fill: "#a0a0a0" }} />
-        <Tooltip cursor={{ fill: "rgba(255, 255, 255, 0.1)" }} content={<CustomTooltip />} />
-        <Bar dataKey="nota" barSize={16} radius={[0, 10, 10, 0]}>
-          {data.map((entry) => (
-            <Cell key={`cell-${entry.materia}`} fill={subjectColors[entry.materia] || subjectColors.Default} />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  </div>
+    <div className="glass-card p-6 h-[320px]">
+        <h3 className="font-bold mb-4 text-dark-text dark:text-white">Performance por Matéria</h3>
+        <ResponsiveContainer width="100%" height="90%">
+            <BarChart data={data} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
+                <XAxis type="number" hide domain={[0, 100]} />
+                <YAxis type="category" dataKey="materia" axisLine={false} tickLine={false} width={80} tick={{ fill: "#a0a0a0" }} />
+                <Tooltip cursor={{ fill: "rgba(255, 255, 255, 0.1)" }} content={<CustomTooltip />} />
+                <Bar dataKey="nota" barSize={16} radius={[0, 10, 10, 0]}>
+                {data.map((entry) => (<Cell key={`cell-${entry.materia}`} fill={subjectColors[entry.materia] || subjectColors.Default} />))}
+                </Bar>
+            </BarChart>
+        </ResponsiveContainer>
+    </div>
 );
 const RecentTests = ({ data }: { data: RecentAttempt[] }) => {
   const getIconForSubject = (subject: string | null) => {
@@ -149,7 +140,7 @@ const RecentTests = ({ data }: { data: RecentAttempt[] }) => {
       <h3 className="font-bold mb-4 text-dark-text dark:text-white">Últimos Simulados</h3>
       <div className="space-y-3">
         {data.map((simulado, i) => {
-          const test = simulado.tests && simulado.tests.length > 0 ? simulado.tests[0] : { title: "—", subject: null };
+           const test = simulado.tests ? (Array.isArray(simulado.tests) ? simulado.tests[0] : simulado.tests) : { title: "Teste Rápido", subject: null };
           return (
             <div key={i} className={`p-3 rounded-lg flex items-center justify-between bg-white/10`}>
               <div className="flex items-center gap-3">
@@ -160,7 +151,7 @@ const RecentTests = ({ data }: { data: RecentAttempt[] }) => {
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-bold text-lg text-lavender-blue">{simulado.score.toFixed(1)}</p>
+                <p className="font-bold text-lg text-lavender-blue">{simulado.score?.toFixed(1)}</p>
                 <p className="text-xs text-dark-text-muted">acertos</p>
               </div>
             </div>
@@ -170,7 +161,6 @@ const RecentTests = ({ data }: { data: RecentAttempt[] }) => {
     </div>
   );
 };
-
 const TestBrowser = ({ tests, onStartTest, onViewDetails }: { tests: TestCardInfo[]; onStartTest: (testId: string) => void, onViewDetails: (testId: string) => void }) => (
   <div>
     <h2 className="text-2xl font-bold text-dark-text dark:text-white mb-6">Simulados Disponíveis</h2>
@@ -184,27 +174,32 @@ const TestBrowser = ({ tests, onStartTest, onViewDetails }: { tests: TestCardInf
   </div>
 );
 
-export default function StudentTestDashboard({ dashboardData, availableTests }: Props) {
-  const [view, setView] = useState<"dashboard" | "browse" | "attempt" | "detail">("dashboard");
-  const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
-  const [selectedTestDetails, setSelectedTestDetails] = useState<TestWithQuestions | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleStartTest = (testId: string) => {
-    setSelectedTestId(testId);
+// --- COMPONENTE PRINCIPAL ---
+export default function StudentTestDashboard({ dashboardData, availableTests }: Props) {
+  const [view, setView] = useState<"dashboard" | "browse" | "attempt" | "detail" | "results">("dashboard");
+  const [selectedTest, setSelectedTest] = useState<TestWithQuestions | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [resultsHistory, setResultsHistory] = useState<AttemptHistory[]>([]);
+
+  // Inicia uma tentativa
+  const handleStartTest = (testData: TestWithQuestions) => {
+    setSelectedTest(testData);
     setView("attempt");
   };
 
+  // Finaliza e volta ao dashboard
   const handleFinishAttempt = () => {
     setView("dashboard");
-    window.location.reload();
+    window.location.reload(); 
   };
-
+  
+  // Apenas visualiza os detalhes de um teste
   const handleViewDetails = async (testId: string) => {
     setIsLoading(true);
     const { data } = await getTestWithQuestions(testId);
     if (data) {
-        setSelectedTestDetails(data);
+        setSelectedTest(data);
         setView("detail");
     } else {
         alert("Não foi possível carregar os detalhes do simulado.");
@@ -212,22 +207,59 @@ export default function StudentTestDashboard({ dashboardData, availableTests }: 
     setIsLoading(false);
   };
 
-  const handleBackToList = () => {
-    setView("browse");
-    setSelectedTestDetails(null);
+  // Pega um teste da lista, carrega os dados e inicia
+  const handleInitiateTestFromBrowse = async (testId: string) => {
+    setIsLoading(true);
+    const { data } = await getTestWithQuestions(testId);
+    if (data) {
+        handleStartTest(data);
+    } else {
+        alert("Não foi possível iniciar o simulado.");
+    }
+    setIsLoading(false);
   }
+
+  // Lógica do Teste Rápido
+  const handleStartQuickTest = async () => {
+    setIsLoading(true);
+    const { data, error } = await getQuickTest();
+    if (error) {
+        alert(error);
+    } else if (data) {
+        handleStartTest(data);
+    }
+    setIsLoading(false);
+  };
+
+  // Lógica de Meus Resultados
+  const handleViewResults = async () => {
+    setIsLoading(true);
+    const { data, error } = await getStudentResultsHistory();
+    if (error) {
+        alert(error);
+    } else if (data) {
+        setResultsHistory(data as AttemptHistory[]);
+        setView("results");
+    }
+    setIsLoading(false);
+  };
+
+  const handleBackToDashboard = () => {
+    setView("dashboard");
+    setSelectedTest(null);
+  };
 
   const MainDashboard = () => (
     <>
       <h1 className="text-3xl font-bold text-dark-text dark:text-white mb-6">Meu Desempenho</h1>
       {!dashboardData ? (
-        <div className="p-8 text-center border-2 border-dashed rounded-lg glass-card">
-          <h2 className="text-xl font-bold mb-2">Comece sua jornada!</h2>
-          <p className="text-sm text-dark-text-muted mb-4">Faça seu primeiro simulado para ver suas estatísticas e acompanhar seu progresso.</p>
-          <button onClick={() => setView("browse")} className="bg-royal-blue text-white font-bold py-2 px-6 rounded-lg hover:bg-opacity-90">
-            Ver Simulados
-          </button>
-        </div>
+         <div className="p-8 text-center border-2 border-dashed rounded-lg glass-card">
+           <h2 className="text-xl font-bold mb-2">Comece sua jornada!</h2>
+           <p className="text-sm text-dark-text-muted mb-4">Faça seu primeiro simulado para ver suas estatísticas e acompanhar seu progresso.</p>
+           <button onClick={() => setView("browse")} className="bg-royal-blue text-white font-bold py-2 px-6 rounded-lg hover:bg-opacity-90">
+             Ver Simulados
+           </button>
+         </div>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -238,9 +270,9 @@ export default function StudentTestDashboard({ dashboardData, availableTests }: 
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <ActionCard title="Teste Rápido" description="10 questões • 15 minutos" icon="fa-bolt" actionText="Começar agora" onClick={() => alert("Em breve!")} />
+            <ActionCard title="Teste Rápido" description="10 questões • 15 minutos" icon="fa-bolt" actionText="Começar agora" onClick={handleStartQuickTest} />
             <ActionCard title="Praticar" description="Escolha um simulado" icon="fa-stream" actionText="Ver todos" onClick={() => setView("browse")} />
-            <ActionCard title="Meus Resultados" description="Análise detalhada" icon="fa-chart-pie" actionText="Ver relatórios" onClick={() => alert("Em breve!")} />
+            <ActionCard title="Meus Resultados" description="Análise detalhada" icon="fa-chart-pie" actionText="Ver relatórios" onClick={handleViewResults} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -260,24 +292,24 @@ export default function StudentTestDashboard({ dashboardData, availableTests }: 
       case "browse":
         return (
           <>
-            <button onClick={() => setView("dashboard")} className="text-sm font-bold text-royal-blue mb-6">
+            <button onClick={handleBackToDashboard} className="text-sm font-bold text-royal-blue mb-6">
               <i className="fas fa-arrow-left mr-2"></i> Voltar para o Dashboard
             </button>
-            <TestBrowser tests={availableTests} onStartTest={handleStartTest} onViewDetails={handleViewDetails} />
+            <TestBrowser tests={availableTests} onStartTest={handleInitiateTestFromBrowse} onViewDetails={handleViewDetails} />
           </>
         );
       case "attempt":
-        if (!selectedTestId) {
-          setView("browse");
-          return null;
+        if (!selectedTest) {
+          setView("browse"); return null;
         }
-        return <AttemptView testId={selectedTestId} onFinish={handleFinishAttempt} />;
+        return <AttemptView test={selectedTest} onFinish={handleFinishAttempt} />;
       case "detail":
-          if (!selectedTestDetails) {
-              setView("browse");
-              return null;
+          if (!selectedTest) {
+              setView("browse"); return null;
           }
-          return <TestDetailView test={selectedTestDetails} onBack={handleBackToList} />;
+          return <TestDetailView test={selectedTest} onBack={() => setView("browse")} onStartTest={handleStartTest} />;
+      case "results":
+          return <ResultsView attempts={resultsHistory} onBack={handleBackToDashboard} />;
       case "dashboard":
       default:
         return <MainDashboard />;

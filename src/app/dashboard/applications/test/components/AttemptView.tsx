@@ -1,36 +1,22 @@
 "use client";
 
-import { useEffect, useState, useTransition } from 'react';
-import { getTestWithQuestions, submitTestAttempt } from '../actions';
-import type { TestWithQuestions } from '../actions';
-import Timer from '../../write/components/Timer';
-
-type Answer = { questionId: string; answer: number | string | null };
+import { useState, useTransition, useEffect } from 'react';
+import { submitTestAttempt } from '../actions';
+import type { TestWithQuestions, StudentAnswer } from '../actions';
+import Timer from './Timer';
 
 type Props = {
-  testId: string;
+  test: TestWithQuestions; // ALTERADO: Recebe o objeto completo
   onFinish: () => void;
 };
 
-export default function AttemptView({ testId, onFinish }: Props) {
-    const [test, setTest] = useState<TestWithQuestions | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+export default function AttemptView({ test, onFinish }: Props) {
     const [isSubmitting, startSubmitTransition] = useTransition();
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [answers, setAnswers] = useState<Answer[]>([]);
-
-    useEffect(() => {
-        const fetchTest = async () => {
-            setIsLoading(true);
-            const { data } = await getTestWithQuestions(testId);
-            if (data) {
-                setTest(data);
-                setAnswers(data.questions.map(q => ({ questionId: q.id, answer: null })));
-            }
-            setIsLoading(false);
-        };
-        fetchTest();
-    }, [testId]);
+    // Inicializa as respostas com base no teste recebido
+    const [answers, setAnswers] = useState<StudentAnswer[]>(
+        test.questions.map(q => ({ questionId: q.id, answer: null }))
+    );
 
     const handleAnswerChange = (questionId: string, answer: number | string) => {
         setAnswers(currentAnswers =>
@@ -43,8 +29,6 @@ export default function AttemptView({ testId, onFinish }: Props) {
 
         if (confirm("Tem certeza que deseja finalizar e enviar suas respostas?")) {
             startSubmitTransition(async () => {
-                // LÓGICA ATUALIZADA: Envia apenas o ID do teste e as respostas.
-                // O cálculo da nota é feito de forma segura no servidor.
                 const result = await submitTestAttempt({
                     test_id: test.id,
                     answers: answers,
@@ -60,7 +44,6 @@ export default function AttemptView({ testId, onFinish }: Props) {
         }
     };
     
-    if (isLoading) return <div className="text-center p-8 glass-card">Carregando simulado...</div>;
     if (!test) return <div className="text-center p-8 glass-card">Erro ao carregar simulado. Tente novamente.</div>;
 
     const currentQuestion = test.questions[currentQuestionIndex];

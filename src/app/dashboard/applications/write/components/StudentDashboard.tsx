@@ -10,19 +10,16 @@ import StatisticsWidget from './StatisticsWidget';
 import ProgressionChart from './ProgressionChart';
 import CountdownWidget from '@/components/dashboard/CountdownWidget';
 
-// --- TIPOS E PROPS ---
-
+// --- TIPOS ---
 type Stats = {
     totalCorrections: number;
     averages: { avg_final_grade: number; avg_c1: number; avg_c2: number; avg_c3: number; avg_c4: number; avg_c5: number; };
     pointToImprove: { name: string; average: number; };
     progression: { date: string; grade: number; }[];
 } | null;
-
 type RankInfo = { rank: number | null; state: string | null; } | null;
 type FrequentError = { error_type: string; count: number };
 type CurrentEvent = { id: string; title: string; summary: string | null; link: string };
-
 type Props = {
   initialEssays: Partial<Essay>[];
   prompts: EssayPrompt[];
@@ -35,49 +32,49 @@ type Props = {
   examDate: string | null | undefined;
 };
 
-// --- WIDGETS E SUB-COMPONENTES ---
 
-const WritingStreak = ({ days }: { days: number }) => (
-    <div className="flex items-center gap-4">
-        <div className={`text-4xl ${days > 0 ? 'animate-bounce text-orange-500' : 'text-gray-400'}`}><i className="fas fa-fire"></i></div>
-        <div>
-            <h4 className="font-bold dark:text-white-text">{days > 0 ? `Você está há ${days} dia${days > 1 ? 's' : ''} escrevendo!` : 'Comece sua sequência!'}</h4>
-            <p className="text-sm text-gray-500 dark:text-dark-text-muted">{days > 0 ? 'Continue assim.' : 'Envie uma redação hoje.'}</p>
-        </div>
-    </div>
-);
+// --- SUB-COMPONENTES REESTILIZADOS ---
 
-const StateRanking = ({ rank, state }: { rank: number | null, state: string | null }) => (
-     <div className="flex items-center gap-4">
-        <div className="text-4xl text-yellow-500"><i className="fas fa-trophy"></i></div>
-        <div>
-            <h4 className="font-bold dark:text-white-text">{rank && state ? `Você está em #${rank} no ranking de ${state}!` : 'Ranking Indisponível'}</h4>
-            <p className="text-sm text-gray-500 dark:text-dark-text-muted">{rank && state ? 'Sua média está entre as melhores.' : 'Escreva para aparecer aqui.'}</p>
-        </div>
+const StatCard = ({ title, value, icon, valueDescription }: { title: string, value: string | number, icon: string, valueDescription?: string }) => (
+  <div className="glass-card p-4 flex items-center justify-between h-full">
+    <div>
+      <p className="text-sm text-dark-text-muted">{title}</p>
+      <p className="text-2xl font-bold text-dark-text dark:text-white">
+        {value} <span className="text-sm font-normal">{valueDescription}</span>
+      </p>
     </div>
+    <div className="text-3xl text-lavender-blue">
+      <i className={`fas ${icon}`}></i>
+    </div>
+  </div>
 );
 
 const ActionShortcuts = () => (
-    <div>
-        <h4 className="font-bold mb-3 dark:text-white-text text-center">Atalhos</h4>
+    <div className="glass-card p-6 h-full">
+        <h3 className="font-bold mb-3 dark:text-white-text">Atalhos</h3>
         <div className="space-y-2">
-            <Link href="/dashboard/applications/test" className="flex items-center gap-3 p-2 rounded-md hover:bg-black/10">
-                <i className="fas fa-file-alt w-5 text-center text-royal-blue"></i>
+            <Link href="/dashboard/applications/test" className="flex items-center gap-3 p-2 rounded-md hover:bg-black/10 transition-colors">
+                <div className="bg-royal-blue/10 text-royal-blue w-8 h-8 flex items-center justify-center rounded-lg text-sm">
+                    <i className="fas fa-spell-check"></i>
+                </div>
                 <span className="text-sm font-medium dark:text-gray-200">Testar gramática</span>
             </Link>
-             <Link href="/dashboard/applications/day" className="flex items-center gap-3 p-2 rounded-md hover:bg-black/10">
-                <i className="fas fa-calendar-check w-5 text-center text-royal-blue"></i>
+             <Link href="/dashboard/applications/day" className="flex items-center gap-3 p-2 rounded-md hover:bg-black/10 transition-colors">
+                 <div className="bg-royal-blue/10 text-royal-blue w-8 h-8 flex items-center justify-center rounded-lg text-sm">
+                    <i className="fas fa-calendar-check"></i>
+                </div>
                 <span className="text-sm font-medium dark:text-gray-200">Agendar redação</span>
             </Link>
-             <Link href="/dashboard/applications/library" className="flex items-center gap-3 p-2 rounded-md hover:bg-black/10">
-                <i className="fas fa-book-open w-5 text-center text-royal-blue"></i>
+             <Link href="/dashboard/applications/library" className="flex items-center gap-3 p-2 rounded-md hover:bg-black/10 transition-colors">
+                 <div className="bg-royal-blue/10 text-royal-blue w-8 h-8 flex items-center justify-center rounded-lg text-sm">
+                    <i className="fas fa-book-open"></i>
+                </div>
                 <span className="text-sm font-medium dark:text-gray-200">Ver argumentos</span>
             </Link>
         </div>
     </div>
 );
 
-// NOVO WIDGET para usar a prop 'currentEvents'
 const CurrentEventsWidget = ({ events }: { events: CurrentEvent[] }) => (
     <div className="glass-card p-6 h-full flex flex-col">
         <h3 className="font-bold text-lg mb-4 dark:text-white">Fique por Dentro</h3>
@@ -148,19 +145,27 @@ export default function StudentDashboard({ initialEssays, prompts, statistics, s
       </div>
       
       {/* --- LINHA SUPERIOR DE CARDS --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-        <div className="glass-card p-6">
-          <CountdownWidget targetExam={targetExam} examDate={examDate} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="lg:col-span-1">
+            <StatCard 
+                title="Sequência de Escrita" 
+                value={streak} 
+                valueDescription={`dia${streak === 1 ? '' : 's'}`} 
+                icon="fa-fire" 
+            />
         </div>
-
-        <div className="glass-card p-6 lg:col-span-2 flex flex-col justify-center space-y-4">
-            <WritingStreak days={streak} />
-            <hr className="border-white/20"/>
-            <StateRanking rank={rankInfo?.rank ?? null} state={rankInfo?.state ?? null} />
+        <div className="lg:col-span-1">
+            <StatCard 
+                title="Ranking Estadual" 
+                value={rankInfo?.rank ? `#${rankInfo.rank}` : 'N/A'}
+                valueDescription={rankInfo?.state || ''}
+                icon="fa-trophy" 
+            />
         </div>
-
-        <div className="glass-card p-6">
-            <ActionShortcuts />
+        <div className="lg:col-span-2">
+            <div className="glass-card p-6 h-full">
+                <CountdownWidget targetExam={targetExam} examDate={examDate} />
+            </div>
         </div>
       </div>
 
@@ -209,9 +214,12 @@ export default function StudentDashboard({ initialEssays, prompts, statistics, s
                 </ul>
             </div>
         </div>
-        <div className="lg:col-span-1">
-             <h2 className="text-2xl font-bold text-dark-text dark:text-white-text mb-4">Notícias</h2>
-             <CurrentEventsWidget events={currentEvents} />
+        <div className="lg:col-span-1 flex flex-col">
+             <h2 className="text-2xl font-bold text-dark-text dark:text-white-text mb-4">Atalhos e Notícias</h2>
+             <div className="flex-grow grid grid-rows-2 gap-6">
+                <ActionShortcuts />
+                <CurrentEventsWidget events={currentEvents} />
+             </div>
         </div>
       </div>
 
