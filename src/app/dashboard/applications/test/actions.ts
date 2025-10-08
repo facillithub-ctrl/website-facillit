@@ -32,9 +32,7 @@ export type TestWithQuestions = {
 };
 
 export type Test = Omit<TestWithQuestions, 'questions'>;
-
 export type StudentAnswer = { questionId: string, answer: number | string | null };
-
 export type TestAttempt = {
   id: string;
   test_id: string;
@@ -144,11 +142,10 @@ export async function getAvailableTestsForStudent(filters: { category?: string }
         .select(`
             id, title, subject, duration_minutes, difficulty, points,
             questions ( count ),
-            test_attempts!left(student_id)
+            test_attempts ( score, student_id )
         `)
         .eq('is_public', true)
-        .eq('is_knowledge_test', false) // Apenas simulados normais
-        .eq('test_attempts.student_id', user.id); // Traz a tentativa se existir para o filtro
+        .eq('is_knowledge_test', false);
 
     if (filters.category && filters.category !== 'Todos') {
         query = query.eq('subject', filters.category);
@@ -162,7 +159,12 @@ export async function getAvailableTestsForStudent(filters: { category?: string }
     }
 
     const formattedData = data.map(test => {
-        const hasAttempted = test.test_attempts.length > 0;
+        const hasAttempted = test.test_attempts.some(attempt => attempt.student_id === user.id);
+        const total_attempts = test.test_attempts.length;
+        const avg_score = total_attempts > 0
+            ? test.test_attempts.reduce((acc, curr) => acc + (curr.score || 0), 0) / total_attempts
+            : 0;
+
         return {
             id: test.id,
             title: test.title,
@@ -171,7 +173,9 @@ export async function getAvailableTestsForStudent(filters: { category?: string }
             duration_minutes: test.duration_minutes || 60,
             difficulty: test.difficulty || 'Médio',
             points: test.points || 0,
-            hasAttempted, // Informa a UI se o teste já foi feito
+            avg_score,
+            total_attempts,
+            hasAttempted,
         };
     });
 
@@ -266,7 +270,6 @@ export async function submitTestAttempt(
     return { data };
 }
 
-// RESTAURADA
 export async function getLatestTestAttemptForDashboard() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -339,5 +342,23 @@ export async function getStudentResultsHistory() {
 }
 
 export async function getQuickTest() {
-    // ... (implementação existente)
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.rpc('get_random_questions', { p_limit: 10 });
+    
+    if (error) {
+        console.error("Erro ao buscar teste rápido:", error);
+        return { data: null, error: "Não foi possível carregar as questões para o teste rápido." };
+    }
+
+    const quickTest: TestWithQuestions = {
+        id: 'quick-test',
+        title: 'Teste Rápido',
+        description: '10 questões aleatórias para testar seus conhecimentos.',
+        created_by: 'system',
+        created_at: new Date().toISOString(),
+        duration_minutes: 15,
+        questions: data
+    };
+
+    return { data: quickTest, error: null };
 }

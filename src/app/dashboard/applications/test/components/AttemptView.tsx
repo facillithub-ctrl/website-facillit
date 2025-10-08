@@ -1,22 +1,23 @@
 "use client";
 
 import { useState, useTransition, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { submitTestAttempt } from '../actions';
 import type { TestWithQuestions, StudentAnswer } from '../actions';
 import Timer from './Timer';
 
 type Props = {
-  test: TestWithQuestions; // ALTERADO: Recebe o objeto completo
+  test: TestWithQuestions;
   onFinish: () => void;
 };
 
 export default function AttemptView({ test, onFinish }: Props) {
     const [isSubmitting, startSubmitTransition] = useTransition();
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    // Inicializa as respostas com base no teste recebido
     const [answers, setAnswers] = useState<StudentAnswer[]>(
         test.questions.map(q => ({ questionId: q.id, answer: null }))
     );
+    const router = useRouter();
 
     const handleAnswerChange = (questionId: string, answer: number | string) => {
         setAnswers(currentAnswers =>
@@ -37,14 +38,33 @@ export default function AttemptView({ test, onFinish }: Props) {
                 if (result.error) {
                     alert(`Erro ao enviar: ${result.error}`);
                 } else {
-                    alert("Simulado enviado com sucesso!");
-                    onFinish();
+                    // LÓGICA CORRIGIDA: Redirecionamento direto para a tela de escrita
+                    if (test.is_knowledge_test && test.related_prompt_id) {
+                        if (confirm("Parabéns! Você concluiu o teste.\nAcha que consegue escrever uma redação sobre esse tema?")) {
+                            // Navega para a página do Write, passando o ID do tema para abrir o editor diretamente
+                            router.push(`/dashboard/applications/write?promptId=${test.related_prompt_id}`);
+                        } else {
+                            onFinish();
+                        }
+                    } else {
+                        alert("Simulado enviado com sucesso!");
+                        onFinish();
+                    }
                 }
             });
         }
     };
     
-    if (!test) return <div className="text-center p-8 glass-card">Erro ao carregar simulado. Tente novamente.</div>;
+    if (!test || !test.questions || test.questions.length === 0) {
+        return (
+            <div className="text-center p-8 glass-card">
+                <p>Erro: O simulado não pôde ser carregado ou não contém questões.</p>
+                <button onClick={onFinish} className="mt-4 bg-royal-blue text-white font-bold py-2 px-4 rounded-lg">
+                    Voltar
+                </button>
+            </div>
+        );
+    }
 
     const currentQuestion = test.questions[currentQuestionIndex];
     const currentAnswer = answers.find(a => a.questionId === currentQuestion.id)?.answer;

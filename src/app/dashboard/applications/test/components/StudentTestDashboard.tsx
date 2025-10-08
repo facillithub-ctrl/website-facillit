@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
 } from "recharts";
 import AvailableTestCard from "./AvailableTestCard";
 import AttemptView from "./AttemptView";
@@ -12,7 +12,8 @@ import {
     getTestWithQuestions, 
     type TestWithQuestions, 
     getQuickTest, 
-    getStudentResultsHistory 
+    getStudentResultsHistory,
+    getKnowledgeTestsForDashboard
 } from '../actions';
 
 // --- TIPOS ---
@@ -22,7 +23,10 @@ type TestCardInfo = {
   subject: string | null;
   question_count: number;
   duration_minutes: number;
-  difficulty: "Fácil" | "Médio" | "Difícil";
+  difficulty: 'Fácil' | 'Médio' | 'Difícil';
+  avg_score: number;
+  total_attempts: number;
+  points: number;
   hasAttempted: boolean;
 };
 
@@ -83,7 +87,7 @@ const StatCard = ({ title, value, icon }: { title: string; value: string | numbe
     </div>
 );
 
-const ActionCard = ({ title, description, icon, actionText, onClick, }: { title: string; description: string; icon: string; actionText: string; onClick: () => void;}) => (
+const ActionCard = ({ title, description, icon, actionText, onClick }: { title: string; description: string; icon: string; actionText: string; onClick: () => void;}) => (
     <div className="glass-card p-4 flex items-center gap-4">
       <div className="bg-royal-blue/10 text-royal-blue w-12 h-12 flex items-center justify-center rounded-lg text-xl">
         <i className={`fas ${icon}`}></i>
@@ -151,11 +155,42 @@ const TestBrowser = ({ initialTests, onStartTest, onViewDetails }: { initialTest
     );
 };
 
-const RecentTests = ({ data }: { data: RecentAttempt[] }) => {
-    //... (código sem alteração)
+const subjectColors: { [key: string]: string } = {
+    Matemática: "#8b5cf6", Física: "#ec4899", Química: "#3b82f6", Biologia: "#22c55e", Português: "#f97316", Default: "#6b7280",
 };
-const PerformanceChart = ({ data }: { data: PerformanceData[] }) => {
-    //... (código sem alteração)
+const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const notaStr = typeof data.nota === "number" ? data.nota.toFixed(1) : "0";
+    return ( <div className="p-2 rounded-lg" style={{ backgroundColor: "#1A1A1D", border: "1px solid #2c2c31" }}><p className="text-sm font-bold" style={{ color: "#f8f9fa" }}>{`${label}`}</p><p className="text-xs" style={{ color: "#a0a0a0" }}>{`Acerto Médio: ${notaStr}% • ${data.simulados ?? 0} simulados`}</p></div> );
+  }
+  return null;
+};
+const PerformanceChart = ({ data }: { data: PerformanceData[] }) => (
+    <div className="glass-card p-6 h-[320px] lg:col-span-5">
+        <h3 className="font-bold mb-4 text-dark-text dark:text-white">Performance por Matéria</h3>
+        <ResponsiveContainer width="100%" height="90%">
+            <BarChart data={data} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
+                <XAxis type="number" hide domain={[0, 100]} /><YAxis type="category" dataKey="materia" axisLine={false} tickLine={false} width={80} tick={{ fill: "#a0a0a0" }} />
+                <Tooltip cursor={{ fill: "rgba(255, 255, 255, 0.1)" }} content={<CustomTooltip />} />
+                <Bar dataKey="nota" barSize={16} radius={[0, 10, 10, 0]}>{data.map((entry) => (<Cell key={`cell-${entry.materia}`} fill={subjectColors[entry.materia] || subjectColors.Default} />))}</Bar>
+            </BarChart>
+        </ResponsiveContainer>
+    </div>
+);
+const RecentTests = ({ data }: { data: RecentAttempt[] }) => {
+  const getIconForSubject = (subject: string | null) => {
+    switch (subject) { case "Matemática": return "∫"; case "Física": return "⚡️"; case "Química": return "⚗️"; default: return "📝"; }
+  };
+  return (
+    <div className="glass-card p-6 lg:col-span-3">
+      <h3 className="font-bold mb-4 text-dark-text dark:text-white">Últimos Simulados</h3>
+      <div className="space-y-3">{data.map((simulado, i) => { const test = simulado.tests ? (Array.isArray(simulado.tests) ? simulado.tests[0] : simulado.tests) : { title: "Teste Rápido", subject: null };
+          return (<div key={i} className={`p-3 rounded-lg flex items-center justify-between bg-white/10`}><div className="flex items-center gap-3"><div className="text-xl">{getIconForSubject(test.subject)}</div><div><p className="font-semibold text-sm text-dark-text dark:text-white">{test.title}</p><p className="text-xs text-dark-text-muted">{new Date(simulado.completed_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</p></div></div><div className="text-right"><p className="font-bold text-lg text-lavender-blue">{simulado.score?.toFixed(1)}</p><p className="text-xs text-dark-text-muted">acertos</p></div></div> );
+        })}
+      </div>
+    </div>
+  );
 };
 
 // --- COMPONENTE PRINCIPAL ---
@@ -253,15 +288,9 @@ export default function StudentTestDashboard({ dashboardData, initialAvailableTe
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <div className="lg:col-span-3">
-              {dashboardData.recentAttempts?.length > 0 && <RecentTests data={dashboardData.recentAttempts} />}
-            </div>
-            <div className="lg:col-span-2">
-              {knowledgeTests.length > 0 && <KnowledgeTestWidget test={knowledgeTests[0]} onStart={handleInitiateTestFromBrowse} />}
-            </div>
-            <div className="lg:col-span-5">
-              {dashboardData.performanceBySubject?.length > 0 && <PerformanceChart data={dashboardData.performanceBySubject} />}
-            </div>
+            {dashboardData.recentAttempts?.length > 0 && <RecentTests data={dashboardData.recentAttempts} />}
+            {knowledgeTests.length > 0 && <div className="lg:col-span-2"><KnowledgeTestWidget test={knowledgeTests[0]} onStart={handleInitiateTestFromBrowse} /></div>}
+            {dashboardData.performanceBySubject?.length > 0 && <PerformanceChart data={dashboardData.performanceBySubject} />}
           </div>
         </>
       )}

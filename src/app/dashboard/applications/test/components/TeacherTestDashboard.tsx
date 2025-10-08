@@ -34,13 +34,16 @@ export default function TeacherTestDashboard({ initialTests }: Props) {
     setSelectedTest(null);
     setCurrentView('list');
   };
+  
+  // Função dummy para prop, já que o professor não inicia o teste.
+  const handleStartTest = () => {};
 
   if (isLoading) {
     return <div className="text-center p-8">Carregando...</div>;
   }
   
   if (currentView === 'detail' && selectedTest) {
-    return <TestDetailView test={selectedTest} onBack={handleBackToList} />;
+    return <TestDetailView test={selectedTest} onBack={handleBackToList} onStartTest={handleStartTest} />;
   }
 
   return (
@@ -65,12 +68,21 @@ export default function TeacherTestDashboard({ initialTests }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {tests.map(test => (
                     <div key={test.id} className="bg-white dark:bg-dark-card rounded-lg shadow p-5 flex flex-col">
-                        <h3 
-                            className="font-bold text-lg text-dark-text dark:text-white cursor-pointer hover:underline"
-                            onClick={() => handleViewDetails(test.id)}
-                        >
-                            {test.title}
-                        </h3>
+                        <div className="flex items-start justify-between">
+                            <h3 
+                                className="font-bold text-lg text-dark-text dark:text-white cursor-pointer hover:underline pr-2"
+                                onClick={() => handleViewDetails(test.id)}
+                            >
+                                {test.title}
+                            </h3>
+                            {/* TAG PARA TESTE DE CONHECIMENTO */}
+                            {test.is_knowledge_test && (
+                                <span className="text-xs font-semibold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full flex-shrink-0">
+                                    Conhecimento
+                                </span>
+                            )}
+                        </div>
+
                         <p className="text-sm text-gray-500 mt-1 flex-grow">
                             {test.description || 'Nenhuma descrição fornecida.'}
                         </p>
