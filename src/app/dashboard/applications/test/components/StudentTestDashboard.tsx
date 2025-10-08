@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 import AvailableTestCard from "./AvailableTestCard";
 import AttemptView from "./AttemptView";
@@ -179,12 +179,11 @@ export default function StudentTestDashboard({ dashboardData, initialAvailableTe
     if (error) {
         alert(error);
     } else if (data) {
-        // CORREÇÃO: Mapeia os dados para garantir a conformidade com o tipo `AttemptHistory`
         const mappedData = data.map(attempt => ({
             ...attempt,
             tests: Array.isArray(attempt.tests) ? attempt.tests[0] : attempt.tests,
         }));
-        setResultsHistory(mappedData as AttemptHistory[]);
+        setResultsHistory(mappedData as unknown as AttemptHistory[]);
         setView("results");
     }
     setIsLoading(false);
@@ -218,7 +217,7 @@ export default function StudentTestDashboard({ dashboardData, initialAvailableTe
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             {dashboardData.recentAttempts?.length > 0 && <RecentTests data={dashboardData.recentAttempts} />}
-            {knowledgeTests.length > 0 && <div className="lg:col-span-2"><KnowledgeTestWidget test={knowledgeTests[0]} onStart={handleInitiateTestFromBrowse} /></div>}
+            {knowledgeTests && knowledgeTests.length > 0 && <div className="lg:col-span-2"><KnowledgeTestWidget test={knowledgeTests[0]} onStart={handleInitiateTestFromBrowse} /></div>}
             {dashboardData.performanceBySubject?.length > 0 && <PerformanceChart data={dashboardData.performanceBySubject} />}
           </div>
         </>
