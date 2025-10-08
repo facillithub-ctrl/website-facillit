@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, TooltipProps } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import AvailableTestCard from './AvailableTestCard';
 import AttemptView from './AttemptView';
 
@@ -11,6 +12,13 @@ type PerformanceData = { materia: string; nota: number; simulados: number };
 type RecentAttempt = { tests: { title: string; subject: string | null; }; completed_at: string; score: number };
 type DashboardData = { stats: { simuladosFeitos: number; mediaGeral: number; taxaAcerto: number; }; performanceBySubject: PerformanceData[]; recentAttempts: RecentAttempt[]; };
 type Props = { dashboardData: DashboardData | null; availableTests: TestCardInfo[]; };
+
+// Tipos para o CustomTooltip
+type CustomTooltipProps = {
+  active?: boolean;
+  payload?: { payload: PerformanceData }[];
+  label?: string;
+};
 
 const subjectColors: { [key: string]: string } = { 'Matemática': '#8b5cf6', 'Física': '#ec4899', 'Química': '#3b82f6', 'Biologia': '#22c55e', 'Português': '#f97316', 'Default': '#6b7280' };
 
@@ -40,8 +48,8 @@ const ActionCard = ({ title, description, icon, actionText, onClick }: { title: 
     </div>
 );
 
-// Tooltip customizado para evitar o erro de 'style' e usar tipos corretos
-const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+// Tooltip customizado com tipos explícitos para garantir a compilação
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
         return (

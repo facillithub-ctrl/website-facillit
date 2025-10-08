@@ -1,45 +1,61 @@
-import createSupabaseServerClient from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
+import { getStudentTestDashboardData, getTeacherTests, getAvailableTests } from './actions';
+import createClient from '@/utils/supabase/server';
 import StudentTestDashboard from './components/StudentTestDashboard';
 import TeacherTestDashboard from './components/TeacherTestDashboard';
-import { getTestsForTeacher, getStudentTestDashboardData, getAvailableTestsForStudent } from './actions';
 
 export default async function TestPage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    redirect('/login');
+    return redirect('/login');
   }
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('user_category')
+    .select('role')
     .eq('id', user.id)
     .single();
 
   if (!profile) {
-    redirect('/login');
+    // Adicionado um retorno mais claro para o caso de perfil não encontrado
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-center p-8 border rounded-lg shadow-md">
+          <h1 className="text-2xl font-bold mb-4">Perfil não encontrado</h1>
+          <p>Não conseguimos encontrar seu perfil. Por favor, tente fazer login novamente ou contate o suporte.</p>
+        </div>
+      </div>
+    );
   }
 
-  // ROTA PARA ALUNO
-  if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
-    const { data: dashboardData } = await getStudentTestDashboardData();
-    const { data: availableTests } = await getAvailableTestsForStudent();
+  if (profile.role === 'student') {
+    // Busca os dados em paralelo para otimizar o carregamento
+    const [dashboardResult, availableTestsResult] = await Promise.all([
+      getStudentTestDashboardData(),
+      getAvailableTests()
+    ]);
+
+    const { data: dashboardData, error: dashboardError } = dashboardResult;
+    const { data: availableTests, error: availableTestsError } = availableTestsResult;
     
-    return <StudentTestDashboard dashboardData={dashboardData} availableTests={availableTests || []} />;
+    // Mesmo se houver um erro no dashboard, a página deve carregar se houver testes disponíveis
+    if (availableTestsError && !availableTests) {
+       return <div>Erro ao carregar os testes disponíveis. Tente novamente mais tarde.</div>;
+    }
+
+    // Passa os dados para o componente, mesmo que `dashboardData` seja nulo por conta de um erro
+    return <StudentTestDashboard dashboardData={dashboardData || null} availableTests={availableTests || []} />;
   }
 
-  // ROTA PARA PROFESSOR
-  if (['professor', 'gestor', 'administrator'].includes(profile.user_category || '')) {
-    const { data: teacherTests } = await getTestsForTeacher();
-    return <TeacherTestDashboard initialTests={teacherTests || []} />;
+  if (profile.role === 'teacher') {
+    const { data: tests, error } = await getTeacherTests();
+    if (error) {
+      return <div>Erro ao carregar as avaliações: {error}</div>;
+    }
+    return <TeacherTestDashboard initialTests={tests || []} />;
   }
 
-  return (
-    <div>
-        <h1 className="text-2xl font-bold">Módulo de Testes</h1>
-        <p>Seu perfil não tem acesso a este módulo no momento.</p>
-    </div>
-  );
+  return <div>Tipo de usuário desconhecido.</div>;
 }
