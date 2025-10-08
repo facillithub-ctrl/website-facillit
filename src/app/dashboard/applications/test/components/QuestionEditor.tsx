@@ -1,7 +1,6 @@
-// src/app/dashboard/applications/test/components/QuestionEditor.tsx
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import RichTextEditor from './RichTextEditor';
 import createClient from '@/utils/supabase/client';
 
@@ -34,8 +33,6 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
     setLocalQuestion(question);
   }, [question]);
 
-  const hasUnsavedChanges = JSON.stringify(localQuestion) !== JSON.stringify(question);
-
   const handleContentChange = (field: keyof QuestionContent, value: any) => {
     setLocalQuestion(prev => ({
       ...prev,
@@ -51,10 +48,6 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
   
   const handleSaveChanges = () => {
     onUpdate(localQuestion);
-  };
-
-  const handleDiscardChanges = () => {
-    setLocalQuestion(question);
   };
 
   const addOption = () => {
@@ -79,7 +72,7 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
         }
     };
     setLocalQuestion(updatedQuestion);
-    onUpdate(updatedQuestion); // Atualiza imediatamente ao remover
+    onUpdate(updatedQuestion);
   };
 
   const handleImageUpload = async (file: File): Promise<string | null> => {
@@ -97,7 +90,6 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
     const { data } = supabase.storage.from('tests').getPublicUrl(filePath);
     const newImageUrl = data.publicUrl;
     
-    // Atualiza o estado local e chama a função onUpdate para salvar
     const updatedQuestion = { ...localQuestion, content: { ...localQuestion.content, image_url: newImageUrl } };
     setLocalQuestion(updatedQuestion);
     onUpdate(updatedQuestion);
@@ -115,7 +107,7 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
               const newType = e.target.value as Question['question_type'];
               const updatedQuestion = { ...localQuestion, question_type: newType };
               setLocalQuestion(updatedQuestion);
-              onUpdate(updatedQuestion); // Salva a alteração de tipo
+              onUpdate(updatedQuestion);
           }}
           className="font-bold p-1 border rounded-md dark:bg-gray-800 dark:border-gray-600"
         >
@@ -134,7 +126,7 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
         onChange={(value) => handleContentChange('statement', value)}
         placeholder="Digite o enunciado da questão aqui..."
         onImageUpload={handleImageUpload}
-        onBlur={handleSaveChanges} // Salva ao perder o foco do editor
+        onBlur={handleSaveChanges}
       />
 
       {localQuestion.question_type === 'multiple_choice' && (
@@ -148,9 +140,9 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
                     name={`correct_option_${question.id}`}
                     checked={localQuestion.content.correct_option === index}
                     onChange={() => {
-                        handleContentChange('correct_option', index);
-                        // Salva imediatamente ao mudar a resposta correta
-                        onUpdate({ ...localQuestion, content: { ...localQuestion.content, correct_option: index } });
+                        const updatedQuestion = { ...localQuestion, content: { ...localQuestion.content, correct_option: index }};
+                        setLocalQuestion(updatedQuestion);
+                        onUpdate(updatedQuestion);
                     }}
                     className="form-radio h-4 w-4 text-royal-blue focus:ring-royal-blue"
                 />
@@ -161,7 +153,7 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
                 placeholder={`Texto da alternativa ${String.fromCharCode(65 + index)}`}
                 value={option}
                 onChange={(e) => handleOptionChange(index, e.target.value)}
-                onBlur={handleSaveChanges} // Salva ao perder o foco do input
+                onBlur={handleSaveChanges}
                 className="flex-grow p-2 border rounded-md text-sm dark:bg-gray-800 dark:border-gray-600"
               />
               <button type="button" onClick={() => removeOption(index)} className="text-gray-500 hover:text-red-500 text-xs">

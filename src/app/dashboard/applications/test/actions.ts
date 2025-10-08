@@ -52,6 +52,8 @@ export async function createOrUpdateTest(testData: { title: string; description:
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Usuário não autenticado.' };
 
+  const totalPoints = testData.questions.reduce((sum, q) => sum + (q.points || 0), 0);
+
   const { data: testResult, error: testError } = await supabase
     .from('tests')
     .insert({
@@ -59,11 +61,10 @@ export async function createOrUpdateTest(testData: { title: string; description:
       description: testData.description,
       created_by: user.id,
       is_public: testData.is_public,
-      // TODO: Adicionar campos para 'subject', 'difficulty', etc. no modal de criação
       subject: 'Geral',
       difficulty: 'Médio',
       duration_minutes: 60,
-      points: testData.questions.reduce((sum, q) => sum + q.points, 0)
+      points: totalPoints
     })
     .select()
     .single();
@@ -83,7 +84,6 @@ export async function createOrUpdateTest(testData: { title: string; description:
     const { error: questionsError } = await supabase.from('questions').insert(questionsToInsert);
     if (questionsError) {
       console.error("Erro ao salvar questões:", questionsError);
-      // Rollback: deleta o teste se as questões falharem
       await supabase.from('tests').delete().eq('id', testResult.id);
       return { error: `Erro ao salvar questões: ${questionsError.message}` };
     }
@@ -132,7 +132,6 @@ export async function getTestWithQuestions(testId: string): Promise<{ data: Test
 
 export async function getAvailableTestsForStudent() {
     const supabase = await createSupabaseServerClient();
-
     const { data, error } = await supabase
         .from('tests')
         .select(`
@@ -168,7 +167,7 @@ export async function getAvailableTestsForStudent() {
             duration_minutes: test.duration_minutes || 60,
             difficulty: test.difficulty || 'Médio',
             points: test.points || 0,
-            avg_score: avg_score / 10, // Converte para escala 0-10
+            avg_score: avg_score / 10,
             total_attempts: total_attempts,
         };
     });
@@ -214,9 +213,6 @@ export async function getStudentTestDashboardData() {
     };
 }
 
-/**
- * Salva a tentativa do aluno, calculando a nota de forma segura no servidor.
- */
 export async function submitTestAttempt(
   { test_id, answers }: { test_id: string; answers: StudentAnswer[]; }
 ) {
@@ -224,7 +220,6 @@ export async function submitTestAttempt(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Usuário não autenticado.' };
   
-    // 1. Buscar as questões e respostas corretas do teste do banco de dados
     const { data: test, error: testError } = await supabase
       .from('tests')
       .select('questions (id, question_type, content, points)')
@@ -236,40 +231,37 @@ export async function submitTestAttempt(
       return { error: 'Não foi possível encontrar o simulado para correção.' };
     }
 
-    // 2. Calcular a pontuação de forma segura no servidor
     let score = 0;
-    const totalPoints = test.questions.reduce((acc, q) => acc + q.points, 0);
+    const totalPoints = test.questions.reduce((acc, q) => acc + (q.points || 0), 0);
     
     for (const question of test.questions) {
       const studentAnswer = answers.find(a => a.questionId === question.id);
 
       if (studentAnswer && question.question_type === 'multiple_choice') {
-        // Compara a resposta do aluno com a resposta correta vinda do banco de dados
-        if (studentAnswer.answer === question.content.correct_option) {
-          score += question.points;
+        const correctOption = (question.content as QuestionContent).correct_option;
+        
+        if (studentAnswer.answer === correctOption) {
+          score += question.points || 0;
         }
       }
-      // Futuramente, a lógica para questões dissertativas pode ser adicionada aqui
     }
 
     const finalPercentage = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
 
-    // 3. Inserir a tentativa do aluno com a nota já calculada
     const { data, error } = await supabase
       .from('test_attempts')
       .insert({
         test_id: test_id,
         student_id: user.id,
-        answers: answers, // Armazena as respostas do aluno
-        score: finalPercentage, // Armazena a pontuação calculada
-        status: 'graded', // Define o status como 'corrigido'
+        answers: answers,
+        score: finalPercentage,
+        status: 'graded',
         completed_at: new Date().toISOString()
       })
       .select()
       .single();
   
     if (error) {
-        // Log detalhado do erro no servidor
         console.error('Erro do Supabase ao salvar tentativa:', error);
         return { error: `Erro ao salvar tentativa: ${error.message}` };
     }
