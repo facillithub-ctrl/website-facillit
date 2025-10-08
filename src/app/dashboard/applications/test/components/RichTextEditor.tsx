@@ -10,7 +10,7 @@ type Props = {
   placeholder?: string;
 };
 
-const Toolbar = ({ editorRef, onImageUpload }: { editorRef: React.RefObject<HTMLDivElement>, onImageUpload: (file: File) => Promise<string | null> }) => {
+const Toolbar = ({ editorRef, onImageUpload }: { editorRef: React.RefObject<HTMLDivElement | null>, onImageUpload: (file: File) => Promise<string | null> }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const applyFormat = (command: string) => {
