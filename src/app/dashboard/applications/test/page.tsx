@@ -2,7 +2,7 @@ import createSupabaseServerClient from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import StudentTestDashboard from './components/StudentTestDashboard';
 import TeacherTestDashboard from './components/TeacherTestDashboard';
-import { getTestsForTeacher } from './actions'; // Importa a nova função
+import { getTestsForTeacher, getTestsForStudent } from './actions'; // Importa ambas as funções
 
 export default async function TestPage() {
   const supabase = await createSupabaseServerClient();
@@ -22,14 +22,14 @@ export default async function TestPage() {
     redirect('/login');
   }
 
-  // Renderiza a dashboard apropriada com base no perfil do usuário
+  // Rota para Aluno: Busca os testes públicos
   if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
-    // Para o aluno, por enquanto, não buscamos nenhum teste
-    return <StudentTestDashboard initialTests={[]} />;
+    const { data: studentTests } = await getTestsForStudent();
+    return <StudentTestDashboard initialTests={studentTests || []} />;
   }
 
+  // Rota para Professor/Gestor: Busca os testes criados por ele
   if (['professor', 'gestor', 'administrator'].includes(profile.user_category || '')) {
-    // Busca os testes criados pelo professor/gestor
     const { data: teacherTests } = await getTestsForTeacher();
     return <TeacherTestDashboard initialTests={teacherTests || []} />;
   }

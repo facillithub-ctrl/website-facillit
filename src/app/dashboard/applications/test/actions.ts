@@ -44,7 +44,7 @@ export type TestAttempt = {
 };
 
 
-export async function createOrUpdateTest(testData: { title: string; description: string | null; questions: Omit<Question, 'id' | 'test_id'>[] }) {
+export async function createOrUpdateTest(testData: { title: string; description: string | null; questions: Omit<Question, 'id' | 'test_id'>[], is_public: boolean }) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -58,6 +58,7 @@ export async function createOrUpdateTest(testData: { title: string; description:
       title: testData.title,
       description: testData.description,
       created_by: user.id,
+      is_public: testData.is_public, // Adicionado campo para definir se o teste é público
     })
     .select()
     .single();
@@ -81,6 +82,8 @@ export async function createOrUpdateTest(testData: { title: string; description:
 
     if (questionsError) {
       console.error('Erro ao salvar questões:', questionsError);
+      // Opcional: deletar o teste se as questões falharem
+      await supabase.from('tests').delete().eq('id', testResult.id);
       return { error: `Erro ao salvar as questões: ${questionsError.message}` };
     }
   }
@@ -98,7 +101,7 @@ export async function getTestsForTeacher() {
 
   const { data, error } = await supabase
     .from('tests')
-    .select('*') // Alterado de '*, questions(*)' para '*'
+    .select('*') 
     .eq('created_by', user.id)
     .order('created_at', { ascending: false });
   
@@ -110,7 +113,7 @@ export async function getTestsForTeacher() {
   return { data, error: null };
 }
 
-// NOVO: Busca um único teste com todas as suas questões
+// NOVO E CORRIGIDO: Busca um único teste com todas as suas questões
 export async function getTestWithQuestions(testId: string): Promise<{ data: TestWithQuestions | null, error: string | null }> {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -120,7 +123,6 @@ export async function getTestWithQuestions(testId: string): Promise<{ data: Test
         .from('tests')
         .select('*, questions(*)')
         .eq('id', testId)
-        .eq('created_by', user.id) // Garante que o professor só possa ver o seu próprio teste
         .single();
 
     if (error) {
@@ -131,9 +133,27 @@ export async function getTestWithQuestions(testId: string): Promise<{ data: Test
     return { data, error: null };
 }
 
+// CORRIGIDO: Agora busca os testes públicos para os alunos
 export async function getTestsForStudent() {
-  return { data: [], error: null };
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { data: null, error: "Usuário não autenticado." };
+
+  // Busca todos os testes que estão marcados como públicos e inclui o nome do professor
+  const { data, error } = await supabase
+    .from('tests')
+    .select('id, title, description, created_at, profiles (full_name)')
+    .eq('is_public', true)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("Erro ao buscar testes para aluno:", error);
+    return { data: null, error: error.message };
+  }
+
+  return { data, error: null };
 }
+
 
 export async function submitTestAttempt(attemptData: Partial<TestAttempt>) {
   return { data: null, error: "Função não implementada." };
