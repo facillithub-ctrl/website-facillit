@@ -79,7 +79,7 @@ export default function TeacherTestDashboard({ initialTests }: Props) {
                         </div>
                         <div className="mt-4 border-t dark:border-gray-700 pt-3 flex justify-end gap-3">
                             <button onClick={() => handleViewDetails(test.id)} className="text-royal-blue hover:underline text-sm font-semibold">Ver Detalhes</button>
-                            <button onClick={() => alert("Função de excluir em desenvolvimento.")} className="text-red-500 hover:underline text-sm font-semibold">Excluir</button>
+                            <button onClick={() => alert('Função de excluir em desenvolvimento.')} className="text-red-500 hover:underline text-sm font-semibold">Excluir</button>
                         </div>
                     </div>
                 ))}
@@ -88,7 +88,7 @@ export default function TeacherTestDashboard({ initialTests }: Props) {
             <div className="p-8 text-center border-2 border-dashed rounded-lg bg-white dark:bg-dark-card">
                 <h2 className="text-xl font-bold mb-2">Nenhuma avaliação criada</h2>
                 <p className="text-sm text-gray-500">
-                    Clique em "Nova Avaliação" para começar.
+                    Clique em &quot;Nova Avaliação&quot; para começar.
                 </p>
             </div>
         )}
