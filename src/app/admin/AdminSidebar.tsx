@@ -8,7 +8,7 @@ const adminModules = [
     { name: 'Visão Geral', href: '/admin', icon: 'fa-tachometer-alt' },
     { name: 'Write', href: '/admin/write', icon: 'fa-pencil-alt' },
     { name: 'Task', href: '/admin/task', icon: 'fa-tasks', disabled: true },
-    { name: 'Test', href: '/admin/test', icon: 'fa-file-alt', disabled: true },
+    { name: 'Test', href: '/admin/test', icon: 'fa-file-alt' }, // MODIFICADO
     { name: 'Games', href: '/admin/games', icon: 'fa-gamepad', disabled: true },
 ];
 

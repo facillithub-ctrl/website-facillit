@@ -42,7 +42,7 @@ export default function ProgressionChart({ data }: Props) {
                 <h3 className="font-bold text-lg dark:text-white mb-4">Plano de Prática</h3>
                 {/* O 'bg-black/10' foi removido para eliminar a sobreposição */}
                 <div className="h-full flex items-center justify-center text-center rounded-lg p-4">
-                    <p className="text-sm text-gray-300 dark:text-gray-300">
+                    <p className="text-sm text-black dark:text-gray-300">
                         Em breve, você verá aqui sugestões de temas e exercícios com base nos seus resultados para praticar e evoluir ainda mais.
                     </p>
                 </div>
