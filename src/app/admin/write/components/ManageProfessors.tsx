@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateUserVerification } from '../../actions';
 import { VerificationBadge } from '@/components/VerificationBadge';
+import { useToast } from '@/contexts/ToastContext'; // 1. Importar o hook
 
 type Professor = { 
   id: string; 
@@ -11,11 +12,11 @@ type Professor = {
   verification_badge: string | null;
 };
 
-// --- NOVO SUB-COMPONENTE PARA A LINHA DA TABELA ---
 const ProfessorRow = ({ professor }: { professor: Professor }) => {
     const [selectedBadge, setSelectedBadge] = useState(professor.verification_badge || 'none');
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
+    const { addToast } = useToast(); // 2. Inicializar o hook
 
     const hasChanged = selectedBadge !== (professor.verification_badge || 'none');
 
@@ -25,9 +26,11 @@ const ProfessorRow = ({ professor }: { professor: Professor }) => {
             const result = await updateUserVerification(professor.id, newBadge);
 
             if (result.error) {
-                alert(`Erro ao atualizar professor: ${result.error}`);
+                // 3. Substituir alert por addToast
+                addToast({ title: "Erro ao Atualizar", message: `Não foi possível atualizar o professor: ${result.error}`, type: 'error' });
                 setSelectedBadge(professor.verification_badge || 'none');
             } else {
+                addToast({ title: "Sucesso!", message: "O selo do professor foi atualizado.", type: 'success' });
                 router.refresh();
             }
         });

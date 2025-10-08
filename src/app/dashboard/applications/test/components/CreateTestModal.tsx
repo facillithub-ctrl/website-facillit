@@ -57,11 +57,11 @@ export default function CreateTestModal({ onClose }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title) {
-      addToast({ message: "O título da avaliação é obrigatório.", type: 'error' });
+      addToast({ title: "Campo Obrigatório", message: "O título da avaliação é obrigatório.", type: 'error' });
       return;
     }
     if (isKnowledgeTest && !selectedPrompt) {
-        addToast({ message: "Para um 'Teste de Conhecimento', você deve associar um tema de redação.", type: 'error' });
+        addToast({ title: "Ação Necessária", message: "Para um 'Teste de Conhecimento', você deve associar um tema de redação.", type: 'error' });
         return;
     }
 
@@ -76,9 +76,9 @@ export default function CreateTestModal({ onClose }: Props) {
       });
 
       if (result.error) {
-        addToast({ message: `Erro ao salvar: ${result.error}`, type: 'error' });
+        addToast({ title: "Erro ao Salvar", message: `Não foi possível criar a avaliação: ${result.error}`, type: 'error' });
       } else {
-        addToast({ message: "Avaliação criada com sucesso!", type: 'success' });
+        addToast({ title: "Sucesso!", message: "A avaliação foi criada e já está disponível.", type: 'success' });
         onClose();
       }
     });

@@ -13,7 +13,7 @@ export default function Footer() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8 text-left py-10 border-y border-gray-700">
           <div className="col-span-2 sm:col-span-3 md:col-span-1 flex justify-center md:justify-start mb-8 md:mb-0">
-             <Image src="/assets/images/LOGO/png/isologo.png" alt="Facillit Hub Isologo" width={200} height={200} />
+             <Image src="/assets/images/LOGO/png/FACILLIThub IMAGOTIPO.svg" alt="Facillit Hub Isologo" width={200} height={200} />
           </div>
           <div>
             <h5 className="font-bold text-gray-400 uppercase tracking-wider text-sm mb-4">Módulos populares</h5>

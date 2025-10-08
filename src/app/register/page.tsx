@@ -7,6 +7,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import createClient from '@/utils/supabase/client';
+import Particles, { initParticlesEngine } from "@tsparticles/react";
+import { type Container, type ISourceOptions } from "@tsparticles/engine";
+import { loadSlim } from "@tsparticles/slim";
+
 
 // --- Tipos de Dados ---
 type FormData = {
@@ -27,18 +31,13 @@ type FormData = {
     addressNeighborhood?: string;
     addressCity?: string;
     addressState?: string;
-    // Detalhes específicos da categoria
     categoryDetails?: {
-        // Aluno
         serie?: string;
-        // Professor
         subjects?: string[];
         experience?: string;
-        // Gestor/Diretor
         institutionType?: string;
-        position?: string; // Cargo
-        phone?: string; // Contato profissional
-        // Vestibulando
+        position?: string;
+        phone?: string;
         vestibularYear?: string;
         desiredCourse?: string;
     };
@@ -53,6 +52,45 @@ export default function RegisterPage() {
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const router = useRouter();
     const supabase = createClient();
+    const [init, setInit] = useState(false);
+
+    useEffect(() => {
+      initParticlesEngine(async (engine) => {
+        await loadSlim(engine);
+      }).then(() => {
+        setInit(true);
+      });
+    }, []);
+
+    const particlesLoaded = async (container?: Container): Promise<void> => {};
+
+    const options: ISourceOptions = useMemo(
+        () => ({
+          background: { color: { value: "transparent" } },
+          fpsLimit: 60,
+          interactivity: {
+            events: {
+              onClick: { enable: true, mode: "push" },
+              onHover: { enable: true, mode: "repulse" },
+            },
+            modes: {
+              push: { quantity: 4 },
+              repulse: { distance: 100, duration: 0.4 },
+            },
+          },
+          particles: {
+            color: { value: "#ffffff" },
+            links: { color: "#ffffff", distance: 150, enable: true, opacity: 0.4, width: 1 },
+            move: { direction: "none", enable: true, outModes: { default: "out" }, random: false, speed: 2, straight: false },
+            number: { density: { enable: true }, value: 80 },
+            opacity: { value: 0.5 },
+            shape: { type: "circle" },
+            size: { value: { min: 1, max: 5 } },
+          },
+          detectRetina: true,
+        }),
+        [],
+      );
 
     const handleNextStep = (nextStep: string, data: Partial<FormData> = {}) => {
         setFormData(prev => ({ ...prev, ...data }));
@@ -115,9 +153,7 @@ export default function RegisterPage() {
                     address_state: fullData.addressState,
                     category_details: fullData.categoryDetails,
                     has_agreed_to_terms: true,
-                    // Define o status de verificação para diretores/professores
                     verification_status: isDirector ? 'pending' : 'approved',
-                    // CORREÇÃO APLICADA AQUI: Onboarding sempre inicia como 'false'
                     has_completed_onboarding: false, 
                     updated_at: new Date().toISOString(),
                 });
@@ -153,18 +189,35 @@ export default function RegisterPage() {
         return steps[step] || steps['welcome'];
     };
 
+    if (!init) {
+      return <div className="min-h-screen bg-royal-blue" />;
+    }
+
     return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center" style={{ backgroundImage: "linear-gradient(135deg, #2e14ed 0%, #0c0082 100%)" }}>
-            <Link href="/" className="fixed top-6 left-6 z-10 flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg border border-white/20 backdrop-blur-sm hover:bg-white/20 transition-colors"><i className="fas fa-arrow-left"></i> Voltar</Link>
-            <div className="w-full max-w-4xl bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg flex overflow-hidden my-8">
-                <div className="hidden md:flex flex-1 items-center justify-center p-5 bg-white/20"><Image src="/assets/images/MASCOTE/criar.png" alt="Mascote Facillit Hub" width={400} height={400} priority /></div>
-                <div className="flex-1 p-8 flex flex-col"><div className="mb-8 flex justify-center"><Image src="/assets/images/LOGO/png/logoazul.svg" alt="Logo Facillit Hub" width={48} height={48} /></div><div className="flex-grow">{renderStep()}</div>{error && <p className="text-red-500 text-sm mt-4 text-center">{error}</p>}</div>
+            <Particles id="tsparticles" options={options} className="absolute inset-0 z-0" />
+            <div className="w-full max-w-4xl rounded-2xl shadow-lg flex overflow-hidden my-8 z-10">
+                <div className="hidden md:flex flex-1 items-center justify-center p-5">
+                    <Image src="/assets/images/MASCOTE/criar.png" alt="Mascote Facillit Hub" width={400} height={400} priority />
+                </div>
+                <div className="flex-1 p-8 flex flex-col bg-white animate-fade-in-right relative">
+                    <Link href="/" className="absolute top-6 right-6 z-10 flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+                        <i className="fas fa-arrow-left"></i> Tela Inicial
+                    </Link>
+                    <div className="mb-8 flex justify-center">
+                        <Image src="/assets/images/LOGO/png/logoazul.svg" alt="Logo Facillit Hub" width={48} height={48} />
+                    </div>
+                    <div className="flex-grow">
+                        {renderStep()}
+                    </div>
+                    {error && <p className="text-red-500 text-sm mt-4 text-center">{error}</p>}
+                </div>
             </div>
         </div>
     );
 }
 
-// --- Componentes de Etapa ---
+// --- Componentes de Etapa (mantidos como no código original) ---
 
 const WelcomeStep = ({ onNext }: { onNext: () => void }) => (
     <div className="text-center flex flex-col h-full justify-center">
@@ -182,13 +235,13 @@ const ProfileSelectStep = ({ onNext, onBack }: { onNext: (category: string) => v
         { key: 'aluno', label: 'Sou Aluno(a)' }, 
         { key: 'vestibulando', label: 'Sou Vestibulando(a)' },
         { key: 'professor', label: 'Sou Professor(a)' },
-        { key: 'diretor', label: 'Sou Diretor de Escola / Professor Autônomo' } // NOVO PERFIL
+        { key: 'diretor', label: 'Sou Diretor de Escola / Professor Autônomo' }
     ];
     return (
         <div className="text-center">
             <h2 className="text-2xl font-bold mb-6">Como você se identifica?</h2>
             <div className="grid grid-cols-2 gap-3">
-                {profiles.map(p => <button key={p.key} onClick={() => onNext(p.key)} className="py-4 px-2 bg-white/50 rounded-lg border hover:border-royal-blue hover:bg-white font-medium transition-all">{p.label}</button>)}
+                {profiles.map(p => <button key={p.key} onClick={() => onNext(p.key)} className="py-4 px-2 bg-gray-50 rounded-lg border hover:border-royal-blue hover:bg-white font-medium transition-all">{p.label}</button>)}
             </div>
             <button onClick={onBack} className="text-sm text-text-muted hover:text-dark-text mt-6">Voltar</button>
         </div>
@@ -212,13 +265,11 @@ const PersonalDataStep = ({ onNext, onBack }: { onNext: (data: Partial<FormData>
 };
 
 const AddressDataStep = ({ onNext, onBack }: { onNext: (data: Partial<FormData>) => void, onBack: () => void }) => {
-    // ... (Este componente pode permanecer o mesmo)
     const [address, setAddress] = useState({ street: '', neighborhood: '', city: '', state: '' });
 
     const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
         const cep = e.target.value.replace(/\D/g, '');
         if (cep.length !== 8) return;
-
         try {
             const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
             const data = await response.json();
@@ -241,12 +292,12 @@ const AddressDataStep = ({ onNext, onBack }: { onNext: (data: Partial<FormData>)
             <h3 className="text-xl font-bold text-center mb-4">Seu Endereço</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div><label htmlFor="cep" className="font-medium">CEP</label><input type="text" name="cep" onBlur={handleCepBlur} required className="w-full p-2 border rounded-md mt-1" /></div>
-                <div><label htmlFor="street" className="font-medium">Rua</label><input type="text" name="street" defaultValue={address.street} required className="w-full p-2 border rounded-md mt-1" /></div>
+                <div><label htmlFor="street" className="font-medium">Rua</label><input type="text" name="street" value={address.street} onChange={e => setAddress(a => ({...a, street: e.target.value}))} required className="w-full p-2 border rounded-md mt-1" /></div>
                 <div><label htmlFor="number" className="font-medium">Número</label><input type="text" name="number" required className="w-full p-2 border rounded-md mt-1" /></div>
                 <div><label htmlFor="complement" className="font-medium">Complemento</label><input type="text" name="complement" className="w-full p-2 border rounded-md mt-1" /></div>
-                <div><label htmlFor="neighborhood" className="font-medium">Bairro</label><input type="text" name="neighborhood" defaultValue={address.neighborhood} required className="w-full p-2 border rounded-md mt-1" /></div>
-                <div><label htmlFor="city" className="font-medium">Cidade</label><input type="text" name="city" defaultValue={address.city} required className="w-full p-2 border rounded-md mt-1" /></div>
-                <div><label htmlFor="state" className="font-medium">Estado</label><input type="text" name="state" defaultValue={address.state} required className="w-full p-2 border rounded-md mt-1" /></div>
+                <div><label htmlFor="neighborhood" className="font-medium">Bairro</label><input type="text" name="neighborhood" value={address.neighborhood} onChange={e => setAddress(a => ({...a, neighborhood: e.target.value}))} required className="w-full p-2 border rounded-md mt-1" /></div>
+                <div><label htmlFor="city" className="font-medium">Cidade</label><input type="text" name="city" value={address.city} onChange={e => setAddress(a => ({...a, city: e.target.value}))} required className="w-full p-2 border rounded-md mt-1" /></div>
+                <div><label htmlFor="state" className="font-medium">Estado</label><input type="text" name="state" value={address.state} onChange={e => setAddress(a => ({...a, state: e.target.value}))} required className="w-full p-2 border rounded-md mt-1" /></div>
             </div>
             <div className="flex justify-between items-center pt-4"><button type="button" onClick={onBack} className="text-sm text-text-muted hover:text-dark-text">Voltar</button><button type="submit" className="py-2 px-5 bg-royal-blue text-white rounded-lg font-bold">Próximo</button></div>
         </form>
@@ -254,7 +305,6 @@ const AddressDataStep = ({ onNext, onBack }: { onNext: (data: Partial<FormData>)
 };
 
 const CategoryDataStep = ({ userCategory, onNext, onBack }: { userCategory: string, onNext: (data: Partial<FormData>) => void, onBack: () => void }) => {
-    // ... (Lógica do HandleSubmit atualizada)
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const form = e.currentTarget;
@@ -273,7 +323,6 @@ const CategoryDataStep = ({ userCategory, onNext, onBack }: { userCategory: stri
         });
     };
     
-    // ATUALIZADO para incluir o novo perfil 'diretor'
     const fields = useMemo(() => {
         switch (userCategory) {
             case 'aluno': return <><div><label htmlFor="schoolName">Nome da sua Escola</label><input type="text" name="schoolName" required className="w-full p-2 border rounded-md mt-1" /></div><div><label htmlFor="serie">Série / Ano</label><select name="serie" required className="w-full p-2 border rounded-md mt-1 bg-white"><option>Não estou na escola</option><optgroup label="Ensino Fundamental">{[...Array(9)].map((_, i) => <option key={i}>{i + 1}º Ano</option>)}</optgroup><optgroup label="Ensino Médio">{[...Array(3)].map((_, i) => <option key={i}>{i + 1}º Ano</option>)}</optgroup></select></div></>;
@@ -294,7 +343,6 @@ const CategoryDataStep = ({ userCategory, onNext, onBack }: { userCategory: stri
 };
 
 const AuthStep = ({ onNext, onBack }: { onNext: (data: Partial<FormData>) => void, onBack: () => void }) => {
-    // ... (Este componente pode permanecer o mesmo)
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [passwordCriteria, setPasswordCriteria] = useState({ length: false, uppercase: false, number: false });
@@ -327,9 +375,9 @@ const AuthStep = ({ onNext, onBack }: { onNext: (data: Partial<FormData>) => voi
                 </button>
             </div>
             <div className="text-xs space-y-1 text-gray-500">
-                <p className={passwordCriteria.length ? 'text-royal-blue' : ''}>{passwordCriteria.length ? '✓' : '•'} Mínimo de 8 caracteres</p>
-                <p className={passwordCriteria.uppercase ? 'text-royal-blue' : ''}>{passwordCriteria.uppercase ? '✓' : '•'} Pelo menos uma letra maiúscula</p>
-                <p className={passwordCriteria.number ? 'text-royal-blue' : ''}>{passwordCriteria.number ? '✓' : '•'} Pelo menos um número</p>
+                <p className={passwordCriteria.length ? 'text-green-600' : ''}>{passwordCriteria.length ? '✓' : '•'} Mínimo de 8 caracteres</p>
+                <p className={passwordCriteria.uppercase ? 'text-green-600' : ''}>{passwordCriteria.uppercase ? '✓' : '•'} Pelo menos uma letra maiúscula</p>
+                <p className={passwordCriteria.number ? 'text-green-600' : ''}>{passwordCriteria.number ? '✓' : '•'} Pelo menos um número</p>
             </div>
             <div><label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">Confirme sua senha</label><input type="password" name="confirmPassword" required className="w-full p-3 border rounded-lg" /></div>
             <div className="flex justify-between items-center pt-4"><button type="button" onClick={onBack} className="text-sm text-text-muted hover:text-dark-text">Voltar</button><button type="submit" className="py-3 px-6 bg-royal-blue text-white rounded-lg font-bold">Próximo</button></div>
@@ -338,7 +386,6 @@ const AuthStep = ({ onNext, onBack }: { onNext: (data: Partial<FormData>) => voi
 };
 
 const PersonalizationStep = ({ onSubmit, onBack, isLoading, agreedToTerms, setAgreedToTerms }: { onSubmit: (data: Partial<FormData>) => void, onBack: () => void, isLoading: boolean, agreedToTerms: boolean, setAgreedToTerms: (value: boolean) => void }) => {
-    // ... (Este componente pode permanecer o mesmo)
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         onSubmit({ nickname: e.currentTarget.nickname.value, pronoun: e.currentTarget.pronoun.value });
@@ -367,45 +414,29 @@ const PersonalizationStep = ({ onSubmit, onBack, isLoading, agreedToTerms, setAg
 };
 
 const SuccessStep = () => {
-    // ... (Este componente pode permanecer o mesmo)
     const router = useRouter();
-
     const goToLogin = () => {
         router.refresh(); 
         router.push('/login');
     };
-
     return (
         <div className="text-center flex flex-col h-full justify-center">
-            <div className="mx-auto bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                <i className="fas fa-check text-3xl"></i>
-            </div>
+            <div className="mx-auto bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mb-4"><i className="fas fa-check text-3xl"></i></div>
             <h2 className="text-2xl font-bold mb-2">Conta criada com sucesso!</h2>
-            <p className="text-text-muted mb-6">
-                Enviamos um e-mail de confirmação. Por favor, verifique sua caixa de entrada para ativar sua conta antes de fazer login.
-            </p>
-            <button onClick={goToLogin} className="w-full py-3 bg-royal-blue text-white rounded-lg font-bold">
-                Ir para o Login
-            </button>
+            <p className="text-text-muted mb-6">Enviamos um e-mail de confirmação. Por favor, verifique sua caixa de entrada para ativar sua conta.</p>
+            <button onClick={goToLogin} className="w-full py-3 bg-royal-blue text-white rounded-lg font-bold">Ir para o Login</button>
         </div>
     );
 };
 
-// NOVO: Componente para a etapa de aprovação pendente
 const PendingApprovalStep = () => {
     const router = useRouter();
     return (
         <div className="text-center flex flex-col h-full justify-center">
-            <div className="mx-auto bg-blue-100 text-royal-blue w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                <i className="fas fa-hourglass-half text-3xl"></i>
-            </div>
+            <div className="mx-auto bg-blue-100 text-royal-blue w-16 h-16 rounded-full flex items-center justify-center mb-4"><i className="fas fa-hourglass-half text-3xl"></i></div>
             <h2 className="text-2xl font-bold mb-2">Cadastro Recebido!</h2>
-            <p className="text-text-muted mb-6">
-                Obrigado pelo seu interesse! Seus dados foram enviados para análise. Nossa equipe entrará em contato por e-mail em breve para os próximos passos e ativação da sua conta institucional.
-            </p>
-            <button onClick={() => router.push('/')} className="w-full py-3 bg-royal-blue text-white rounded-lg font-bold">
-                Voltar para a Página Inicial
-            </button>
+            <p className="text-text-muted mb-6">Seus dados foram enviados para análise. Nossa equipe entrará em contato por e-mail para os próximos passos.</p>
+            <button onClick={() => router.push('/')} className="w-full py-3 bg-royal-blue text-white rounded-lg font-bold">Voltar para a Página Inicial</button>
         </div>
     );
 };

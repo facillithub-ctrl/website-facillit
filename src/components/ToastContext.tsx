@@ -3,7 +3,6 @@
 import { createContext, useState, useContext, ReactNode } from 'react';
 import Toast from '@/components/Toast';
 
-// 1. Adicionamos a propriedade 'title' aqui
 type ToastMessage = {
   id: number;
   title: string;
@@ -31,12 +30,11 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      {/* Container posicionado no canto inferior central */}
       <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[2000] space-y-3">
         {toasts.map((toast) => (
           <Toast
             key={toast.id}
-            title={toast.title} // 2. Passamos o novo título para o componente
+            title={toast.title}
             message={toast.message}
             type={toast.type}
             onClose={() => removeToast(toast.id)}
@@ -47,7 +45,6 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Hook customizado para facilitar o uso
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) {

@@ -5,6 +5,7 @@ import CreateTestModal from './CreateTestModal';
 import TestDetailView from './TestDetailView';
 import { getTestWithQuestions } from '../actions';
 import type { Test, TestWithQuestions } from '../actions';
+import { useToast } from '@/contexts/ToastContext';
 
 type Props = {
   initialTests: Test[];
@@ -16,12 +17,13 @@ export default function TeacherTestDashboard({ initialTests }: Props) {
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
   const [selectedTest, setSelectedTest] = useState<TestWithQuestions | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { addToast } = useToast();
 
   const handleViewDetails = async (testId: string) => {
     setIsLoading(true);
     const { data, error } = await getTestWithQuestions(testId);
     if (error) {
-      alert("Erro ao carregar detalhes da avaliação: " + error);
+      addToast({ title: "Erro ao Carregar", message: "Não foi possível carregar os detalhes da avaliação.", type: 'error' });
       setIsLoading(false);
     } else if (data) {
       setSelectedTest(data);
@@ -35,7 +37,6 @@ export default function TeacherTestDashboard({ initialTests }: Props) {
     setCurrentView('list');
   };
   
-  // Função dummy para prop, já que o professor não inicia o teste.
   const handleStartTest = () => {};
 
   if (isLoading) {
@@ -75,7 +76,6 @@ export default function TeacherTestDashboard({ initialTests }: Props) {
                             >
                                 {test.title}
                             </h3>
-                            {/* TAG PARA TESTE DE CONHECIMENTO */}
                             {test.is_knowledge_test && (
                                 <span className="text-xs font-semibold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full flex-shrink-0">
                                     Conhecimento
@@ -91,7 +91,7 @@ export default function TeacherTestDashboard({ initialTests }: Props) {
                         </div>
                         <div className="mt-4 border-t dark:border-gray-700 pt-3 flex justify-end gap-3">
                             <button onClick={() => handleViewDetails(test.id)} className="text-royal-blue hover:underline text-sm font-semibold">Ver Detalhes</button>
-                            <button onClick={() => alert('Função de excluir em desenvolvimento.')} className="text-red-500 hover:underline text-sm font-semibold">Excluir</button>
+                            <button onClick={() => addToast({ title: "Em Breve", message: "A função de excluir ainda está em desenvolvimento.", type: 'error'})} className="text-red-500 hover:underline text-sm font-semibold">Excluir</button>
                         </div>
                     </div>
                 ))}

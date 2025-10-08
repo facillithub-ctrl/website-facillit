@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateUserVerification } from '../../actions';
 import { VerificationBadge } from '@/components/VerificationBadge';
+import { useToast } from '@/contexts/ToastContext'; // 1. Importar o hook
 
 type Student = {
     id: string;
@@ -13,13 +14,12 @@ type Student = {
     verification_badge: string | null;
 };
 
-// --- NOVO SUB-COMPONENTE PARA A LINHA DA TABELA ---
 const StudentRow = ({ student }: { student: Student }) => {
     const [selectedBadge, setSelectedBadge] = useState(student.verification_badge || 'none');
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
+    const { addToast } = useToast(); // 2. Inicializar o hook
     
-    // Verifica se a seleção atual é diferente da original
     const hasChanged = selectedBadge !== (student.verification_badge || 'none');
 
     const handleSave = () => {
@@ -28,11 +28,11 @@ const StudentRow = ({ student }: { student: Student }) => {
             const result = await updateUserVerification(student.id, newBadge);
 
             if (result.error) {
-                alert(`Erro: ${result.error}`);
-                // Reverte a alteração em caso de erro
+                // 3. Substituir alert por addToast
+                addToast({ title: "Erro ao Atualizar", message: `Não foi possível atualizar o aluno: ${result.error}`, type: 'error' });
                 setSelectedBadge(student.verification_badge || 'none');
             } else {
-                // Atualiza a página para refletir o dado salvo no banco de dados
+                addToast({ title: "Sucesso!", message: "O selo do aluno foi atualizado.", type: 'success' });
                 router.refresh();
             }
         });

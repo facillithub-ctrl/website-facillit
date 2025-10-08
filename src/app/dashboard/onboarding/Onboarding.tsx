@@ -4,33 +4,33 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import createClient from '@/utils/supabase/client';
 import type { UserProfile } from '../types';
-import Link from 'next/link'; // Importado para o link da política
+import Link from 'next/link';
+import { useToast } from '@/contexts/ToastContext';
 
 const modulesData = [
-  { slug: 'edu', icon: 'fa-graduation-cap', title: 'Facillit Edu', description: 'Gestão pedagógica e de alunos.', roles: ['aluno', 'professor', 'gestor'] },
-  { slug: 'games', icon: 'fa-gamepad', title: 'Facillit Games', description: 'Gamificação para aprender.', roles: ['aluno', 'vestibulando'] },
-  { slug: 'write', icon: 'fa-pencil-alt', title: 'Facillit Write', description: 'Enviar e corrigir redações.', roles: ['aluno', 'professor', 'vestibulando'] },
-  { slug: 'day', icon: 'fa-calendar-check', title: 'Facillit Day', description: 'Agenda, tarefas e hábitos.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
-  { slug: 'play', icon: 'fa-play-circle', title: 'Facillit Play', description: 'Streaming educacional.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
-  { slug: 'library', icon: 'fa-book-open', title: 'Facillit Library', description: 'Biblioteca e portfólios.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
-  { slug: 'connect', icon: 'fa-users', title: 'Facillit Connect', description: 'Rede social de estudos.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
-  { slug: 'coach-career', icon: 'fa-bullseye', title: 'Facillit Coach', description: 'Soft skills e orientação de carreira.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
-  { slug: 'lab', icon: 'fa-flask', title: 'Facillit Lab', description: 'Laboratório virtual de STEM.', roles: ['aluno', 'professor', 'vestibulando'] },
-  { slug: 'test', icon: 'fa-file-alt', title: 'Facillit Test', description: 'Simulados, quizzes e provas.', roles: ['aluno', 'professor', 'vestibulando'] },
-  { slug: 'task', icon: 'fa-tasks', title: 'Facillit Task', description: 'Gestão de tarefas gerais.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
-  { slug: 'create', icon: 'fa-lightbulb', title: 'Facillit Create', description: 'Mapas mentais e gráficos.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
+    { slug: 'edu', icon: 'fa-graduation-cap', title: 'Facillit Edu', description: 'Gestão pedagógica e de alunos.', roles: ['aluno', 'professor', 'gestor'] },
+    { slug: 'games', icon: 'fa-gamepad', title: 'Facillit Games', description: 'Gamificação para aprender.', roles: ['aluno', 'vestibulando'] },
+    { slug: 'write', icon: 'fa-pencil-alt', title: 'Facillit Write', description: 'Enviar e corrigir redações.', roles: ['aluno', 'professor', 'vestibulando'] },
+    { slug: 'day', icon: 'fa-calendar-check', title: 'Facillit Day', description: 'Agenda, tarefas e hábitos.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
+    { slug: 'play', icon: 'fa-play-circle', title: 'Facillit Play', description: 'Streaming educacional.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
+    { slug: 'library', icon: 'fa-book-open', title: 'Facillit Library', description: 'Biblioteca e portfólios.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
+    { slug: 'connect', icon: 'fa-users', title: 'Facillit Connect', description: 'Rede social de estudos.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
+    { slug: 'coach-career', icon: 'fa-bullseye', title: 'Facillit Coach', description: 'Soft skills e orientação de carreira.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
+    { slug: 'lab', icon: 'fa-flask', title: 'Facillit Lab', description: 'Laboratório virtual de STEM.', roles: ['aluno', 'professor', 'vestibulando'] },
+    { slug: 'test', icon: 'fa-file-alt', title: 'Facillit Test', description: 'Simulados, quizzes e provas.', roles: ['aluno', 'professor', 'vestibulando'] },
+    { slug: 'task', icon: 'fa-tasks', title: 'Facillit Task', description: 'Gestão de tarefas gerais.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
+    { slug: 'create', icon: 'fa-lightbulb', title: 'Facillit Create', description: 'Mapas mentais e gráficos.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
 ];
 
 export default function Onboarding({ userProfile }: { userProfile: UserProfile }) {
     const supabase = createClient();
     const router = useRouter();
-    // MODIFICADO: 'test' incluído como módulo inicial
     const [selectedModules, setSelectedModules] = useState<string[]>(['write', 'test']);
     const [agreedToModuleTerms, setAgreedToModuleTerms] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const { addToast } = useToast();
 
     const toggleModule = (slug: string) => {
-        // MODIFICADO: Permite selecionar 'write' ou 'test'
         const selectableModules = ['write', 'test'];
         if (!selectableModules.includes(slug)) return;
         
@@ -53,13 +53,13 @@ export default function Onboarding({ userProfile }: { userProfile: UserProfile }
                 .eq('id', user.id);
 
             if (!error) {
-                // Força a atualização da página para carregar o layout do dashboard
                 window.location.assign('/dashboard');
             } else {
-                console.error("Erro ao salvar módulos:", error);
+                addToast({ title: "Erro ao Salvar", message: "Não foi possível salvar sua seleção. Tente novamente.", type: 'error'});
                 setIsLoading(false);
             }
         } else {
+            addToast({ title: "Erro de Autenticação", message: "Usuário não encontrado. Por favor, faça login novamente.", type: 'error'});
             setIsLoading(false);
         }
     };
@@ -68,7 +68,6 @@ export default function Onboarding({ userProfile }: { userProfile: UserProfile }
         userProfile.userCategory && module.roles.includes(userProfile.userCategory)
     );
 
-    // MODIFICADO: Condição agora verifica se o módulo 'write' está selecionado
     const isContinueDisabled = isLoading || !selectedModules.includes('write') || !agreedToModuleTerms;
 
     return (
@@ -78,7 +77,6 @@ export default function Onboarding({ userProfile }: { userProfile: UserProfile }
                 <p className="text-text-muted mb-8">Personalize sua experiência. Comece com nossos módulos essenciais. Os outros serão liberados em breve!</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
                     {availableModules.map(module => {
-                        // MODIFICADO: Define quais módulos são selecionáveis
                         const isSelectable = ['write', 'test'].includes(module.slug);
                         const isSelected = selectedModules.includes(module.slug);
 

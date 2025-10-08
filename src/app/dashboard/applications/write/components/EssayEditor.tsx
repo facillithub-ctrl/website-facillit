@@ -10,6 +10,8 @@ import Image from 'next/image';
 import VersionHistory from './VersionHistory';
 import Timer from './Timer';
 import PlagiarismResultModal, { type PlagiarismResult } from './PlagiarismResultModal';
+import { useToast } from '@/contexts/ToastContext';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 type Props = {
   essay: Partial<Essay> | null;
@@ -26,6 +28,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
+  const { addToast } = useToast();
   
   const [selectedPrompt, setSelectedPrompt] = useState<EssayPrompt | null>(() => {
     const promptIdFromUrl = searchParams.get('promptId');
@@ -40,6 +43,8 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isCheckingPlagiarism, setIsCheckingPlagiarism] = useState(false);
   const [plagiarismResult, setPlagiarismResult] = useState<PlagiarismResult | null>(null);
+  const [isRestoreModalOpen, setRestoreModalOpen] = useState(false);
+  const [versionToRestore, setVersionToRestore] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchParams.get('promptId')) {
@@ -75,7 +80,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
     setUploading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        alert("Erro: Utilizador não autenticado.");
+        addToast({ title: "Erro de Autenticação", message: "Você não está conectado para fazer o upload.", type: 'error' });
         setUploading(false);
         return;
     }
@@ -84,7 +89,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
     const { error: uploadError } = await supabase.storage.from('essays').upload(filePath, file);
 
     if (uploadError) {
-      alert(`Erro no upload: ${uploadError.message}`);
+      addToast({ title: "Erro no Upload", message: uploadError.message, type: 'error' });
       setUploading(false);
       return;
     }
@@ -96,11 +101,11 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
 
   const handleSave = (status: 'draft' | 'submitted') => {
     if (status === 'submitted' && !currentEssay.content && !currentEssay.image_submission_url) {
-        alert('Você precisa de escrever um texto ou enviar uma imagem da sua redação para submeter.');
+        addToast({ title: "Conteúdo Faltando", message: 'Escreva um texto ou envie uma imagem para submeter.', type: 'error' });
         return;
     }
     if (status === 'submitted' && !consent) {
-        alert('Você precisa de concordar com os termos antes de enviar.');
+        addToast({ title: "Termos Não Aceitos", message: 'Você precisa concordar com os termos antes de enviar.', type: 'error' });
         return;
     }
 
@@ -114,25 +119,37 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
       const result = await saveOrUpdateEssay(updatedData);
       
       if (!result.error) {
-        if (status === 'submitted') setIsSimulado(false);
-        alert(status === 'draft' ? 'Rascunho salvo com sucesso!' : 'Redação enviada com sucesso!');
-        if (status === 'submitted') onBack();
+        if (status === 'submitted') {
+          setIsSimulado(false);
+          addToast({ title: 'Redação Enviada!', message: 'Sua redação foi enviada para correção. Boa sorte!', type: 'success' });
+          onBack();
+        } else {
+          addToast({ title: 'Rascunho Salvo', message: 'Seu progresso foi salvo com sucesso.', type: 'success' });
+        }
       } else {
-        alert(`Erro: ${result.error}`);
+        addToast({ title: 'Erro ao Salvar', message: result.error, type: 'error' });
       }
     });
   };
 
   const handleRestoreVersion = (content: string) => {
-      if(confirm("Você tem certeza que quer restaurar esta versão? O conteúdo atual no editor será substituído.")) {
-          setCurrentEssay(prev => ({ ...prev, content }));
-          setShowHistory(false);
-      }
+    setVersionToRestore(content);
+    setRestoreModalOpen(true);
+  };
+
+  const executeRestore = () => {
+    if (versionToRestore !== null) {
+      setCurrentEssay(prev => ({ ...prev, content: versionToRestore }));
+    }
+    setRestoreModalOpen(false);
+    setVersionToRestore(null);
+    setShowHistory(false);
+    addToast({ title: "Versão Restaurada", message: "O conteúdo anterior foi carregado no editor.", type: 'success' });
   };
 
   const handlePlagiarismCheck = async () => {
     if (!currentEssay.content || currentEssay.content.trim().length < 100) {
-      alert("Escreva pelo menos 100 caracteres para verificar o plágio.");
+      addToast({ title: "Texto Insuficiente", message: "Escreva pelo menos 100 caracteres para verificar o plágio.", type: 'error' });
       return;
     }
     setIsCheckingPlagiarism(true);
@@ -140,7 +157,7 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
     if (result.data) {
       setPlagiarismResult(result.data);
     } else {
-      alert(result.error);
+      addToast({ title: "Erro na Verificação", message: result.error!, type: 'error' });
     }
     setIsCheckingPlagiarism(false);
   };
@@ -162,15 +179,22 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
   return (
     <div className="relative">
         <PlagiarismResultModal result={plagiarismResult} onClose={() => setPlagiarismResult(null)} />
+        <ConfirmationModal
+          isOpen={isRestoreModalOpen}
+          title="Restaurar Versão?"
+          message="O conteúdo atual no editor será permanentemente substituído. Deseja continuar?"
+          onConfirm={executeRestore}
+          onClose={() => setRestoreModalOpen(false)}
+          confirmText="Sim, Restaurar"
+        />
         <div className="flex justify-between items-center mb-4">
             <button onClick={onBack} className="text-sm text-royal-blue font-bold">
                 <i className="fas fa-arrow-left mr-2"></i> Voltar
             </button>
-            {isSimulado && <Timer isRunning={isSimulado} durationInSeconds={5400} onTimeUp={() => alert("O tempo acabou!")} />}
+            {isSimulado && <Timer isRunning={isSimulado} durationInSeconds={5400} onTimeUp={() => addToast({ title: "Tempo Esgotado!", message: "Seu tempo para o simulado acabou.", type: 'error'})} />}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* --- COLUNA ESQUERDA: TEMA E TEXTOS MOTIVADORES --- */}
             <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border h-fit lg:sticky top-6">
                 <h2 className="text-xl font-bold dark:text-white-text">{selectedPrompt?.title}</h2>
                 <p className="text-sm text-gray-500 dark:text-dark-text-muted mb-4">{selectedPrompt?.source}</p>
@@ -178,16 +202,8 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                 
                 <h3 className="font-bold text-md mb-4 border-t dark:border-gray-700 pt-4">Textos Motivadores</h3>
                 <div className="space-y-4 text-sm text-gray-600 dark:text-gray-300 max-h-96 overflow-y-auto pr-2">
-                    {selectedPrompt?.motivational_text_1 && (
-                        <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-md">
-                           <p className="whitespace-pre-wrap">{selectedPrompt.motivational_text_1}</p>
-                        </div>
-                    )}
-                    {selectedPrompt?.motivational_text_2 && (
-                         <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-md">
-                           <p className="whitespace-pre-wrap">{selectedPrompt.motivational_text_2}</p>
-                        </div>
-                    )}
+                    {selectedPrompt?.motivational_text_1 && <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-md"><p className="whitespace-pre-wrap">{selectedPrompt.motivational_text_1}</p></div>}
+                    {selectedPrompt?.motivational_text_2 && <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-md"><p className="whitespace-pre-wrap">{selectedPrompt.motivational_text_2}</p></div>}
                     {selectedPrompt?.motivational_text_3_image_url && (
                         <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-md">
                             <Image src={selectedPrompt.motivational_text_3_image_url} alt="Texto motivador" width={400} height={250} className="rounded-md w-full h-auto mb-2" />
@@ -198,7 +214,6 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                 </div>
             </div>
 
-            {/* --- COLUNA DIREITA: EDITOR DA REDAÇÃO --- */}
             <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md border dark:border-dark-border">
                 <input
                     type="text"

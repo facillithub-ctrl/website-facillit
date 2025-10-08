@@ -184,7 +184,7 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0 dark:bg-gray-800 dark:border-gray-700">
+    <header className="bg-light-gray border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0 dark:bg-gray-800 dark:border-gray-700">
       <div className="flex items-center gap-4">
         <button onClick={toggleSidebar} className="text-gray-500 hover:text-royal-blue text-xl lg:hidden">
             <i className="fas fa-bars"></i>

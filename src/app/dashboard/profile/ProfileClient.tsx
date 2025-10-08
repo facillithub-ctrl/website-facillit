@@ -6,6 +6,7 @@ import createClient from '@/utils/supabase/client';
 import type { UserProfile } from '../types';
 import AvatarUploader from './AvatarUploader';
 import { VerificationBadge } from '@/components/VerificationBadge';
+import { useToast } from '@/contexts/ToastContext';
 
 type Stats = {
     totalCorrections: number;
@@ -30,6 +31,7 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
   const [hasChanges, setHasChanges] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const { addToast } = useToast();
 
   useEffect(() => {
     setFormData(initialProfile);
@@ -64,11 +66,11 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
         .eq('id', formData.id);
 
       if (!error) {
-        alert('Perfil atualizado com sucesso!');
+        addToast({ title: 'Perfil Atualizado', message: 'Suas informações foram salvas com sucesso!', type: 'success' });
         setIsEditing(false);
         router.refresh(); 
       } else {
-        alert(`Erro ao atualizar: ${error.message}`);
+        addToast({ title: 'Erro ao Atualizar', message: `Não foi possível salvar: ${error.message}`, type: 'error' });
       }
     });
   };

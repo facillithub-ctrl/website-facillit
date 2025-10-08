@@ -6,12 +6,13 @@ import createClient from '@/utils/supabase/client';
 import { upsertPrompt, deletePrompt } from '../../actions';
 import type { EssayPrompt } from '../../actions';
 import Image from 'next/image';
+import { useToast } from '@/contexts/ToastContext';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 type Props = {
     prompts: EssayPrompt[];
 };
 
-// A new type for the form state to handle tags as a string
 type PromptFormData = Omit<Partial<EssayPrompt>, 'tags'> & {
     tags: string;
 };
@@ -55,19 +56,20 @@ const DifficultySelector = ({ value, onChange }: { value: number, onChange: (val
 
 export default function ManagePrompts({ prompts }: Props) {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    // State now uses the new form data type
     const [currentPrompt, setCurrentPrompt] = useState<PromptFormData | null>(null);
     const [isPending, startTransition] = useTransition();
     const [isUploading, setIsUploading] = useState(false);
     const router = useRouter();
     const supabase = createClient();
+    const { addToast } = useToast();
+    const [isConfirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+    const [promptToDelete, setPromptToDelete] = useState<string | null>(null);
 
     const handleOpenModal = (prompt: EssayPrompt | null) => {
         const promptData: PromptFormData = prompt ? {
             ...prompt,
             publication_date: prompt.publication_date ? prompt.publication_date.split('T')[0] : '',
             deadline: prompt.deadline ? prompt.deadline.slice(0, 16) : '',
-            // Convert array to string for the input field
             tags: Array.isArray(prompt.tags) ? prompt.tags.join(', ') : '',
         } : { difficulty: 3, tags: '' };
         setCurrentPrompt(promptData);
@@ -79,17 +81,25 @@ export default function ManagePrompts({ prompts }: Props) {
         setCurrentPrompt(null);
     };
     
-    const handleDelete = async (promptId: string) => {
-        if (confirm('Tem certeza que deseja excluir este tema?')) {
-            startTransition(async () => {
-                const result = await deletePrompt(promptId);
-                if (result.error) {
-                    alert(`Erro ao excluir: ${result.error}`);
-                } else {
-                    router.refresh();
-                }
-            });
-        }
+    const handleDeleteClick = (promptId: string) => {
+        setPromptToDelete(promptId);
+        setConfirmDeleteOpen(true);
+    };
+
+    const executeDelete = () => {
+        if (!promptToDelete) return;
+
+        startTransition(async () => {
+            const result = await deletePrompt(promptToDelete);
+            if (result.error) {
+                addToast({ title: "Erro ao Excluir", message: result.error, type: 'error' });
+            } else {
+                addToast({ title: "Sucesso", message: "Tema excluído com sucesso.", type: 'success' });
+                router.refresh();
+            }
+            setConfirmDeleteOpen(false);
+            setPromptToDelete(null);
+        });
     };
 
     const handleFileUpload = async (file: File): Promise<string | null> => {
@@ -101,7 +111,7 @@ export default function ManagePrompts({ prompts }: Props) {
             .upload(filePath, file);
         
         if (uploadError) {
-            alert(`Erro no upload: ${uploadError.message}`);
+            addToast({ title: "Erro no Upload", message: uploadError.message, type: 'error' });
             setIsUploading(false);
             return null;
         }
@@ -134,15 +144,15 @@ export default function ManagePrompts({ prompts }: Props) {
         if (!currentPrompt) return;
 
         startTransition(async () => {
-            // Convert tags back to an array before submitting
             const submissionData = {
                 ...currentPrompt,
                 tags: currentPrompt.tags.split(',').map(tag => tag.trim()).filter(Boolean)
             };
             const result = await upsertPrompt(submissionData);
             if (result.error) {
-                alert(`Erro ao salvar: ${result.error}`);
+                addToast({ title: "Erro ao Salvar", message: result.error, type: 'error' });
             } else {
+                addToast({ title: "Sucesso!", message: "O tema foi salvo com sucesso.", type: 'success' });
                 handleCloseModal();
                 router.refresh();
             }
@@ -151,6 +161,14 @@ export default function ManagePrompts({ prompts }: Props) {
 
     return (
         <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
+            <ConfirmationModal
+                isOpen={isConfirmDeleteOpen}
+                title="Confirmar Exclusão"
+                message="Tem certeza que deseja excluir este tema? Esta ação não pode ser desfeita."
+                onConfirm={executeDelete}
+                onClose={() => setConfirmDeleteOpen(false)}
+                confirmText="Sim, Excluir"
+            />
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-dark-text dark:text-white">Gerenciar Temas</h2>
                 <button onClick={() => handleOpenModal(null)} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90">
@@ -164,7 +182,7 @@ export default function ManagePrompts({ prompts }: Props) {
                             <span className="font-medium text-dark-text dark:text-white">{prompt.title}</span>
                             <div className="space-x-2">
                                 <button onClick={() => handleOpenModal(prompt)} className="text-blue-500 hover:underline">Editar</button>
-                                <button onClick={() => handleDelete(prompt.id)} disabled={isPending} className="text-red-500 hover:underline disabled:opacity-50">Excluir</button>
+                                <button onClick={() => handleDeleteClick(prompt.id)} disabled={isPending} className="text-red-500 hover:underline disabled:opacity-50">Excluir</button>
                             </div>
                         </li>
                     ))}
@@ -179,7 +197,6 @@ export default function ManagePrompts({ prompts }: Props) {
                             <button onClick={handleCloseModal} className="text-gray-500">&times;</button>
                         </div>
                         <form id="prompt-form" onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-                            {/* Title and Description */}
                             <div>
                                 <label className="block text-sm font-medium mb-1">Título</label>
                                 <input type="text" value={currentPrompt.title || ''} onChange={e => setCurrentPrompt(p => p ? ({ ...p, title: e.target.value }) : null)} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
@@ -189,8 +206,7 @@ export default function ManagePrompts({ prompts }: Props) {
                                 <textarea rows={4} value={currentPrompt.description || ''} onChange={e => setCurrentPrompt(p => p ? ({ ...p, description: e.target.value }) : null)} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
                             </div>
 
-                             {/* Motivational Texts */}
-                            <div className="space-y-4 rounded-md border dark:border-gray-600 p-4">
+                             <div className="space-y-4 rounded-md border dark:border-gray-600 p-4">
                                 <h4 className="font-bold text-md mb-2">Textos Motivadores</h4>
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Texto Motivador I</label>
@@ -220,7 +236,6 @@ export default function ManagePrompts({ prompts }: Props) {
                                 </div>
                             </div>
                             
-                            {/* Source and Category */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Fonte do Tema (Ex: ENEM 2023)</label>
@@ -235,7 +250,6 @@ export default function ManagePrompts({ prompts }: Props) {
                                 </div>
                             </div>
                             
-                            {/* Difficulty and Tags */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                                 <DifficultySelector 
                                     value={currentPrompt.difficulty || 3}
@@ -247,7 +261,6 @@ export default function ManagePrompts({ prompts }: Props) {
                                 </div>
                             </div>
 
-                            {/* Dates */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Data de Publicação</label>
@@ -259,7 +272,6 @@ export default function ManagePrompts({ prompts }: Props) {
                                 </div>
                             </div>
                             
-                            {/* Cover Image */}
                              <div>
                                 <label className="block text-sm font-medium mb-1">Imagem de Capa</label>
                                 <input type="file" onChange={handleCoverImageChange} accept="image/*" className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-royal-blue hover:file:bg-blue-100" />
