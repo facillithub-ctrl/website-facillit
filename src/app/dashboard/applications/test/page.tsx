@@ -2,7 +2,7 @@ import createSupabaseServerClient from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import StudentTestDashboard from './components/StudentTestDashboard';
 import TeacherTestDashboard from './components/TeacherTestDashboard';
-import { getTestsForTeacher, getStudentTestDashboardData, getAvailableTestsForStudent } from './actions';
+import { getTestsForTeacher, getStudentTestDashboardData, getAvailableTestsForStudent, getKnowledgeTestsForDashboard } from './actions';
 
 export default async function TestPage() {
   const supabase = await createSupabaseServerClient();
@@ -22,15 +22,22 @@ export default async function TestPage() {
     redirect('/login');
   }
 
-  // ROTA PARA ALUNO
   if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
-    const { data: dashboardData } = await getStudentTestDashboardData();
-    const { data: availableTests } = await getAvailableTestsForStudent();
+    const [dashboardDataRes, availableTestsRes, knowledgeTestsRes] = await Promise.all([
+      getStudentTestDashboardData(),
+      getAvailableTestsForStudent(),
+      getKnowledgeTestsForDashboard()
+    ]);
     
-    return <StudentTestDashboard dashboardData={dashboardData} availableTests={availableTests || []} />;
+    return (
+      <StudentTestDashboard 
+        dashboardData={dashboardDataRes.data} 
+        initialAvailableTests={availableTestsRes.data || []}
+        knowledgeTests={knowledgeTestsRes.data || []}
+      />
+    );
   }
 
-  // ROTA PARA PROFESSOR
   if (['professor', 'gestor', 'administrator'].includes(profile.user_category || '')) {
     const { data: teacherTests } = await getTestsForTeacher();
     return <TeacherTestDashboard initialTests={teacherTests || []} />;

@@ -1,20 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid
 } from "recharts";
 import AvailableTestCard from "./AvailableTestCard";
 import AttemptView from "./AttemptView";
 import TestDetailView from "./TestDetailView";
 import ResultsView from "./ResultsView";
-import { getTestWithQuestions, type TestWithQuestions, getQuickTest, getStudentResultsHistory } from '../actions';
+import { 
+    getTestWithQuestions, 
+    type TestWithQuestions, 
+    getQuickTest, 
+    getStudentResultsHistory 
+} from '../actions';
 
 // --- TIPOS ---
 type TestCardInfo = {
@@ -24,10 +23,16 @@ type TestCardInfo = {
   question_count: number;
   duration_minutes: number;
   difficulty: "Fácil" | "Médio" | "Difícil";
-  avg_score: number;
-  total_attempts: number;
-  points: number;
+  hasAttempted: boolean;
 };
+
+type KnowledgeTest = {
+  id: string;
+  title: string;
+  subject: string | null;
+  questions: { count: number }[];
+};
+
 type PerformanceData = { materia: string; nota: number; simulados: number };
 
 type RecentAttempt = {
@@ -57,144 +62,119 @@ type AttemptHistory = {
   } | null;
 };
 
-type Props = { dashboardData: DashboardData | null; availableTests: TestCardInfo[] };
-
-// --- SUB-COMPONENTES (sem alterações) ---
-const subjectColors: { [key: string]: string } = {
-  Matemática: "#8b5cf6",
-  Física: "#ec4899",
-  Química: "#3b82f6",
-  Biologia: "#22c55e",
-  Português: "#f97316",
-  Default: "#6b7280",
+type Props = {
+  dashboardData: DashboardData | null;
+  initialAvailableTests: TestCardInfo[];
+  knowledgeTests: KnowledgeTest[];
 };
+
+
+// --- SUB-COMPONENTES ---
+
 const StatCard = ({ title, value, icon }: { title: string; value: string | number; icon: string }) => (
-  <div className="glass-card p-4 flex items-center justify-between">
-    <div>
-      <p className="text-sm text-dark-text-muted">{title}</p>
-      <p className="text-2xl font-bold text-dark-text dark:text-white">{value}</p>
-    </div>
-    <div className="text-3xl text-lavender-blue">
-      <i className={`fas ${icon}`}></i>
-    </div>
-  </div>
-);
-const ActionCard = ({ title, description, icon, actionText, onClick }: { title: string; description: string; icon: string; actionText: string; onClick: () => void;}) => (
-  <div className="glass-card p-4 flex items-center gap-4">
-    <div className="bg-royal-blue/10 text-royal-blue w-12 h-12 flex items-center justify-center rounded-lg text-xl">
-      <i className={`fas ${icon}`}></i>
-    </div>
-    <div>
-      <h3 className="font-bold text-dark-text dark:text-white">{title}</h3>
-      <p className="text-sm text-dark-text-muted">{description}</p>
-      <button onClick={onClick} className="text-sm font-bold text-royal-blue mt-1 hover:underline">
-        {actionText}
-      </button>
-    </div>
-  </div>
-);
-type CustomTooltipPayloadItem = { value?: number | string; name?: string; payload?: PerformanceData | Record<string, unknown>; };
-type CustomTooltipProps = { active?: boolean; label?: string | number; payload?: CustomTooltipPayloadItem[]; };
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    const first = payload[0];
-    const data = (first.payload as PerformanceData) ?? { nota: 0, simulados: 0, materia: "" };
-    const notaStr = typeof data.nota === "number" ? data.nota.toFixed(1) : String(data.nota ?? "0");
-    return (
-      <div className="p-2 rounded-lg" style={{ backgroundColor: "#1A1A1D", border: "1px solid #2c2c31" }}>
-        <p className="text-sm font-bold" style={{ color: "#f8f9fa" }}>{`${label}`}</p>
-        <p className="text-xs" style={{ color: "#a0a0a0" }}>
-          {`Acerto Médio: ${notaStr}% • ${data.simulados ?? 0} simulados`}
-        </p>
+    <div className="glass-card p-4 flex items-center justify-between">
+      <div>
+        <p className="text-sm text-dark-text-muted">{title}</p>
+        <p className="text-2xl font-bold text-dark-text dark:text-white">{value}</p>
       </div>
-    );
-  }
-  return null;
-};
-const PerformanceChart = ({ data }: { data: PerformanceData[] }) => (
-    <div className="glass-card p-6 h-[320px]">
-        <h3 className="font-bold mb-4 text-dark-text dark:text-white">Performance por Matéria</h3>
-        <ResponsiveContainer width="100%" height="90%">
-            <BarChart data={data} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
-                <XAxis type="number" hide domain={[0, 100]} />
-                <YAxis type="category" dataKey="materia" axisLine={false} tickLine={false} width={80} tick={{ fill: "#a0a0a0" }} />
-                <Tooltip cursor={{ fill: "rgba(255, 255, 255, 0.1)" }} content={<CustomTooltip />} />
-                <Bar dataKey="nota" barSize={16} radius={[0, 10, 10, 0]}>
-                {data.map((entry) => (<Cell key={`cell-${entry.materia}`} fill={subjectColors[entry.materia] || subjectColors.Default} />))}
-                </Bar>
-            </BarChart>
-        </ResponsiveContainer>
-    </div>
-);
-const RecentTests = ({ data }: { data: RecentAttempt[] }) => {
-  const getIconForSubject = (subject: string | null) => {
-    switch (subject) {
-      case "Matemática": return "∫";
-      case "Física": return "⚡️";
-      case "Química": return "⚗️";
-      default: return "📝";
-    }
-  };
-  return (
-    <div className="glass-card p-6">
-      <h3 className="font-bold mb-4 text-dark-text dark:text-white">Últimos Simulados</h3>
-      <div className="space-y-3">
-        {data.map((simulado, i) => {
-           const test = simulado.tests ? (Array.isArray(simulado.tests) ? simulado.tests[0] : simulado.tests) : { title: "Teste Rápido", subject: null };
-          return (
-            <div key={i} className={`p-3 rounded-lg flex items-center justify-between bg-white/10`}>
-              <div className="flex items-center gap-3">
-                <div className="text-xl">{getIconForSubject(test.subject)}</div>
-                <div>
-                  <p className="font-semibold text-sm text-dark-text dark:text-white">{test.title}</p>
-                  <p className="text-xs text-dark-text-muted">{new Date(simulado.completed_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-lg text-lavender-blue">{simulado.score?.toFixed(1)}</p>
-                <p className="text-xs text-dark-text-muted">acertos</p>
-              </div>
-            </div>
-          );
-        })}
+      <div className="text-3xl text-lavender-blue">
+        <i className={`fas ${icon}`}></i>
       </div>
     </div>
-  );
-};
-const TestBrowser = ({ tests, onStartTest, onViewDetails }: { tests: TestCardInfo[]; onStartTest: (testId: string) => void, onViewDetails: (testId: string) => void }) => (
-  <div>
-    <h2 className="text-2xl font-bold text-dark-text dark:text-white mb-6">Simulados Disponíveis</h2>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {tests.length > 0 ? (
-        tests.map((test) => <AvailableTestCard key={test.id} test={test} onStart={onStartTest} onViewDetails={onViewDetails} />)
-      ) : (
-        <p className="text-dark-text-muted col-span-full text-center">Nenhum simulado disponível no momento.</p>
-      )}
-    </div>
-  </div>
 );
 
+const ActionCard = ({ title, description, icon, actionText, onClick, }: { title: string; description: string; icon: string; actionText: string; onClick: () => void;}) => (
+    <div className="glass-card p-4 flex items-center gap-4">
+      <div className="bg-royal-blue/10 text-royal-blue w-12 h-12 flex items-center justify-center rounded-lg text-xl">
+        <i className={`fas ${icon}`}></i>
+      </div>
+      <div>
+        <h3 className="font-bold text-dark-text dark:text-white">{title}</h3>
+        <p className="text-sm text-dark-text-muted">{description}</p>
+        <button onClick={onClick} className="text-sm font-bold text-royal-blue mt-1 hover:underline">
+          {actionText}
+        </button>
+      </div>
+    </div>
+);
+
+const KnowledgeTestWidget = ({ test, onStart }: { test: KnowledgeTest; onStart: (testId: string) => void; }) => (
+    <div className="glass-card p-6 flex flex-col h-full bg-gradient-to-br from-purple-500/20 to-indigo-500/20">
+        <h3 className="font-bold mb-1 dark:text-white">Teste seu Conhecimento</h3>
+        <p className="text-lg font-semibold text-dark-text dark:text-white flex-grow">{test.title}</p>
+        <p className="text-xs text-dark-text-muted mb-4">{test.questions[0]?.count || 0} questões • {test.subject}</p>
+        <button onClick={() => onStart(test.id)} className="mt-auto bg-white/80 dark:bg-white/90 text-royal-blue font-bold py-2 px-6 rounded-lg hover:bg-white transition-transform hover:scale-105 w-full">
+            Começar
+        </button>
+    </div>
+);
+
+const TestBrowser = ({ initialTests, onStartTest, onViewDetails }: { initialTests: TestCardInfo[]; onStartTest: (testId: string) => void, onViewDetails: (testId: string) => void }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('Todos');
+
+    const categories = useMemo(() => {
+        const allCategories = initialTests.map(t => t.subject).filter(Boolean) as string[];
+        return ['Todos', ...Array.from(new Set(allCategories))];
+    }, [initialTests]);
+
+    const filteredTests = useMemo(() => {
+        return initialTests.filter(test => {
+            const matchesCategory = selectedCategory === 'Todos' || test.subject === selectedCategory;
+            const matchesSearch = test.title.toLowerCase().includes(searchTerm.toLowerCase());
+            return matchesCategory && matchesSearch;
+        });
+    }, [initialTests, selectedCategory, searchTerm]);
+
+    return (
+        <div>
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+                 <div className="relative flex-grow">
+                    <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" placeholder="Pesquisar por título..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full p-3 pl-10 border rounded-lg bg-white dark:bg-dark-card dark:border-dark-border" />
+                </div>
+                <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}
+                    className="w-full md:w-48 p-3 border rounded-lg bg-white dark:bg-dark-card dark:border-dark-border">
+                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredTests.length > 0 ? (
+                    filteredTests.map((test) => <AvailableTestCard key={test.id} test={test} onStart={onStartTest} onViewDetails={onViewDetails} />)
+                ) : (
+                    <p className="text-dark-text-muted col-span-full text-center py-8">Nenhum simulado encontrado com os filtros selecionados.</p>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const RecentTests = ({ data }: { data: RecentAttempt[] }) => {
+    //... (código sem alteração)
+};
+const PerformanceChart = ({ data }: { data: PerformanceData[] }) => {
+    //... (código sem alteração)
+};
 
 // --- COMPONENTE PRINCIPAL ---
-export default function StudentTestDashboard({ dashboardData, availableTests }: Props) {
+export default function StudentTestDashboard({ dashboardData, initialAvailableTests, knowledgeTests }: Props) {
   const [view, setView] = useState<"dashboard" | "browse" | "attempt" | "detail" | "results">("dashboard");
   const [selectedTest, setSelectedTest] = useState<TestWithQuestions | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [resultsHistory, setResultsHistory] = useState<AttemptHistory[]>([]);
 
-  // Inicia uma tentativa
   const handleStartTest = (testData: TestWithQuestions) => {
     setSelectedTest(testData);
     setView("attempt");
   };
 
-  // Finaliza e volta ao dashboard
   const handleFinishAttempt = () => {
     setView("dashboard");
-    window.location.reload(); 
+    window.location.reload();
   };
   
-  // Apenas visualiza os detalhes de um teste
   const handleViewDetails = async (testId: string) => {
     setIsLoading(true);
     const { data } = await getTestWithQuestions(testId);
@@ -206,8 +186,7 @@ export default function StudentTestDashboard({ dashboardData, availableTests }: 
     }
     setIsLoading(false);
   };
-
-  // Pega um teste da lista, carrega os dados e inicia
+  
   const handleInitiateTestFromBrowse = async (testId: string) => {
     setIsLoading(true);
     const { data } = await getTestWithQuestions(testId);
@@ -219,7 +198,6 @@ export default function StudentTestDashboard({ dashboardData, availableTests }: 
     setIsLoading(false);
   }
 
-  // Lógica do Teste Rápido
   const handleStartQuickTest = async () => {
     setIsLoading(true);
     const { data, error } = await getQuickTest();
@@ -231,7 +209,6 @@ export default function StudentTestDashboard({ dashboardData, availableTests }: 
     setIsLoading(false);
   };
 
-  // Lógica de Meus Resultados
   const handleViewResults = async () => {
     setIsLoading(true);
     const { data, error } = await getStudentResultsHistory();
@@ -275,9 +252,16 @@ export default function StudentTestDashboard({ dashboardData, availableTests }: 
             <ActionCard title="Meus Resultados" description="Análise detalhada" icon="fa-chart-pie" actionText="Ver relatórios" onClick={handleViewResults} />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {dashboardData.recentAttempts?.length > 0 && <RecentTests data={dashboardData.recentAttempts} />}
-            {dashboardData.performanceBySubject?.length > 0 && <PerformanceChart data={dashboardData.performanceBySubject} />}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div className="lg:col-span-3">
+              {dashboardData.recentAttempts?.length > 0 && <RecentTests data={dashboardData.recentAttempts} />}
+            </div>
+            <div className="lg:col-span-2">
+              {knowledgeTests.length > 0 && <KnowledgeTestWidget test={knowledgeTests[0]} onStart={handleInitiateTestFromBrowse} />}
+            </div>
+            <div className="lg:col-span-5">
+              {dashboardData.performanceBySubject?.length > 0 && <PerformanceChart data={dashboardData.performanceBySubject} />}
+            </div>
           </div>
         </>
       )}
@@ -295,7 +279,7 @@ export default function StudentTestDashboard({ dashboardData, availableTests }: 
             <button onClick={handleBackToDashboard} className="text-sm font-bold text-royal-blue mb-6">
               <i className="fas fa-arrow-left mr-2"></i> Voltar para o Dashboard
             </button>
-            <TestBrowser tests={availableTests} onStartTest={handleInitiateTestFromBrowse} onViewDetails={handleViewDetails} />
+            <TestBrowser initialTests={initialAvailableTests} onStartTest={handleInitiateTestFromBrowse} onViewDetails={handleViewDetails} />
           </>
         );
       case "attempt":

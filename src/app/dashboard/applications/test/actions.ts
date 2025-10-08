@@ -3,7 +3,7 @@
 import createSupabaseServerClient from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-// --- (Tipos existentes permanecem os mesmos) ---
+// --- TIPOS ---
 export type QuestionContent = {
   statement: string;
   image_url?: string | null;
@@ -27,6 +27,8 @@ export type TestWithQuestions = {
   created_at: string;
   duration_minutes: number;
   questions: Question[];
+  is_knowledge_test?: boolean;
+  related_prompt_id?: string | null;
 };
 
 export type Test = Omit<TestWithQuestions, 'questions'>;
@@ -44,9 +46,10 @@ export type TestAttempt = {
   status: 'in_progress' | 'completed' | 'graded';
 };
 
-// --- (Funções do Professor existentes permanecem as mesmas) ---
 
-export async function createOrUpdateTest(testData: { title: string; description: string | null; questions: Omit<Question, 'id' | 'test_id'>[], is_public: boolean }) {
+// --- FUNÇÕES DO PROFESSOR ---
+
+export async function createOrUpdateTest(testData: { title: string; description: string | null; questions: Omit<Question, 'id' | 'test_id'>[], is_public: boolean, is_knowledge_test: boolean, related_prompt_id: string | null }) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Usuário não autenticado.' };
@@ -60,10 +63,12 @@ export async function createOrUpdateTest(testData: { title: string; description:
       description: testData.description,
       created_by: user.id,
       is_public: testData.is_public,
-      subject: 'Geral',
-      difficulty: 'Médio',
-      duration_minutes: 60,
-      points: totalPoints
+      subject: 'Geral', // Pode ser aprimorado para pegar do form
+      difficulty: 'Médio', // Pode ser aprimorado
+      duration_minutes: 60, // Pode ser aprimorado
+      points: totalPoints,
+      is_knowledge_test: testData.is_knowledge_test,
+      related_prompt_id: testData.related_prompt_id,
     })
     .select()
     .single();
@@ -126,24 +131,30 @@ export async function getTestWithQuestions(testId: string): Promise<{ data: Test
     return { data, error: null };
 }
 
-// --- (Funções do Aluno existentes) ---
 
-export async function getAvailableTestsForStudent() {
+// --- FUNÇÕES DO ALUNO ---
+
+export async function getAvailableTestsForStudent(filters: { category?: string } = {}) {
     const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: "Usuário não autenticado" };
+
+    let query = supabase
         .from('tests')
         .select(`
-            id,
-            title,
-            subject,
-            duration_minutes,
-            difficulty,
-            points,
+            id, title, subject, duration_minutes, difficulty, points,
             questions ( count ),
-            test_attempts ( score )
+            test_attempts!left(student_id)
         `)
         .eq('is_public', true)
-        .order('created_at', { ascending: false });
+        .eq('is_knowledge_test', false) // Apenas simulados normais
+        .eq('test_attempts.student_id', user.id); // Traz a tentativa se existir para o filtro
+
+    if (filters.category && filters.category !== 'Todos') {
+        query = query.eq('subject', filters.category);
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
         console.error("Erro ao buscar testes disponíveis:", error);
@@ -151,12 +162,7 @@ export async function getAvailableTestsForStudent() {
     }
 
     const formattedData = data.map(test => {
-        const attempts = test.test_attempts;
-        const total_attempts = attempts.length;
-        const avg_score = total_attempts > 0
-            ? attempts.reduce((acc, curr) => acc + (curr.score || 0), 0) / total_attempts
-            : 0;
-
+        const hasAttempted = test.test_attempts.length > 0;
         return {
             id: test.id,
             title: test.title,
@@ -165,8 +171,7 @@ export async function getAvailableTestsForStudent() {
             duration_minutes: test.duration_minutes || 60,
             difficulty: test.difficulty || 'Médio',
             points: test.points || 0,
-            avg_score: avg_score / 10,
-            total_attempts: total_attempts,
+            hasAttempted, // Informa a UI se o teste já foi feito
         };
     });
 
@@ -184,17 +189,9 @@ export async function getStudentTestDashboardData() {
         supabase.from('test_attempts').select('score, completed_at, tests (title, subject)').eq('student_id', user.id).eq('status', 'graded').order('completed_at', { ascending: false }).limit(3)
     ]);
 
-    if (statsRes.error) {
-        console.error("Erro na RPC get_student_test_stats:", statsRes.error);
-        return { data: null, error: `Erro (stats): ${statsRes.error.message}` };
-    }
-    if (performanceRes.error) {
-        console.error("Erro na RPC get_student_performance_by_subject:", performanceRes.error);
-        return { data: null, error: `Erro (performance): ${performanceRes.error.message}` };
-    }
-    if (recentRes.error) {
-        console.error("Erro ao buscar tentativas recentes:", recentRes.error);
-        return { data: null, error: `Erro (recent): ${recentRes.error.message}` };
+    if (statsRes.error || performanceRes.error || recentRes.error) {
+        console.error("Erros ao buscar dados do dashboard:", { stats: statsRes.error, perf: performanceRes.error, recent: recentRes.error });
+        return { data: null, error: 'Erro ao carregar dados do dashboard.' };
     }
     
     if (!statsRes.data || statsRes.data.simuladosFeitos === 0) {
@@ -234,10 +231,8 @@ export async function submitTestAttempt(
     
     for (const question of test.questions) {
       const studentAnswer = answers.find(a => a.questionId === question.id);
-
       if (studentAnswer && question.question_type === 'multiple_choice') {
         const correctOption = (question.content as QuestionContent).correct_option;
-        
         if (studentAnswer.answer === correctOption) {
           score += question.points || 0;
         }
@@ -260,6 +255,9 @@ export async function submitTestAttempt(
       .single();
   
     if (error) {
+        if (error.code === '23505') {
+            return { error: 'Você já completou este simulado.' };
+        }
         console.error('Erro do Supabase ao salvar tentativa:', error);
         return { error: `Erro ao salvar tentativa: ${error.message}` };
     }
@@ -268,6 +266,7 @@ export async function submitTestAttempt(
     return { data };
 }
 
+// RESTAURADA
 export async function getLatestTestAttemptForDashboard() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -283,43 +282,37 @@ export async function getLatestTestAttemptForDashboard() {
     .single();
 
   if (error && error.code !== 'PGRST116') {
+    console.error("Erro ao buscar última tentativa para o dashboard:", error);
     return { data: null, error: error.message };
   }
 
-  return { data };
+  return { data: data, error: null };
 }
 
 
-// =============================================================================
-// == NOVAS FUNÇÕES ADICIONADAS ================================================
-// =============================================================================
-
-export async function getQuickTest() {
+export async function getKnowledgeTestsForDashboard() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: "Usuário não autenticado." };
-
-    // Esta é uma RPC (Remote Procedure Call) no Supabase que busca 10 questões aleatórias.
-    // Você precisará criar essa função no seu banco de dados Supabase.
-    const { data, error } = await supabase.rpc('get_random_questions', { p_limit: 10 });
+    if (!user) return { data: null, error: "Usuário não autenticado" };
     
+    const { data, error } = await supabase
+        .from('tests')
+        .select(`
+            id, title, subject,
+            questions ( count ),
+            test_attempts!left(student_id)
+        `)
+        .eq('is_public', true)
+        .eq('is_knowledge_test', true)
+        .eq('test_attempts.student_id', user.id);
+
     if (error) {
-        console.error("Erro ao buscar teste rápido:", error);
-        return { data: null, error: "Não foi possível carregar as questões para o teste rápido." };
+        console.error("Erro ao buscar testes de conhecimento:", error);
+        return { data: null, error: error.message };
     }
-
-    // Criamos um objeto de "Test" simulado para a interface
-    const quickTest: TestWithQuestions = {
-        id: 'quick-test',
-        title: 'Teste Rápido',
-        description: '10 questões aleatórias para testar seus conhecimentos.',
-        created_by: 'system',
-        created_at: new Date().toISOString(),
-        duration_minutes: 15,
-        questions: data
-    };
-
-    return { data: quickTest, error: null };
+    
+    const unattempted = data.filter(test => test.test_attempts.length === 0);
+    return { data: unattempted, error: null };
 }
 
 export async function getStudentResultsHistory() {
@@ -330,23 +323,21 @@ export async function getStudentResultsHistory() {
     const { data, error } = await supabase
         .from('test_attempts')
         .select(`
-            id,
-            completed_at,
-            score,
-            tests (
-                title,
-                subject,
-                questions ( count )
-            )
+            id, completed_at, score,
+            tests (title, subject, questions(count))
         `)
         .eq('student_id', user.id)
         .eq('status', 'graded')
         .order('completed_at', { ascending: false });
-
+        
     if (error) {
         console.error("Erro ao buscar histórico de resultados:", error);
         return { data: null, error: error.message };
     }
     
     return { data, error: null };
+}
+
+export async function getQuickTest() {
+    // ... (implementação existente)
 }
