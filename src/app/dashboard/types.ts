@@ -9,11 +9,10 @@ export type UserProfile = {
   active_modules: string[] | null;
   birthDate?: string | null;
   schoolName?: string | null;
-  target_exam?: string | null; // Adicionado
-  verification_badge?: string | null; // 
+  target_exam?: string | null;
+  verification_badge?: string | null;
 };
 
-// ADICIONE ESTE NOVO TIPO NO FINAL DO ARQUIVO
 export type Update = {
     id: string;
     created_at: string;
@@ -21,4 +20,5 @@ export type Update = {
     content: string;
     module_slug: string | null;
     version: string | null;
+    category?: string | null; // <-- ADICIONE ESTA LINHA
 };

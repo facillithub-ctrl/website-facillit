@@ -2,11 +2,12 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-// CORREÇÃO: Usando um caminho absoluto a partir da raiz do projeto (@/)
-import { upsertUpdate, deleteUpdate } from '@/app/admin/updates/mutations'; 
+import { upsertUpdate, deleteUpdate } from '../mutations'; 
 import type { Update } from '@/app/dashboard/types';
 import { useToast } from '@/contexts/ToastContext';
 import ConfirmationModal from '@/components/ConfirmationModal';
+// Reutilizando o editor de texto rico que já existe no seu projeto
+import RichTextEditor from '@/app/dashboard/applications/test/components/RichTextEditor';
 
 type Props = {
     updates: Update[];
@@ -22,7 +23,8 @@ export default function ManageUpdates({ updates }: Props) {
     const { addToast } = useToast();
 
     const handleOpenModal = (update: Partial<Update> | null) => {
-        setCurrentUpdate(update || {});
+        // Garante que o 'content' nunca seja nulo para o editor
+        setCurrentUpdate(update || { content: '' }); 
         setIsModalOpen(true);
     };
 
@@ -65,6 +67,12 @@ export default function ManageUpdates({ updates }: Props) {
             }
         });
     };
+    
+    // Função necessária para o RichTextEditor, mesmo que o upload seja tratado dentro dele
+    const handleImageUpload = async (file: File): Promise<string | null> => {
+        console.log("Upload de imagem será tratado pelo RichTextEditor:", file.name);
+        return null; 
+    };
 
     return (
         <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
@@ -101,17 +109,17 @@ export default function ManageUpdates({ updates }: Props) {
 
             {isModalOpen && currentUpdate && (
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl w-full max-w-2xl">
-                        <form onSubmit={handleSubmit}>
+                    <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+                        <form onSubmit={handleSubmit} className="flex flex-col h-full">
                             <div className="p-4 border-b dark:border-gray-700">
                                 <h3 className="text-lg font-bold">{currentUpdate.id ? 'Editar' : 'Nova'} Atualização</h3>
                             </div>
-                            <div className="p-6 space-y-4">
+                            <div className="p-6 space-y-4 overflow-y-auto">
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Título</label>
                                     <input type="text" value={currentUpdate.title || ''} onChange={e => setCurrentUpdate(p => p ? ({ ...p, title: e.target.value }) : null)} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium mb-1">Módulo</label>
                                         <select value={currentUpdate.module_slug || 'general'} onChange={e => setCurrentUpdate(p => p ? ({ ...p, module_slug: e.target.value }) : null)} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 bg-white">
@@ -121,16 +129,30 @@ export default function ManageUpdates({ updates }: Props) {
                                         </select>
                                     </div>
                                     <div>
+                                        <label className="block text-sm font-medium mb-1">Categoria</label>
+                                        <select value={currentUpdate.category || ''} onChange={e => setCurrentUpdate(p => p ? ({ ...p, category: e.target.value }) : null)} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 bg-white">
+                                            <option value="">Selecione...</option>
+                                            <option>Nova Funcionalidade</option>
+                                            <option>Melhoria</option>
+                                            <option>Correção</option>
+                                        </select>
+                                    </div>
+                                    <div>
                                         <label className="block text-sm font-medium mb-1">Versão (Opcional)</label>
                                         <input type="text" value={currentUpdate.version || ''} onChange={e => setCurrentUpdate(p => p ? ({ ...p, version: e.target.value }) : null)} placeholder="Ex: 1.2.0" className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Conteúdo</label>
-                                    <textarea rows={5} value={currentUpdate.content || ''} onChange={e => setCurrentUpdate(p => p ? ({ ...p, content: e.target.value }) : null)} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+                                    <RichTextEditor
+                                        value={currentUpdate.content || ''}
+                                        onChange={value => setCurrentUpdate(p => p ? ({ ...p, content: value }) : null)}
+                                        onImageUpload={handleImageUpload}
+                                        placeholder="Escreva os detalhes da atualização..."
+                                    />
                                 </div>
                             </div>
-                            <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-2">
+                            <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-2 mt-auto">
                                 <button type="button" onClick={handleCloseModal} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancelar</button>
                                 <button type="submit" disabled={isPending} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg disabled:bg-gray-400">
                                     {isPending ? 'Salvando...' : 'Salvar'}
