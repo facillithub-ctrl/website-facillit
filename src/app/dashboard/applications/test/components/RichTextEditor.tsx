@@ -69,8 +69,9 @@ export default function RichTextEditor({ value, onChange, onImageUpload, placeho
         onInput={handleInput}
         onPaste={handlePaste}
         dangerouslySetInnerHTML={{ __html: value }}
-        className="w-full min-h-[100px] p-2 focus:outline-none"
+        className="w-full min-h-[100px] p-2 focus:outline-none force-ltr" // <-- APLICA A CLASSE
         data-placeholder={placeholder}
+        dir="ltr" // <-- ADICIONA O ATRIBUTO DIR
       />
     </div>
   );
