@@ -50,7 +50,6 @@ const UpdateCard = ({ update, isActive, onClick }: { update: Update, isActive: b
                                 </span>
                             )}
                         </div>
-                        {/* CORREÇÃO: As classes de texto foram removidas para o 'prose' assumir o controle total */}
                         <div
                             className="prose prose-sm dark:prose-invert max-w-none"
                             dangerouslySetInnerHTML={{ __html: update.content }}
@@ -83,7 +82,8 @@ export const UpdatesClientPage = ({ initialUpdates }: { initialUpdates: Update[]
         <section className="py-12 bg-white dark:bg-dark-background">
             <div className="container mx-auto px-6 max-w-6xl flex flex-col lg:flex-row gap-8 lg:gap-12">
                 {/* --- BARRA LATERAL --- */}
-                <aside className="lg:w-1/4 self-start sticky top-28">
+                {/* CORREÇÃO: As classes 'sticky' e 'top-28' agora só se aplicam em telas grandes (lg) */}
+                <aside className="lg:w-1/4 self-start lg:sticky lg:top-28">
                     <h3 className="font-bold text-lg mb-4 text-dark-text dark:text-white">Módulos</h3>
                     <ul className="space-y-2">
                         {modules.map(slug => (
