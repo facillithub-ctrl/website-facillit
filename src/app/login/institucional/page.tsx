@@ -19,12 +19,15 @@ export default function InstitutionalLoginPage() {
 
         const result = await validateInstitutionalCode(code);
 
-        if (result.error) {
+        if (result && result.error) {
             setError(result.error);
             setIsLoading(false);
-        } else if (result.redirectPath) {
+        } else if (result && result.redirectPath) {
+            // Se a validação for bem-sucedida, o cliente faz o redirecionamento
             router.push(result.redirectPath);
         }
+        // Se a validação tiver sucesso e usar o `redirect()` do Next.js, 
+        // a página irá redirecionar automaticamente e este código não será executado.
     };
 
     return (

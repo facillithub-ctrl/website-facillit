@@ -1,175 +1,141 @@
 "use client";
 
-import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import createClient from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation';
+import createSupabaseClient from '@/utils/supabase/client';
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { type Container, type ISourceOptions } from "@tsparticles/engine";
 import { loadSlim } from "@tsparticles/slim";
 
-type FormData = {
-    fullName?: string;
-    birthDate?: string;
-    cpf?: string;
-    email?: string;
-    password?: string;
-    nickname?: string;
-    pronoun?: string;
-    organizationId?: string;
-    organizationName?: string;
-    invitationCode?: string;
-};
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const supabase = createSupabaseClient();
+  const [init, setInit] = useState(false);
 
-function InstitutionalRegister() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const supabase = createClient();
+  useEffect(() => {
+    initParticlesEngine(async (engine) => {
+      await loadSlim(engine);
+    }).then(() => {
+      setInit(true);
+    });
+  }, []);
 
-    const [formData, setFormData] = useState<FormData>({});
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [agreedToTerms, setAgreedToTerms] = useState(false);
-    const [init, setInit] = useState(false);
+  const particlesLoaded = async (container?: Container): Promise<void> => {};
 
-    useEffect(() => {
-        initParticlesEngine(async (engine) => { await loadSlim(engine); }).then(() => { setInit(true); });
-    }, []);
-
-    useEffect(() => {
-        const code = searchParams.get('code');
-        if (!code) {
-            router.push('/login/institucional');
-            return;
-        }
-
-        const verifyCode = async () => {
-            const { data, error } = await supabase
-                .from('invitation_codes')
-                .select('organization_id, organizations(name)')
-                .eq('code', code)
-                .single();
-
-            if (error || !data) {
-                setError('Código de convite inválido ou expirado.');
-                setTimeout(() => router.push('/login/institucional'), 3000);
-            } else {
-                // ✅ CORREÇÃO APLICADA AQUI:
-                // O Supabase pode retornar a relação como um objeto ou um array.
-                // Este código garante que lidamos com ambos os casos de forma segura.
-                const org = Array.isArray(data.organizations) ? data.organizations[0] : data.organizations;
-                
-                setFormData(prev => ({ ...prev, invitationCode: code, organizationId: data.organization_id, organizationName: org?.name }));
-            }
-        };
-        verifyCode();
-    }, [searchParams, router, supabase]);
-
-    const particlesLoaded = async (container?: Container): Promise<void> => {};
-    const options: ISourceOptions = useMemo(() => ({
-        background: { color: { value: "transparent" } },
-        fpsLimit: 60,
-        interactivity: {
-          events: {
-            onClick: { enable: true, mode: "push" },
-            onHover: { enable: true, mode: "repulse" },
-          },
-          modes: {
-            push: { quantity: 4 },
-            repulse: { distance: 100, duration: 0.4 },
-          },
+  const options: ISourceOptions = useMemo(
+    () => ({
+      background: { color: { value: "transparent" } },
+      fpsLimit: 60,
+      interactivity: {
+        events: {
+          onClick: { enable: true, mode: "push" },
+          onHover: { enable: true, mode: "repulse" },
         },
-        particles: {
-          color: { value: "#ffffff" },
-          links: { color: "#ffffff", distance: 150, enable: true, opacity: 0.4, width: 1 },
-          move: { direction: "none", enable: true, outModes: { default: "out" }, random: false, speed: 2, straight: false },
-          number: { density: { enable: true }, value: 80 },
-          opacity: { value: 0.5 },
-          shape: { type: "circle" },
-          size: { value: { min: 1, max: 5 } },
+        modes: {
+          push: { quantity: 4 },
+          repulse: { distance: 100, duration: 0.4 },
         },
-        detectRetina: true,
-    }), []);
+      },
+      particles: {
+        color: { value: "#ffffff" },
+        links: { color: "#ffffff", distance: 150, enable: true, opacity: 0.4, width: 1 },
+        move: { direction: "none", enable: true, outModes: { default: "out" }, random: false, speed: 2, straight: false },
+        number: { density: { enable: true }, value: 80 },
+        opacity: { value: 0.5 },
+        shape: { type: "circle" },
+        size: { value: { min: 1, max: 5 } },
+      },
+      detectRetina: true,
+    }),
+    [],
+  );
 
-    const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        if (!agreedToTerms) { setError("Você precisa concordar com os Termos de Uso."); return; }
-        setIsLoading(true);
-        setError(null);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
 
-        const { data: { user }, error: signUpError } = await supabase.auth.signUp({
-            email: formData.email!,
-            password: formData.password!,
-            options: { data: { full_name: formData.fullName } }
-        });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-        if (signUpError) { setError(signUpError.message); setIsLoading(false); return; }
-
-        if (user) {
-            const { error: profileError } = await supabase.from('profiles').upsert({
-                id: user.id,
-                full_name: formData.fullName,
-                nickname: formData.nickname,
-                birth_date: formData.birthDate,
-                pronoun: formData.pronoun,
-                user_category: 'aluno',
-                cpf: formData.cpf,
-                school_name: formData.organizationName,
-                organization_id: formData.organizationId,
-                has_agreed_to_terms: true,
-                has_completed_onboarding: false,
-                updated_at: new Date().toISOString(),
-            });
-
-            if (profileError) {
-                setError(`Erro ao salvar perfil: ${profileError.message}`);
-            } else {
-                await supabase.from('invitation_codes').update({ used_by: user.id }).eq('code', formData.invitationCode!);
-                router.push('/login?status=success');
-            }
-        }
-        setIsLoading(false);
-    };
-
-    if (!init || !formData.organizationName) {
-        return <div className="min-h-screen bg-royal-blue flex items-center justify-center text-white">Verificando código...</div>;
+    if (error) {
+      setError('E-mail ou senha inválidos. Por favor, tente novamente.');
+      setIsLoading(false);
+    } else {
+      router.refresh();
+      router.push('/dashboard');
     }
+  };
 
-    return (
-        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "linear-gradient(135deg, #2e14ed 0%, #0c0082 100%)" }}>
-            <Particles id="tsparticles" options={options} className="absolute inset-0 z-0" />
-            <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg z-10">
-                <div className="mb-6 text-center">
-                    <h2 className="text-2xl font-bold">Cadastro Institucional</h2>
-                    <p className="text-text-muted">Você está se juntando à instituição:</p>
-                    <p className="font-bold text-lg text-royal-blue">{formData.organizationName}</p>
-                </div>
-                <form onSubmit={handleRegister} className="space-y-4 text-sm">
-                    <input type="text" name="fullName" required placeholder="Nome Completo" onChange={e => setFormData(p => ({...p, fullName: e.target.value}))} className="w-full p-2 border rounded-md" />
-                    <input type="email" name="email" required placeholder="Seu melhor e-mail" onChange={e => setFormData(p => ({...p, email: e.target.value}))} className="w-full p-2 border rounded-md" />
-                    <input type="password" name="password" required placeholder="Crie uma senha" onChange={e => setFormData(p => ({...p, password: e.target.value}))} className="w-full p-2 border rounded-md" />
-                    <input type="text" name="schoolName" value={formData.organizationName} disabled className="w-full p-2 border rounded-md bg-gray-100" />
-                    <div className="pt-2">
-                        <label className="flex items-start gap-3 cursor-pointer">
-                            <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} className="h-5 w-5 mt-1 rounded border-gray-300" />
-                            <span className="text-xs text-gray-600">Eu li e concordo com os <Link href="/recursos/uso" target="_blank" className="font-bold underline">Termos de Uso</Link>.</span>
-                        </label>
-                    </div>
-                    <button type="submit" disabled={isLoading || !agreedToTerms} className="w-full py-3 bg-royal-blue text-white font-bold rounded-lg disabled:bg-gray-400">
-                        {isLoading ? 'Finalizando...' : 'Finalizar Cadastro'}
-                    </button>
-                    {error && <p className="text-red-500 text-xs mt-2 text-center">{error}</p>}
-                </form>
-            </div>
+  if (!init) {
+    return <div className="min-h-screen bg-royal-blue" />;
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center" style={{ backgroundImage: "linear-gradient(135deg, #2e14ed 0%, #0c0082 100%)" }}>
+      <Particles id="tsparticles" options={options} className="absolute inset-0 z-0" />
+      
+      <div className="w-full max-w-4xl rounded-2xl shadow-lg flex overflow-hidden my-8 z-10">
+        <div className="hidden md:flex flex-1 items-center justify-center p-5">
+          <Image src="/assets/images/MASCOTE/login.png" alt="Mascote Facillit Hub Login" width={400} height={400} priority />
         </div>
-    );
-}
+        
+        <div className="flex-1 p-8 flex flex-col justify-center bg-white animate-fade-in-right relative">
+          <Link href="/" className="absolute top-6 right-6 z-10 flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+            <i className="fas fa-arrow-left"></i> Tela Inicial
+          </Link>
 
-export default function InstitutionalRegisterPage() {
-    return (
-        <Suspense fallback={<div>Carregando...</div>}>
-            <InstitutionalRegister />
-        </Suspense>
-    );
+          <div className="mb-8 flex justify-center">
+              <Image src="/assets/images/LOGO/png/logoazul.svg" alt="Logo Facillit Hub" width={48} height={48} />
+          </div>
+          
+          <div className="w-full max-w-sm mx-auto">
+            <h2 className="text-2xl font-bold text-center mb-2 text-dark-text">Que bom te ver de novo!</h2>
+            <p className="text-text-muted text-center mb-6">Faça login para continuar.</p>
+            
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-dark-text mb-1">E-mail</label>
+                <input type="email" name="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 border rounded-lg" />
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label htmlFor="password" className="block text-sm font-medium text-dark-text">Senha</label>
+                  <Link href="#" className="text-xs text-royal-blue hover:underline">
+                    Esqueci minha senha
+                  </Link>
+                </div>
+                <input type="password" name="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full p-3 border rounded-lg" />
+              </div>
+              {error && (<p className="text-red-500 text-sm text-center">{error}</p>)}
+              <div>
+                <button type="submit" disabled={isLoading} className="w-full mt-2 py-3 px-4 bg-royal-blue text-white rounded-lg font-bold hover:bg-opacity-90 transition disabled:bg-gray-400">
+                  {isLoading ? 'Entrando...' : 'Entrar'}
+                </button>
+              </div>
+            </form>
+
+            <div className="relative my-4 text-center">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t"></span></div>
+              <span className="relative px-2 bg-white text-sm text-text-muted">ou</span>
+            </div>
+
+            <Link href="/login/institucional" className="w-full flex items-center justify-center gap-3 py-3 px-4 border rounded-lg hover:bg-gray-50 transition font-medium">
+                <i className="fas fa-school text-royal-blue"></i>
+                Acesso Institucional
+            </Link>
+
+            <div className="text-sm text-text-muted text-center mt-6">
+              Não tem uma conta? <Link href="/register" className="font-bold text-royal-blue">Crie uma agora</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

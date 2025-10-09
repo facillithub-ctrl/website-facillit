@@ -9,7 +9,9 @@ import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { type Container, type ISourceOptions } from "@tsparticles/engine";
 import { loadSlim } from "@tsparticles/slim";
 
+// --- Tipos de Dados ---
 type FormData = {
+    userCategory?: string;
     fullName?: string;
     birthDate?: string;
     cpf?: string;
@@ -20,14 +22,171 @@ type FormData = {
     organizationId?: string;
     organizationName?: string;
     invitationCode?: string;
+    addressCep?: string;
+    addressStreet?: string;
+    addressNumber?: string;
+    addressComplement?: string;
+    addressNeighborhood?: string;
+    addressCity?: string;
+    addressState?: string;
+    categoryDetails?: {
+        serie?: string;
+        subjects?: string[];
+        experience?: string;
+        institutionType?: string;
+        position?: string;
+        phone?: string;
+        vestibularYear?: string;
+        desiredCourse?: string;
+    };
 };
 
+
+// --- Componentes de Etapa (Trazidos da página de registo principal) ---
+
+const PersonalDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Partial<FormData>) => void, onBack: () => void, initialData: FormData }) => {
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        onNext({ fullName: e.currentTarget.fullName.value, birthDate: e.currentTarget.birthDate.value, cpf: e.currentTarget.cpf.value });
+    };
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+            <h2 className="text-xl font-bold text-center mb-4">Seus Dados Pessoais</h2>
+            <div><label htmlFor="fullName" className="font-medium">Nome Completo</label><input type="text" name="fullName" defaultValue={initialData.fullName} required className="w-full p-2 border rounded-md mt-1" /></div>
+            <div><label htmlFor="birthDate" className="font-medium">Data de Nascimento</label><input type="date" name="birthDate" defaultValue={initialData.birthDate} required className="w-full p-2 border rounded-md mt-1" /></div>
+            <div><label htmlFor="cpf" className="font-medium">CPF</label><input type="text" name="cpf" defaultValue={initialData.cpf} required placeholder="000.000.000-00" className="w-full p-2 border rounded-md mt-1" /></div>
+            <div className="flex justify-between items-center pt-4"><button type="button" onClick={onBack} className="text-sm text-text-muted hover:text-dark-text">Voltar</button><button type="submit" className="py-2 px-5 bg-royal-blue text-white rounded-lg font-bold">Próximo</button></div>
+        </form>
+    );
+};
+
+const AddressDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Partial<FormData>) => void, onBack: () => void, initialData: FormData }) => {
+    const [address, setAddress] = useState({ street: initialData.addressStreet || '', neighborhood: initialData.addressNeighborhood || '', city: initialData.addressCity || '', state: initialData.addressState || '' });
+
+    const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+        const cep = e.target.value.replace(/\D/g, '');
+        if (cep.length !== 8) return;
+        try {
+            const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await response.json();
+            if (!data.erro) {
+                setAddress({ street: data.logouro, neighborhood: data.bairro, city: data.localidade, state: data.uf });
+            }
+        } catch (error) {
+            console.error("Erro ao buscar CEP:", error);
+        }
+    };
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        onNext({ addressCep: form.cep.value, addressStreet: form.street.value, addressNumber: form.number.value, addressComplement: form.complement.value, addressNeighborhood: form.neighborhood.value, addressCity: form.city.value, addressState: form.state.value });
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-3 text-sm">
+            <h3 className="text-xl font-bold text-center mb-4">Seu Endereço</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div><label htmlFor="cep" className="font-medium">CEP</label><input type="text" name="cep" onBlur={handleCepBlur} defaultValue={initialData.addressCep} required className="w-full p-2 border rounded-md mt-1" /></div>
+                <div><label htmlFor="street" className="font-medium">Rua</label><input type="text" name="street" value={address.street} onChange={e => setAddress(a => ({...a, street: e.target.value}))} required className="w-full p-2 border rounded-md mt-1" /></div>
+                <div><label htmlFor="number" className="font-medium">Número</label><input type="text" name="number" defaultValue={initialData.addressNumber} required className="w-full p-2 border rounded-md mt-1" /></div>
+                <div><label htmlFor="complement" className="font-medium">Complemento</label><input type="text" name="complement" defaultValue={initialData.addressComplement} className="w-full p-2 border rounded-md mt-1" /></div>
+                <div><label htmlFor="neighborhood" className="font-medium">Bairro</label><input type="text" name="neighborhood" value={address.neighborhood} onChange={e => setAddress(a => ({...a, neighborhood: e.target.value}))} required className="w-full p-2 border rounded-md mt-1" /></div>
+                <div><label htmlFor="city" className="font-medium">Cidade</label><input type="text" name="city" value={address.city} onChange={e => setAddress(a => ({...a, city: e.target.value}))} required className="w-full p-2 border rounded-md mt-1" /></div>
+                <div><label htmlFor="state" className="font-medium">Estado</label><input type="text" name="state" value={address.state} onChange={e => setAddress(a => ({...a, state: e.target.value}))} required className="w-full p-2 border rounded-md mt-1" /></div>
+            </div>
+            <div className="flex justify-between items-center pt-4"><button type="button" onClick={onBack} className="text-sm text-text-muted hover:text-dark-text">Voltar</button><button type="submit" className="py-2 px-5 bg-royal-blue text-white rounded-lg font-bold">Próximo</button></div>
+        </form>
+    );
+};
+
+const AuthStep = ({ onNext, onBack, initialData }: { onNext: (data: Partial<FormData>) => void, onBack: () => void, initialData: FormData }) => {
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [passwordCriteria, setPasswordCriteria] = useState({ length: false, uppercase: false, number: false });
+
+    useEffect(() => {
+        setPasswordCriteria({
+            length: password.length >= 8,
+            uppercase: /[A-Z]/.test(password),
+            number: /[0-9]/.test(password),
+        });
+    }, [password]);
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        if (form.password.value !== form.confirmPassword.value) { alert("As senhas não coincidem!"); return; }
+        if (!Object.values(passwordCriteria).every(Boolean)) { alert("A senha não cumpre todos os requisitos."); return; }
+        onNext({ email: form.email.value, password: form.password.value });
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <h2 className="text-2xl font-bold text-center mb-4">Crie seus dados de acesso</h2>
+            <div><label htmlFor="email" className="block text-sm font-medium mb-1">Seu melhor e-mail</label><input type="email" name="email" defaultValue={initialData.email} required className="w-full p-3 border rounded-lg" /></div>
+            <div className="relative">
+                <label htmlFor="password" className="block text-sm font-medium mb-1">Crie uma senha</label>
+                <input type={showPassword ? 'text' : 'password'} name="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border rounded-lg" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-9 text-text-muted">
+                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                </button>
+            </div>
+            <div className="text-xs space-y-1 text-gray-500">
+                <p className={passwordCriteria.length ? 'text-green-600' : ''}>{passwordCriteria.length ? '✓' : '•'} Mínimo de 8 caracteres</p>
+                <p className={passwordCriteria.uppercase ? 'text-green-600' : ''}>{passwordCriteria.uppercase ? '✓' : '•'} Pelo menos uma letra maiúscula</p>
+                <p className={passwordCriteria.number ? 'text-green-600' : ''}>{passwordCriteria.number ? '✓' : '•'} Pelo menos um número</p>
+            </div>
+            <div><label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">Confirme sua senha</label><input type="password" name="confirmPassword" required className="w-full p-3 border rounded-lg" /></div>
+            <div className="flex justify-between items-center pt-4"><button type="button" onClick={onBack} className="text-sm text-text-muted hover:text-dark-text">Voltar</button><button type="submit" className="py-3 px-6 bg-royal-blue text-white rounded-lg font-bold">Próximo</button></div>
+        </form>
+    );
+};
+
+const PersonalizationStep = ({ onSubmit, onBack, isLoading, agreedToTerms, setAgreedToTerms, initialData }: { onSubmit: (data: Partial<FormData>) => void, onBack: () => void, isLoading: boolean, agreedToTerms: boolean, setAgreedToTerms: (value: boolean) => void, initialData: FormData }) => {
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        onSubmit({ nickname: e.currentTarget.nickname.value, pronoun: e.currentTarget.pronoun.value });
+    };
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <h2 className="text-2xl font-bold text-center mb-4">Quase lá! Personalize seu perfil</h2>
+            <div><label htmlFor="nickname" className="block text-sm font-medium mb-1">Como gostaria de ser chamado(a)? (Apelido)</label><input type="text" name="nickname" defaultValue={initialData.nickname} className="w-full p-3 border rounded-lg" /></div>
+            <div><label htmlFor="pronoun" className="block text-sm font-medium mb-1">Pronome</label><select name="pronoun" defaultValue={initialData.pronoun} className="w-full p-3 border rounded-lg bg-white"><option>Ele/Dele</option><option>Ela/Dela</option><option>Elu/Delu</option><option>Prefiro não informar</option></select></div>
+            <div className="pt-2">
+                <label className="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} className="h-5 w-5 mt-1 rounded border-gray-300 text-royal-blue focus:ring-royal-blue flex-shrink-0" />
+                    <span className="text-sm text-gray-600">Eu li e concordo com os <Link href="/recursos/uso" target="_blank" className="font-bold text-royal-blue underline">Termos de Uso</Link> e a <Link href="/recursos/privacidade" target="_blank" className="font-bold text-royal-blue underline">Política de Privacidade</Link>.</span>
+                </label>
+            </div>
+            <div className="flex justify-between items-center pt-4"><button type="button" onClick={onBack} className="text-sm text-text-muted hover:text-dark-text">Voltar</button><button type="submit" disabled={isLoading || !agreedToTerms} className="py-3 px-6 bg-royal-blue text-white rounded-lg font-bold disabled:bg-gray-400">{isLoading ? 'Finalizando...' : 'Finalizar Cadastro'}</button></div>
+        </form>
+    );
+};
+
+const SuccessStep = () => {
+    const router = useRouter();
+    const goToLogin = () => {
+        router.push('/login');
+    };
+    return (
+        <div className="text-center flex flex-col h-full justify-center">
+            <div className="mx-auto bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mb-4"><i className="fas fa-check text-3xl"></i></div>
+            <h2 className="text-2xl font-bold mb-2">Conta criada com sucesso!</h2>
+            <p className="text-text-muted mb-6">Enviamos um e-mail de confirmação. Por favor, verifique sua caixa de entrada para ativar sua conta.</p>
+            <button onClick={goToLogin} className="w-full py-3 bg-royal-blue text-white rounded-lg font-bold">Ir para o Login</button>
+        </div>
+    );
+};
+
+// --- Componente Principal Unificado ---
 function InstitutionalRegister() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const supabase = createClient();
 
-    const [formData, setFormData] = useState<FormData>({});
+    const [step, setStep] = useState('verifying'); // Novo estado inicial
+    const [formData, setFormData] = useState<FormData>({ userCategory: 'aluno' }); // Define 'aluno' como padrão
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -36,7 +195,8 @@ function InstitutionalRegister() {
     useEffect(() => {
         initParticlesEngine(async (engine) => { await loadSlim(engine); }).then(() => { setInit(true); });
     }, []);
-
+    
+    // Efeito para verificar o código
     useEffect(() => {
         const code = searchParams.get('code');
         if (!code) {
@@ -45,10 +205,9 @@ function InstitutionalRegister() {
         }
 
         const verifyCodeAndGetOrg = async () => {
-            // ✅ CORREÇÃO: Chamamos a nova e segura função RPC para obter os detalhes da organização.
             const { data, error } = await supabase
                 .rpc('get_organization_for_invitation_code', { p_code: code })
-                .single(); // Usamos .single() porque esperamos apenas um resultado.
+                .single();
 
             if (error || !data || !data.organization_id) {
                 setError('Código de convite inválido ou a organização associada não foi encontrada.');
@@ -58,8 +217,9 @@ function InstitutionalRegister() {
                     ...prev,
                     invitationCode: code,
                     organizationId: data.organization_id,
-                    organizationName: data.organization_name
+                    organizationName: data.organization_name,
                 }));
+                setStep('personalData'); // Muda para a primeira etapa do formulário
             }
         };
         
@@ -67,77 +227,116 @@ function InstitutionalRegister() {
     }, [searchParams, router, supabase]);
 
     const particlesLoaded = async (container?: Container): Promise<void> => {};
-    const options: ISourceOptions = useMemo(() => ({ /* As suas opções de partículas aqui */ }), []);
+    const options: ISourceOptions = useMemo(() => ({ /* ...opções de partículas... */ }), []);
 
-    const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        if (!agreedToTerms) { setError("Você precisa concordar com os Termos de Uso."); return; }
+    const handleNextStep = (nextStep: string, data: Partial<FormData> = {}) => {
+        setFormData(prev => ({ ...prev, ...data }));
+        setError(null);
+        setStep(nextStep);
+    };
+
+    const handlePreviousStep = (prevStep: string) => {
+        setError(null);
+        setStep(prevStep);
+    };
+    
+    const handleRegister = async (finalData: Partial<FormData>) => {
+        if (!agreedToTerms) {
+            setError("Você precisa concordar com os Termos de Uso e a Política de Privacidade para continuar.");
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
+        const fullData = { ...formData, ...finalData };
 
+        if (!fullData.email || !fullData.password) {
+            setError("E-mail e senha são obrigatórios.");
+            setIsLoading(false);
+            return;
+        }
+        
         const { data: { user }, error: signUpError } = await supabase.auth.signUp({
-            email: formData.email!,
-            password: formData.password!,
-            options: { data: { full_name: formData.fullName } }
+            email: fullData.email,
+            password: fullData.password,
+            options: { data: { full_name: fullData.fullName } }
         });
 
-        if (signUpError) { setError(signUpError.message); setIsLoading(false); return; }
-
+        if (signUpError) {
+            setError(signUpError.message === 'User already registered' ? 'Este e-mail já está em uso.' : 'Erro ao criar usuário: ' + signUpError.message);
+            setIsLoading(false);
+            return;
+        }
+        
         if (user) {
-            const { error: profileError } = await supabase.from('profiles').upsert({
-                id: user.id,
-                full_name: formData.fullName,
-                nickname: formData.nickname,
-                birth_date: formData.birthDate,
-                pronoun: formData.pronoun,
-                user_category: 'aluno',
-                cpf: formData.cpf,
-                school_name: formData.organizationName,
-                organization_id: formData.organizationId,
-                has_agreed_to_terms: true,
-                has_completed_onboarding: false,
-                updated_at: new Date().toISOString(),
-            });
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .upsert({
+                    id: user.id, 
+                    full_name: fullData.fullName,
+                    nickname: fullData.nickname,
+                    birth_date: fullData.birthDate,
+                    pronoun: fullData.pronoun,
+                    user_category: fullData.userCategory,
+                    cpf: fullData.cpf,
+                    school_name: fullData.organizationName, // Usando o nome da organização
+                    organization_id: fullData.organizationId,
+                    address_cep: fullData.addressCep,
+                    address_street: fullData.addressStreet,
+                    address_number: fullData.addressNumber,
+                    address_complement: fullData.addressComplement,
+                    address_neighborhood: fullData.addressNeighborhood,
+                    address_city: fullData.addressCity,
+                    address_state: fullData.addressState,
+                    has_agreed_to_terms: true,
+                    has_completed_onboarding: false, 
+                    updated_at: new Date().toISOString(),
+                });
 
             if (profileError) {
-                setError(`Erro ao salvar perfil: ${profileError.message}`);
+                setError(`Erro ao salvar seu perfil: ${profileError.message}.`);
             } else {
-                await supabase.from('invitation_codes').update({ used_by: user.id }).eq('code', formData.invitationCode!);
-                router.push('/login?status=success');
+                await supabase.from('invitation_codes').update({ used_by: user.id }).eq('code', fullData.invitationCode!);
+                setStep('success');
             }
         }
         setIsLoading(false);
     };
 
-    if (!init || !formData.organizationName) {
-        return <div className="min-h-screen bg-royal-blue flex items-center justify-center text-white">Verificando código...</div>;
+    const renderStep = () => {
+        switch (step) {
+            case 'verifying':
+                return <div className="text-center">Verificando código...</div>;
+            case 'personalData':
+                return <PersonalDataStep onNext={(data) => handleNextStep('addressData', data)} onBack={() => router.push('/login/institucional')} initialData={formData} />;
+            case 'addressData':
+                return <AddressDataStep onNext={(data) => handleNextStep('authSetup', data)} onBack={() => handlePreviousStep('personalData')} initialData={formData} />;
+            case 'authSetup':
+                return <AuthStep onNext={(data) => handleNextStep('personalization', data)} onBack={() => handlePreviousStep('addressData')} initialData={formData} />;
+            case 'personalization':
+                return <PersonalizationStep onSubmit={handleRegister} onBack={() => handlePreviousStep('authSetup')} isLoading={isLoading} agreedToTerms={agreedToTerms} setAgreedToTerms={setAgreedToTerms} initialData={formData} />;
+            case 'success':
+                return <SuccessStep />;
+            default:
+                return <div className="text-center">Carregando...</div>;
+        }
+    };
+
+    if (!init) {
+        return <div className="min-h-screen bg-royal-blue" />;
     }
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "linear-gradient(135deg, #2e14ed 0%, #0c0082 100%)" }}>
             <Particles id="tsparticles" options={options} className="absolute inset-0 z-0" />
-            <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg z-10">
+            <div className="w-full max-w-lg bg-white p-8 rounded-2xl shadow-lg z-10">
                 <div className="mb-6 text-center">
                     <h2 className="text-2xl font-bold">Cadastro Institucional</h2>
                     <p className="text-text-muted">Você está se juntando à instituição:</p>
-                    <p className="font-bold text-lg text-royal-blue">{formData.organizationName}</p>
+                    <p className="font-bold text-lg text-royal-blue">{formData.organizationName || 'Carregando...'}</p>
                 </div>
-                <form onSubmit={handleRegister} className="space-y-4 text-sm">
-                    <input type="text" name="fullName" required placeholder="Nome Completo" onChange={e => setFormData(p => ({...p, fullName: e.target.value}))} className="w-full p-2 border rounded-md" />
-                    <input type="email" name="email" required placeholder="Seu melhor e-mail" onChange={e => setFormData(p => ({...p, email: e.target.value}))} className="w-full p-2 border rounded-md" />
-                    <input type="password" name="password" required placeholder="Crie uma senha" onChange={e => setFormData(p => ({...p, password: e.target.value}))} className="w-full p-2 border rounded-md" />
-                    <input type="text" name="schoolName" value={formData.organizationName} disabled className="w-full p-2 border rounded-md bg-gray-100" />
-                    <div className="pt-2">
-                        <label className="flex items-start gap-3 cursor-pointer">
-                            <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} className="h-5 w-5 mt-1 rounded border-gray-300" />
-                            <span className="text-xs text-gray-600">Eu li e concordo com os <Link href="/recursos/uso" target="_blank" className="font-bold underline">Termos de Uso</Link>.</span>
-                        </label>
-                    </div>
-                    <button type="submit" disabled={isLoading || !agreedToTerms} className="w-full py-3 bg-royal-blue text-white font-bold rounded-lg disabled:bg-gray-400">
-                        {isLoading ? 'Finalizando...' : 'Finalizar Cadastro'}
-                    </button>
-                    {error && <p className="text-red-500 text-xs mt-2 text-center">{error}</p>}
-                </form>
+                {renderStep()}
+                {error && <p className="text-red-500 text-sm mt-4 text-center">{error}</p>}
             </div>
         </div>
     );
@@ -145,7 +344,7 @@ function InstitutionalRegister() {
 
 export default function InstitutionalRegisterPage() {
     return (
-        <Suspense fallback={<div>Carregando...</div>}>
+        <Suspense fallback={<div className="min-h-screen bg-royal-blue flex items-center justify-center text-white">Carregando...</div>}>
             <InstitutionalRegister />
         </Suspense>
     );
