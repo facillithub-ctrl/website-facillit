@@ -1,5 +1,3 @@
-// Caminho: src/app/login/institucional/page.tsx
-
 "use client";
 
 import { useState } from 'react';
@@ -25,8 +23,6 @@ export default function InstitutionalLoginPage() {
             setError(result.error);
             setIsLoading(false);
         } else if (result.redirectPath) {
-            // Se a validação for bem-sucedida, a action redirecionará.
-            // Apenas para segurança, podemos forçar o redirecionamento aqui também.
             router.push(result.redirectPath);
         }
     };

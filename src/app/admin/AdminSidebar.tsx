@@ -6,7 +6,8 @@ import Image from 'next/image';
 
 const adminModules = [
     { name: 'Visão Geral', href: '/admin', icon: 'fa-tachometer-alt' },
-    { name: 'Atualizações', href: '/admin/updates', icon: 'fa-bullhorn' }, // <-- ADICIONADO
+    { name: 'Gerenciar Escolas', href: '/admin/schools', icon: 'fa-school' },
+    { name: 'Atualizações', href: '/admin/updates', icon: 'fa-bullhorn' },
     { name: 'Write', href: '/admin/write', icon: 'fa-pencil-alt' },
     { name: 'Task', href: '/admin/task', icon: 'fa-tasks', disabled: true },
     { name: 'Test', href: '/admin/test', icon: 'fa-file-alt' },

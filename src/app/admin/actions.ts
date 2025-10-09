@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import createSupabaseServerClient from '@/utils/supabase/server';
-// O tipo 'Update' foi removido daqui
 
+// --- TIPOS DE DADOS ---
 export type EssayPrompt = {
     id: string;
     title: string;
@@ -23,7 +23,7 @@ export type EssayPrompt = {
     tags: string[] | null;
 };
 
-
+// --- FUNÇÃO HELPER DE ADMIN ---
 async function isAdmin() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -38,14 +38,12 @@ async function isAdmin() {
   return profile?.user_category === 'administrator';
 }
 
+// --- FUNÇÕES DO MÓDULO WRITE ---
 export async function getWriteModuleData() {
   if (!(await isAdmin())) {
-    return { error: 'Acesso não autorizado.' };
+    return { data: null, error: 'Acesso não autorizado.' };
   }
-
   const supabase = await createSupabaseServerClient();
-
-  // A busca por 'updatesResult' foi removida daqui
   const [studentsResult, professorsResult, promptsResult, eventsResult, examsResult] = await Promise.all([
     supabase.from('profiles').select('id, full_name, user_category, created_at, verification_badge').or('user_category.eq.aluno,user_category.eq.vestibulando'),
     supabase.from('profiles').select('id, full_name, user_category, is_verified, created_at, verification_badge').eq('user_category', 'professor'),
@@ -53,13 +51,10 @@ export async function getWriteModuleData() {
     supabase.from('current_events').select('*').order('created_at', { ascending: false }),
     supabase.from('exam_dates').select('*').order('exam_date', { ascending: true })
   ]);
-
   const error = studentsResult.error || professorsResult.error || promptsResult.error || eventsResult.error || examsResult.error;
-
   if (error) {
-    return { error: error.message };
+    return { data: null, error: error.message };
   }
-
   return {
     data: {
       students: studentsResult.data,
@@ -67,47 +62,18 @@ export async function getWriteModuleData() {
       prompts: promptsResult.data,
       currentEvents: eventsResult.data,
       examDates: examsResult.data,
-      // A propriedade 'updates' foi removida daqui
-    }
+    },
+    error: null,
   };
 }
 
-// ... (O resto das funções como updateUserVerification, upsertPrompt, etc. permanecem aqui)
-// As funções upsertUpdate e deleteUpdate foram removidas daqui.
 export async function updateUserVerification(userId: string, badge: string | null) {
   if (!(await isAdmin())) {
     return { error: 'Acesso não autorizado.' };
   }
-
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({ verification_badge: badge, verification_status: badge ? 'approved' : null })
-    .eq('id', userId)
-    .select();
-
+  const { data, error } = await supabase.from('profiles').update({ verification_badge: badge, verification_status: badge ? 'approved' : null }).eq('id', userId).select();
   if (error) return { error: error.message };
-
-  revalidatePath('/admin/write');
-  return { data };
-}
-
-
-export async function updateProfessorVerification(professorId: string, isVerified: boolean) {
-  if (!(await isAdmin())) {
-    return { error: 'Acesso não autorizado.' };
-  }
-
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({ is_verified: isVerified })
-    .eq('id', professorId)
-    .select()
-    .single();
-
-  if (error) return { error: error.message };
-
   revalidatePath('/admin/write');
   return { data };
 }
@@ -115,8 +81,6 @@ export async function updateProfessorVerification(professorId: string, isVerifie
 export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
     if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
     const supabase = await createSupabaseServerClient();
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cleanedData: { [key: string]: any } = {};
     for (const key in promptData) {
         const value = promptData[key as keyof typeof promptData];
@@ -126,63 +90,79 @@ export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
             cleanedData[key] = value === '' ? null : value;
         }
     }
-
     let result;
     if (cleanedData.id) {
         const { id, ...updateData } = cleanedData;
-        result = await supabase
-            .from('essay_prompts')
-            .update(updateData)
-            .eq('id', id)
-            .select()
-            .single();
+        result = await supabase.from('essay_prompts').update(updateData).eq('id', id).select().single();
     } else {
-        result = await supabase
-            .from('essay_prompts')
-            .insert(cleanedData)
-            .select()
-            .single();
+        result = await supabase.from('essay_prompts').insert(cleanedData).select().single();
     }
-
     const { data, error } = result;
-
     if (error) {
         console.error("Erro no Supabase ao salvar o tema:", error);
-        return { error: `Erro ao salvar no banco de dados: ${error.message}` };
+        return { data: null, error: `Erro ao salvar no banco de dados: ${error.message}` };
     }
-
     revalidatePath('/admin/write');
     revalidatePath('/dashboard/applications/write');
-    return { data };
+    return { data, error: null };
 }
-
 
 export async function deletePrompt(promptId: string) {
     if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
     const supabase = await createSupabaseServerClient();
     const { error } = await supabase.from('essay_prompts').delete().eq('id', promptId);
-
     if (error) return { error: error.message };
-
     revalidatePath('/admin/write');
     revalidatePath('/dashboard/applications/write');
     return { success: true };
 }
 
-export async function upsertCurrentEvent(eventData: { id?: string; title: string; summary: string; link: string; }) {
-    if (!(await isAdmin())) return { error: 'Acesso não autenticado.' };
-    const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.from('current_events').upsert(eventData).select().single();
-    if (error) return { error: error.message };
-    revalidatePath('/admin/write');
-    return { data };
+// --- FUNÇÕES PARA GESTÃO DE ESCOLAS ---
+
+export async function getOrganizationsForAdmin() {
+  if (!(await isAdmin())) {
+    return { data: null, error: 'Acesso não autorizado.' };
+  }
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('get_organizations_for_admin');
+  if (error) {
+    console.error("Erro ao chamar RPC get_organizations_for_admin:", error);
+    return { data: null, error: error.message };
+  }
+  return { data, error: null };
 }
 
-export async function upsertExamDate(examData: { id?: string; name: string; exam_date: string; }) {
-    if (!(await isAdmin())) return { error: 'Acesso não autenticado.' };
+export async function upsertOrganization(orgData: { id?: string; name: string; cnpj?: string | null; status?: string; }) {
+    if (!(await isAdmin())) {
+        return { data: null, error: 'Acesso não autorizado.' };
+    }
     const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.from('exam_dates').upsert(examData).select().single();
-    if (error) return { error: error.message };
-    revalidatePath('/admin/write');
-    return { data };
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase.rpc('upsert_organization_as_admin', {
+        org_id: orgData.id || null,
+        org_name: orgData.name,
+        org_cnpj: orgData.cnpj || null,
+        org_status: orgData.status || 'active',
+        owner_user_id: user?.id
+    });
+    if (error) {
+        return { data: null, error: `Erro ao salvar instituição: ${error.message}` };
+    }
+    revalidatePath('/admin/schools');
+    return { data, error: null };
+}
+
+export async function deleteOrganization(orgId: string) {
+    if (!(await isAdmin())) {
+        return { error: 'Acesso não autorizado.' };
+    }
+    const supabase = await createSupabaseServerClient();
+    const { error } = await supabase.rpc('delete_organization_as_admin', {
+        org_id: orgId
+    });
+    if (error) {
+        return { error: `Erro ao deletar: ${error.message}` };
+    }
+    revalidatePath('/admin/schools');
+    return { success: true, error: null };
 }
