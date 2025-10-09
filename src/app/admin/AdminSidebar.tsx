@@ -2,17 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import Image from 'next/image'; // NOVO
+import Image from 'next/image';
 
 const adminModules = [
     { name: 'Visão Geral', href: '/admin', icon: 'fa-tachometer-alt' },
+    { name: 'Atualizações', href: '/admin/updates', icon: 'fa-bullhorn' }, // <-- ADICIONADO
     { name: 'Write', href: '/admin/write', icon: 'fa-pencil-alt' },
     { name: 'Task', href: '/admin/task', icon: 'fa-tasks', disabled: true },
-    { name: 'Test', href: '/admin/test', icon: 'fa-file-alt' }, // MODIFICADO
+    { name: 'Test', href: '/admin/test', icon: 'fa-file-alt' },
     { name: 'Games', href: '/admin/games', icon: 'fa-gamepad', disabled: true },
 ];
 
-// NOVAS PROPS
 type SidebarProps = {
   isMobileOpen: boolean;
   setIsMobileOpen: (isOpen: boolean) => void;
@@ -23,21 +23,17 @@ export default function AdminSidebar({ isMobileOpen, setIsMobileOpen }: SidebarP
 
     return (
         <>
-            {/* NOVO: Overlay para fechar o menu no mobile */}
             <div
                 onClick={() => setIsMobileOpen(false)}
                 className={`fixed inset-0 bg-black/50 z-30 lg:hidden transition-opacity ${
                     isMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
                 }`}
             />
-
-            {/* ALTERADO: Classes para controlar a visibilidade e posição */}
             <aside 
                 className={`fixed lg:relative top-0 left-0 h-full bg-white dark:bg-dark-card p-4 border-r dark:border-dark-border flex-shrink-0 flex flex-col z-40 transition-transform duration-300
                 ${isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'}
                 lg:translate-x-0 lg:w-64`}
             >
-                {/* NOVO: Header da Sidebar */}
                 <div className="flex items-center justify-between mb-8 h-8">
                     <div className="flex items-center gap-3">
                         <Image src="/assets/images/LOGO/png/logoazul.svg" alt="Facillit Hub Logo" width={32} height={32} />
@@ -68,7 +64,6 @@ export default function AdminSidebar({ isMobileOpen, setIsMobileOpen }: SidebarP
                         })}
                     </ul>
                 </nav>
-                 {/* NOVO: Link para voltar ao dashboard principal */}
                 <div className="mt-auto pt-4 border-t dark:border-gray-700">
                      <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                         <i className="fas fa-arrow-left w-5 text-center"></i>

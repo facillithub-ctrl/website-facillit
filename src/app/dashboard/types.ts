@@ -12,3 +12,13 @@ export type UserProfile = {
   target_exam?: string | null; // Adicionado
   verification_badge?: string | null; // 
 };
+
+// ADICIONE ESTE NOVO TIPO NO FINAL DO ARQUIVO
+export type Update = {
+    id: string;
+    created_at: string;
+    title: string;
+    content: string;
+    module_slug: string | null;
+    version: string | null;
+};

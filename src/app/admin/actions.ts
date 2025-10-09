@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import createSupabaseServerClient from '@/utils/supabase/server';
+// O tipo 'Update' foi removido daqui
 
 export type EssayPrompt = {
     id: string;
@@ -23,7 +24,6 @@ export type EssayPrompt = {
 };
 
 
-// --- Helper de Segurança ---
 async function isAdmin() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -38,8 +38,6 @@ async function isAdmin() {
   return profile?.user_category === 'administrator';
 }
 
-// --- Funções do Módulo WRITE ---
-
 export async function getWriteModuleData() {
   if (!(await isAdmin())) {
     return { error: 'Acesso não autorizado.' };
@@ -47,6 +45,7 @@ export async function getWriteModuleData() {
 
   const supabase = await createSupabaseServerClient();
 
+  // A busca por 'updatesResult' foi removida daqui
   const [studentsResult, professorsResult, promptsResult, eventsResult, examsResult] = await Promise.all([
     supabase.from('profiles').select('id, full_name, user_category, created_at, verification_badge').or('user_category.eq.aluno,user_category.eq.vestibulando'),
     supabase.from('profiles').select('id, full_name, user_category, is_verified, created_at, verification_badge').eq('user_category', 'professor'),
@@ -68,10 +67,13 @@ export async function getWriteModuleData() {
       prompts: promptsResult.data,
       currentEvents: eventsResult.data,
       examDates: examsResult.data,
+      // A propriedade 'updates' foi removida daqui
     }
   };
 }
 
+// ... (O resto das funções como updateUserVerification, upsertPrompt, etc. permanecem aqui)
+// As funções upsertUpdate e deleteUpdate foram removidas daqui.
 export async function updateUserVerification(userId: string, badge: string | null) {
   if (!(await isAdmin())) {
     return { error: 'Acesso não autorizado.' };

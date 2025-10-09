@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation'; // 1. Importar o usePathname
 
-// --- Dados para os Menus (COM ROTAS ATUALIZADAS) ---
+// --- Dados para os Menus (sem alterações) ---
 const modulos = {
   "Estudo & Foco": [
     { href: "/modulos/facillit-edu", title: "Facillit Edu", subtitle: "Gestão pedagógica e de alunos." },
@@ -35,11 +36,12 @@ const solucoes = [
 const recursos = {
     "Empresa": [
       { href: "/recursos/sobre-nos", title: "Sobre Nós", subtitle: "Conheça nossa história e missão." }, 
-      { href: "/app/not-found.tsx", title: "Carreiras", subtitle: "Junte-se à nossa equipe." }
+      { href: "/recursos/carreiras", title: "Carreiras", subtitle: "Junte-se à nossa equipe." }
     ],
     "Suporte": [
       { href: "/recursos/contato", title: "Contato", subtitle: "Fale com nosso time." }, 
-      { href: "/recursos/ajuda", title: "Central de Ajuda", subtitle: "Encontre respostas rápidas." }
+      { href: "/recursos/ajuda", title: "Central de Ajuda", subtitle: "Encontre respostas rápidas." },
+      { href: "/recursos/atualizacoes", title: "Atualizações", subtitle: "Veja as novidades da plataforma." }
     ],
     "Legal": [
       { href: "/recursos/uso", title: "Termos de Uso", subtitle: "Nossas políticas e termos." }, 
@@ -59,13 +61,28 @@ export default function Header() {
   const [isScrolled, setScrolled] = useState(false);
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [openMobileDropdown, setOpenMobileDropdown] = useState<string | null>(null);
+  
+  const pathname = usePathname(); // 2. Obter o caminho atual
+  const isHomePage = pathname === '/';
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+
+    // 3. Lógica atualizada
+    if (isHomePage) {
+      setScrolled(window.scrollY > 50); // Define o estado inicial
+      window.addEventListener('scroll', handleScroll);
+    } else {
+      // Em qualquer outra página, o header já começa com fundo sólido
+      setScrolled(true);
+    }
+
+    return () => {
+      if (isHomePage) {
+        window.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [isHomePage]); // A lógica roda novamente se a página mudar
 
   useEffect(() => {
     document.body.classList.toggle('overflow-hidden', isMenuOpen);
@@ -76,9 +93,9 @@ export default function Header() {
   };
 
   const headerClass = isScrolled ? "bg-white/95 shadow-md backdrop-blur-sm border-b border-gray-200" : "bg-transparent";
-  const linkColor = isScrolled ? "text-dark-text hover:text-royal-blue" : "text-white hover:opacity-80";
-  const logoFilter = isScrolled ? "" : "brightness-0 invert";
-  const buttonClass = isScrolled ? "bg-royal-blue text-white" : "bg-white text-royal-blue";
+  const linkColor = isScrolled || !isHomePage ? "text-dark-text hover:text-royal-blue" : "text-white hover:opacity-80";
+  const logoFilter = isScrolled || !isHomePage ? "" : "brightness-0 invert";
+  const buttonClass = isScrolled || !isHomePage ? "bg-royal-blue text-white" : "bg-white text-royal-blue";
 
   return (
     <>
