@@ -52,7 +52,7 @@ export default function Footer() {
         </div>
 
         <div className="flex flex-col md:flex-row justify-between items-center pt-8 mt-8 text-gray-500 text-sm">
-          <p>&copy; {new Date().getFullYear()} Facillit Hub. Todos os direitos reservados.</p>
+          <p>&copy; {new Date().getFullYear()} Facillit Hub. Todos os direitos reservados</p>
           <div className="flex gap-5 mt-4 md:mt-0 text-xl">
             <a href="#" aria-label="Facebook" className="hover:text-white transition-colors"><i className="fab fa-facebook-f"></i></a>
             <a href="#" aria-label="Instagram" className="hover:text-white transition-colors"><i className="fab fa-instagram"></i></a>
