@@ -116,7 +116,7 @@ export default function Hero() {
             href="#modules" 
             className="inline-block bg-gray-200 text-royal-blue py-4 px-10 rounded-full font-bold text-lg transition-transform duration-300 hover:scale-105"
           >
-            Explore o Ecossistema
+            Explore o nossos Ecossistema
           </a>
         </div>
         <div className="scroll-down-indicator absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
