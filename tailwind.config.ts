@@ -46,6 +46,9 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  // ADICIONE O PLUGIN AQUI
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
 }
 export default config
