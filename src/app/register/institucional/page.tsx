@@ -55,7 +55,10 @@ function InstitutionalRegister() {
                 setError('Código de convite inválido ou expirado.');
                 setTimeout(() => router.push('/login/institucional'), 3000);
             } else {
-                const org = data.organizations as { name: string } | null;
+                // CORREÇÃO APLICADA AQUI
+                // Acessamos o primeiro item do array retornado pelo Supabase.
+                const org = Array.isArray(data.organizations) ? data.organizations[0] : data.organizations;
+                
                 setFormData(prev => ({ ...prev, invitationCode: code, organizationId: data.organization_id, organizationName: org?.name }));
             }
         };
