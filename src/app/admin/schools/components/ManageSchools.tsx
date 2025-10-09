@@ -2,8 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-// ATUALIZAÇÃO: Importar a nova função
-import { upsertOrganization, deleteOrganization, generateNewCodeForOrganization } from '../../actions';
+import { upsertOrganization, deleteOrganization } from '../../actions';
 import { useToast } from '@/contexts/ToastContext';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
@@ -30,18 +29,22 @@ export default function ManageSchools({ initialOrganizations }: Props) {
     const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
     const [orgToDelete, setOrgToDelete] = useState<string | null>(null);
 
+
     const handleOpenModal = (org: Partial<Organization> | null) => {
         setCurrentOrg(org || { name: '', cnpj: '', status: 'active' });
         setIsModalOpen(true);
     };
 
     const handleSave = () => {
+        // ✅ CORREÇÃO APLICADA AQUI
         if (!currentOrg || !currentOrg.name) {
-            addToast({ title: "Erro", message: "O nome da instituição é obrigatório.", type: 'error' });
+            addToast({ title: "Erro de Validação", message: "O nome da instituição é obrigatório.", type: 'error' });
             return;
         }
+        
         startTransition(async () => {
-            const result = await upsertOrganization(currentOrg);
+            // TypeScript agora sabe que 'currentOrg' e 'currentOrg.name' são válidos.
+            const result = await upsertOrganization(currentOrg as { id?: string; name: string; cnpj?: string | null; status?: string; });
             if (result.error) {
                 addToast({ title: "Erro", message: result.error, type: 'error' });
             } else {
@@ -69,19 +72,6 @@ export default function ManageSchools({ initialOrganizations }: Props) {
             }
             setDeleteModalOpen(false);
             setOrgToDelete(null);
-        });
-    };
-
-    // NOVA FUNÇÃO para gerar o código
-    const handleGenerateCode = (organizationId: string) => {
-        startTransition(async () => {
-            const result = await generateNewCodeForOrganization(organizationId);
-            if (result.error) {
-                addToast({ title: "Erro", message: result.error, type: 'error' });
-            } else {
-                addToast({ title: "Sucesso!", message: "Novo código de convite gerado.", type: 'success' });
-                router.refresh();
-            }
         });
     };
 
@@ -123,12 +113,6 @@ export default function ManageSchools({ initialOrganizations }: Props) {
                                 <td className="px-6 py-4 space-x-2">
                                     <button onClick={() => handleOpenModal(org)} className="text-blue-500 hover:underline">Editar</button>
                                     <button onClick={() => handleDeleteClick(org.id)} className="text-red-500 hover:underline">Excluir</button>
-                                    {/* ATUALIZAÇÃO: Botão condicional para gerar código */}
-                                    {(!org.invitation_codes || org.invitation_codes.length === 0) && (
-                                        <button onClick={() => handleGenerateCode(org.id)} disabled={isPending} className="text-green-500 hover:underline disabled:opacity-50">
-                                            {isPending ? 'Gerando...' : 'Gerar Código'}
-                                        </button>
-                                    )}
                                 </td>
                             </tr>
                         ))}
