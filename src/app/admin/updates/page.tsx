@@ -1,6 +1,6 @@
 import { getUpdates } from './actions';
 import ManageUpdates from './components/ManageUpdates';
-import type { Update } from '@/app/dashboard/types';
+// CORREÇÃO: Removida a importação de 'Update' pois não é utilizada diretamente aqui.
 
 export default async function AdminUpdatesPage() {
     const { data: updates, error } = await getUpdates();

@@ -23,6 +23,7 @@ export type EssayPrompt = {
     tags: string[] | null;
 };
 
+
 // --- FUNÇÃO HELPER DE ADMIN ---
 async function isAdmin() {
   const supabase = await createSupabaseServerClient();
@@ -81,7 +82,8 @@ export async function updateUserVerification(userId: string, badge: string | nul
 export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
     if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
     const supabase = await createSupabaseServerClient();
-    const cleanedData: { [key: string]: any } = {};
+
+    const cleanedData: Record<string, unknown> = {};
     for (const key in promptData) {
         const value = promptData[key as keyof typeof promptData];
         if (key === 'tags' && typeof value === 'string') {
@@ -90,18 +92,31 @@ export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
             cleanedData[key] = value === '' ? null : value;
         }
     }
+
     let result;
     if (cleanedData.id) {
         const { id, ...updateData } = cleanedData;
-        result = await supabase.from('essay_prompts').update(updateData).eq('id', id).select().single();
+        result = await supabase
+            .from('essay_prompts')
+            .update(updateData)
+            .eq('id', id as string)
+            .select()
+            .single();
     } else {
-        result = await supabase.from('essay_prompts').insert(cleanedData).select().single();
+        result = await supabase
+            .from('essay_prompts')
+            .insert(cleanedData)
+            .select()
+            .single();
     }
+
     const { data, error } = result;
+
     if (error) {
         console.error("Erro no Supabase ao salvar o tema:", error);
         return { data: null, error: `Erro ao salvar no banco de dados: ${error.message}` };
     }
+
     revalidatePath('/admin/write');
     revalidatePath('/dashboard/applications/write');
     return { data, error: null };
@@ -124,7 +139,9 @@ export async function getOrganizationsForAdmin() {
     return { data: null, error: 'Acesso não autorizado.' };
   }
   const supabase = await createSupabaseServerClient();
+  
   const { data, error } = await supabase.rpc('get_organizations_for_admin');
+  
   if (error) {
     console.error("Erro ao chamar RPC get_organizations_for_admin:", error);
     return { data: null, error: error.message };
@@ -138,6 +155,7 @@ export async function upsertOrganization(orgData: { id?: string; name: string; c
     }
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
+
     const { data, error } = await supabase.rpc('upsert_organization_as_admin', {
         org_id: orgData.id || null,
         org_name: orgData.name,
@@ -145,6 +163,7 @@ export async function upsertOrganization(orgData: { id?: string; name: string; c
         org_status: orgData.status || 'active',
         owner_user_id: user?.id
     });
+
     if (error) {
         return { data: null, error: `Erro ao salvar instituição: ${error.message}` };
     }
@@ -157,9 +176,11 @@ export async function deleteOrganization(orgId: string) {
         return { error: 'Acesso não autorizado.' };
     }
     const supabase = await createSupabaseServerClient();
+    
     const { error } = await supabase.rpc('delete_organization_as_admin', {
         org_id: orgId
     });
+
     if (error) {
         return { error: `Erro ao deletar: ${error.message}` };
     }
