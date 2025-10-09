@@ -41,7 +41,7 @@ type FormData = {
     };
 };
 
-
+// ... (Todos os componentes de etapa como PersonalDataStep, AddressDataStep, etc. permanecem aqui sem alterações) ...
 // --- Componentes de Etapa (Trazidos da página de registo principal) ---
 
 const PersonalDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Partial<FormData>) => void, onBack: () => void, initialData: FormData }) => {
@@ -179,6 +179,7 @@ const SuccessStep = () => {
     );
 };
 
+
 // --- Componente Principal Unificado ---
 function InstitutionalRegister() {
     const router = useRouter();
@@ -205,9 +206,11 @@ function InstitutionalRegister() {
         }
 
         const verifyCodeAndGetOrg = async () => {
+            // ✅ CORREÇÃO DE TIPAGEM APLICADA AQUI
+            // Especificamos o tipo de retorno esperado da chamada RPC
             const { data, error } = await supabase
                 .rpc('get_organization_for_invitation_code', { p_code: code })
-                .single();
+                .single<{ organization_id: string; organization_name: string }>();
 
             if (error || !data || !data.organization_id) {
                 setError('Código de convite inválido ou a organização associada não foi encontrada.');
@@ -227,7 +230,9 @@ function InstitutionalRegister() {
     }, [searchParams, router, supabase]);
 
     const particlesLoaded = async (container?: Container): Promise<void> => {};
-    const options: ISourceOptions = useMemo(() => ({ /* ...opções de partículas... */ }), []);
+    const options: ISourceOptions = useMemo(() => ({
+      background: { color: { value: "transparent" } }, fpsLimit: 60, interactivity: { events: { onClick: { enable: true, mode: "push" }, onHover: { enable: true, mode: "repulse" }, }, modes: { push: { quantity: 4 }, repulse: { distance: 100, duration: 0.4 }, }, }, particles: { color: { value: "#ffffff" }, links: { color: "#ffffff", distance: 150, enable: true, opacity: 0.4, width: 1 }, move: { direction: "none", enable: true, outModes: { default: "out" }, random: false, speed: 2, straight: false }, number: { density: { enable: true }, value: 80 }, opacity: { value: 0.5 }, shape: { type: "circle" }, size: { value: { min: 1, max: 5 } }, }, detectRetina: true,
+    }), []);
 
     const handleNextStep = (nextStep: string, data: Partial<FormData> = {}) => {
         setFormData(prev => ({ ...prev, ...data }));
@@ -306,7 +311,7 @@ function InstitutionalRegister() {
     const renderStep = () => {
         switch (step) {
             case 'verifying':
-                return <div className="text-center">Verificando código...</div>;
+                return <div className="text-center p-8">Verificando código...</div>;
             case 'personalData':
                 return <PersonalDataStep onNext={(data) => handleNextStep('addressData', data)} onBack={() => router.push('/login/institucional')} initialData={formData} />;
             case 'addressData':
@@ -318,7 +323,7 @@ function InstitutionalRegister() {
             case 'success':
                 return <SuccessStep />;
             default:
-                return <div className="text-center">Carregando...</div>;
+                return <div className="text-center p-8">Carregando...</div>;
         }
     };
 

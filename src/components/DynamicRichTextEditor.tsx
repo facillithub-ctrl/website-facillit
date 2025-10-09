@@ -24,13 +24,12 @@ export default function DynamicRichTextEditor({ value, onChange, placeholder, he
     <Editor
       apiKey={apiKey}
       value={value}
-      onEditorChange={(content, editor) => onChange(content)}
+      // ✅ CORREÇÃO: O parâmetro 'editor' foi removido
+      onEditorChange={(content) => onChange(content)}
       init={{
         height: height,
         menubar: false,
-        // CORREÇÃO: Plugins atualizados para incluir mais funcionalidades
         plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
-        // CORREÇÃO: Barra de ferramentas atualizada para o layout completo
         toolbar: 'undo redo | blocks fontfamily fontsize | ' +
                  'bold italic underline strikethrough | ' +
                  'link image media table | ' +
