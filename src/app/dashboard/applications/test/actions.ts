@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 
 // --- TIPOS ---
 export type QuestionContent = {
+  base_text?: string | null; // Novo campo para o texto base
   statement: string;
   image_url?: string | null;
   options?: string[];
@@ -29,6 +30,8 @@ export type TestWithQuestions = {
   questions: Question[];
   is_knowledge_test?: boolean;
   related_prompt_id?: string | null;
+  cover_image_url?: string | null; // Novo campo
+  collection?: string | null;      // Novo campo
 };
 
 export type Test = Omit<TestWithQuestions, 'questions'>;
@@ -47,7 +50,7 @@ export type TestAttempt = {
 
 // --- FUNÇÕES DO PROFESSOR ---
 
-export async function createOrUpdateTest(testData: { title: string; description: string | null; questions: Omit<Question, 'id' | 'test_id'>[], is_public: boolean, is_knowledge_test: boolean, related_prompt_id: string | null }) {
+export async function createOrUpdateTest(testData: { title: string; description: string | null; questions: Omit<Question, 'id' | 'test_id'>[], is_public: boolean, is_knowledge_test: boolean, related_prompt_id: string | null, cover_image_url: string | null, collection: string | null }) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Usuário não autenticado.' };
@@ -67,6 +70,8 @@ export async function createOrUpdateTest(testData: { title: string; description:
       points: totalPoints,
       is_knowledge_test: testData.is_knowledge_test,
       related_prompt_id: testData.related_prompt_id,
+      cover_image_url: testData.cover_image_url,
+      collection: testData.collection,
     })
     .select()
     .single();
@@ -140,7 +145,7 @@ export async function getAvailableTestsForStudent(filters: { category?: string }
     let query = supabase
         .from('tests')
         .select(`
-            id, title, subject, duration_minutes, difficulty, points,
+            id, title, subject, duration_minutes, difficulty, points, cover_image_url, collection,
             questions ( count ),
             test_attempts ( score, student_id )
         `)
@@ -176,6 +181,8 @@ export async function getAvailableTestsForStudent(filters: { category?: string }
             avg_score,
             total_attempts,
             hasAttempted,
+            cover_image_url: test.cover_image_url,
+            collection: test.collection,
         };
     });
 

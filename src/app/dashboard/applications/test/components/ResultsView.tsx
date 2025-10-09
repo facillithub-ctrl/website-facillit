@@ -28,6 +28,11 @@ const getScoreColor = (score: number | null) => {
 
 // --- COMPONENTE PRINCIPAL ---
 export default function ResultsView({ attempts, onBack }: Props) {
+  const handleGenerateCertificate = (attemptId: string) => {
+    // Lógica para gerar o certificado será implementada aqui
+    alert(`Gerando certificado para a tentativa: ${attemptId}`);
+  };
+
   return (
     <div>
       <button onClick={onBack} className="text-sm font-bold text-royal-blue mb-6">
@@ -45,6 +50,7 @@ export default function ResultsView({ attempts, onBack }: Props) {
                 <th scope="col" className="px-6 py-3">Data</th>
                 <th scope="col" className="px-6 py-3 text-center">Questões</th>
                 <th scope="col" className="px-6 py-3 text-right">Nota Final</th>
+                <th scope="col" className="px-6 py-3 text-center">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -66,11 +72,20 @@ export default function ResultsView({ attempts, onBack }: Props) {
                     <td className={`px-6 py-4 text-right font-bold text-lg ${getScoreColor(attempt.score)}`}>
                       {attempt.score?.toFixed(0) ?? "N/A"}%
                     </td>
+                    <td className="px-6 py-4 text-center">
+                        <button
+                            onClick={() => handleGenerateCertificate(attempt.id)}
+                            className="text-xs bg-gray-200 dark:bg-gray-700 px-3 py-1.5 rounded-md font-semibold hover:bg-gray-300 dark:hover:bg-gray-600"
+                        >
+                            <i className="fas fa-certificate mr-2"></i>
+                            Gerar Certificado
+                        </button>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="text-center py-8 text-dark-text-muted">
+                  <td colSpan={5} className="text-center py-8 text-dark-text-muted">
                     Você ainda não completou nenhum simulado.
                   </td>
                 </tr>

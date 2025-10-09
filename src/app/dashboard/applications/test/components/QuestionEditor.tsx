@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import RichTextEditor from '@/components/DynamicRichTextEditor'; // CORRECTION: Path updated from './RichTextEditor'
+import RichTextEditor from '@/components/DynamicRichTextEditor'; 
 import createClient from '@/utils/supabase/client';
 
 export type QuestionContent = {
+  base_text?: string | null; // Novo campo para o texto base
   statement: string;
   image_url?: string | null;
   options?: string[];
@@ -75,8 +76,6 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
     onUpdate(updatedQuestion);
   };
   
-  // This function is kept for compatibility with the RichTextEditor's potential image button,
-  // but the new unified editor handles image insertion via URL prompt.
   const handleImageUpload = async (file: File): Promise<string | null> => {
     setIsUploading(true);
     const filePath = `question-images/${crypto.randomUUID()}-${file.name}`;
@@ -121,11 +120,26 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
       
       {isUploading && <p className="text-xs text-blue-500">Enviando imagem...</p>}
       
-      <RichTextEditor
-        value={localQuestion.content.statement}
-        onChange={(value) => handleContentChange('statement', value)}
-        placeholder="Digite o enunciado da questão aqui..."
-      />
+      {/* NOVO CAMPO: Texto Base */}
+       <div className="space-y-1">
+        <label className="text-sm font-medium">Texto Base (Opcional)</label>
+        <RichTextEditor
+            value={localQuestion.content.base_text || ''}
+            onChange={(value) => handleContentChange('base_text', value)}
+            placeholder="Digite aqui o texto, gráfico, tabela ou charge de apoio à questão..."
+            height={150}
+        />
+      </div>
+
+      {/* CAMPO EXISTENTE: Enunciado */}
+      <div className="space-y-1">
+         <label className="text-sm font-medium">Enunciado da Questão</label>
+         <RichTextEditor
+            value={localQuestion.content.statement}
+            onChange={(value) => handleContentChange('statement', value)}
+            placeholder="Digite o enunciado da questão aqui..."
+        />
+      </div>
 
       {localQuestion.question_type === 'multiple_choice' && (
         <div className="space-y-2">

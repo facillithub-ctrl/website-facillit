@@ -1,5 +1,7 @@
 "use client";
 
+import Image from 'next/image';
+
 type Test = {
     id: string;
     title: string;
@@ -10,12 +12,14 @@ type Test = {
     avg_score: number;
     total_attempts: number;
     points: number;
+    cover_image_url?: string | null;
+    collection?: string | null;
 };
 
 type Props = {
     test: Test;
     onStart: (testId: string) => void;
-    onViewDetails: (testId: string) => void; // Nova propriedade para ver detalhes
+    onViewDetails: (testId: string) => void; 
 };
 
 const difficultyStyles = {
@@ -29,10 +33,17 @@ export default function AvailableTestCard({ test, onStart, onViewDetails }: Prop
 
     return (
         <div className="glass-card flex flex-col p-5">
+            {test.cover_image_url && (
+                <div className="relative h-40 w-full mb-4">
+                    <Image src={test.cover_image_url} alt={test.title} layout="fill" objectFit="cover" className="rounded-lg" />
+                </div>
+            )}
             <div className="flex justify-between items-start">
                 <div>
                     <h3 className="text-lg font-bold text-dark-text dark:text-white mb-1">{test.title}</h3>
-                    {/* Exibe a categoria (subject) */}
+                    {test.collection && (
+                        <span className="text-xs font-semibold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full mr-2">{test.collection}</span>
+                    )}
                     {test.subject && (
                         <span className="text-xs font-semibold bg-royal-blue/10 text-royal-blue px-2 py-0.5 rounded-full">{test.subject}</span>
                     )}
