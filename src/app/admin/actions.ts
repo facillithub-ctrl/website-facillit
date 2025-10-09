@@ -23,7 +23,6 @@ export type EssayPrompt = {
     tags: string[] | null;
 };
 
-
 // --- FUNÇÃO HELPER DE ADMIN ---
 async function isAdmin() {
   const supabase = await createSupabaseServerClient();
@@ -39,11 +38,9 @@ async function isAdmin() {
   return profile?.user_category === 'administrator';
 }
 
-// --- FUNÇÕES DO MÓDULO WRITE ---
+// --- FUNÇÕES EXISTENTES (Módulo Write, etc.) ---
 export async function getWriteModuleData() {
-  if (!(await isAdmin())) {
-    return { data: null, error: 'Acesso não autorizado.' };
-  }
+  if (!(await isAdmin())) { return { data: null, error: 'Acesso não autorizado.' }; }
   const supabase = await createSupabaseServerClient();
   const [studentsResult, professorsResult, promptsResult, eventsResult, examsResult] = await Promise.all([
     supabase.from('profiles').select('id, full_name, user_category, created_at, verification_badge').or('user_category.eq.aluno,user_category.eq.vestibulando'),
@@ -53,25 +50,15 @@ export async function getWriteModuleData() {
     supabase.from('exam_dates').select('*').order('exam_date', { ascending: true })
   ]);
   const error = studentsResult.error || professorsResult.error || promptsResult.error || eventsResult.error || examsResult.error;
-  if (error) {
-    return { data: null, error: error.message };
-  }
+  if (error) { return { data: null, error: error.message }; }
   return {
-    data: {
-      students: studentsResult.data,
-      professors: professorsResult.data,
-      prompts: promptsResult.data,
-      currentEvents: eventsResult.data,
-      examDates: examsResult.data,
-    },
+    data: { students: studentsResult.data, professors: professorsResult.data, prompts: promptsResult.data, currentEvents: eventsResult.data, examDates: examsResult.data },
     error: null,
   };
 }
 
 export async function updateUserVerification(userId: string, badge: string | null) {
-  if (!(await isAdmin())) {
-    return { error: 'Acesso não autorizado.' };
-  }
+  if (!(await isAdmin())) { return { error: 'Acesso não autorizado.' }; }
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.from('profiles').update({ verification_badge: badge, verification_status: badge ? 'approved' : null }).eq('id', userId).select();
   if (error) return { error: error.message };
@@ -82,7 +69,6 @@ export async function updateUserVerification(userId: string, badge: string | nul
 export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
     if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
     const supabase = await createSupabaseServerClient();
-
     const cleanedData: Record<string, unknown> = {};
     for (const key in promptData) {
         const value = promptData[key as keyof typeof promptData];
@@ -92,31 +78,18 @@ export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
             cleanedData[key] = value === '' ? null : value;
         }
     }
-
     let result;
     if (cleanedData.id) {
         const { id, ...updateData } = cleanedData;
-        result = await supabase
-            .from('essay_prompts')
-            .update(updateData)
-            .eq('id', id as string)
-            .select()
-            .single();
+        result = await supabase.from('essay_prompts').update(updateData).eq('id', id as string).select().single();
     } else {
-        result = await supabase
-            .from('essay_prompts')
-            .insert(cleanedData)
-            .select()
-            .single();
+        result = await supabase.from('essay_prompts').insert(cleanedData).select().single();
     }
-
     const { data, error } = result;
-
     if (error) {
         console.error("Erro no Supabase ao salvar o tema:", error);
         return { data: null, error: `Erro ao salvar no banco de dados: ${error.message}` };
     }
-
     revalidatePath('/admin/write');
     revalidatePath('/dashboard/applications/write');
     return { data, error: null };
@@ -139,9 +112,7 @@ export async function getOrganizationsForAdmin() {
     return { data: null, error: 'Acesso não autorizado.' };
   }
   const supabase = await createSupabaseServerClient();
-  
   const { data, error } = await supabase.rpc('get_organizations_for_admin');
-  
   if (error) {
     console.error("Erro ao chamar RPC get_organizations_for_admin:", error);
     return { data: null, error: error.message };
@@ -155,7 +126,6 @@ export async function upsertOrganization(orgData: { id?: string; name: string; c
     }
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
-
     const { data, error } = await supabase.rpc('upsert_organization_as_admin', {
         org_id: orgData.id || null,
         org_name: orgData.name,
@@ -163,7 +133,6 @@ export async function upsertOrganization(orgData: { id?: string; name: string; c
         org_status: orgData.status || 'active',
         owner_user_id: user?.id
     });
-
     if (error) {
         return { data: null, error: `Erro ao salvar instituição: ${error.message}` };
     }
@@ -176,14 +145,40 @@ export async function deleteOrganization(orgId: string) {
         return { error: 'Acesso não autorizado.' };
     }
     const supabase = await createSupabaseServerClient();
-    
     const { error } = await supabase.rpc('delete_organization_as_admin', {
         org_id: orgId
     });
-
     if (error) {
         return { error: `Erro ao deletar: ${error.message}` };
     }
     revalidatePath('/admin/schools');
     return { success: true, error: null };
+}
+
+// =============================================================================
+// == NOVA FUNÇÃO PARA GERAR CÓDIGO PARA ESCOLAS EXISTENTES =====================
+// =============================================================================
+export async function generateNewCodeForOrganization(organizationId: string) {
+    if (!(await isAdmin())) {
+        return { error: 'Acesso não autorizado.' };
+    }
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { data, error } = await supabase
+        .from('invitation_codes')
+        .insert({
+            organization_id: organizationId,
+            role: 'aluno', // Padrão para alunos
+            created_by: user?.id
+        })
+        .select()
+        .single();
+
+    if (error) {
+        return { error: `Erro ao gerar novo código: ${error.message}` };
+    }
+
+    revalidatePath('/admin/schools');
+    return { data, error: null };
 }

@@ -1,4 +1,3 @@
-// src/app/login/institucional/actions.ts
 "use server";
 
 import createSupabaseServerClient from "@/utils/supabase/server";
@@ -18,6 +17,8 @@ export async function validateInstitutionalCode(code: string): Promise<{ error?:
         .single();
 
     if (error || !data) {
+        // Com a política de RLS implementada, este erro só deve ocorrer se o código realmente não existir
+        // ou se a política de segurança não estiver a permitir a leitura.
         return { error: 'Código não encontrado.' };
     }
 
@@ -33,6 +34,7 @@ export async function validateInstitutionalCode(code: string): Promise<{ error?:
         return { error: 'Este código expirou.' };
     }
 
-    // Se tudo estiver certo, redireciona para a página de cadastro institucional
+    // Se todas as verificações passarem, redireciona para a página de registo institucional,
+    // passando o código como um parâmetro na URL.
     redirect(`/register/institucional?code=${code}`);
 }
