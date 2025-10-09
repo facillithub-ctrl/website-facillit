@@ -37,7 +37,9 @@ export default function TeacherTestDashboard({ initialTests }: Props) {
     setCurrentView('list');
   };
   
-  const handleStartTest = () => {};
+  const handleStartTest = () => {
+    addToast({ title: "Ação de Aluno", message: "Professores não iniciam simulados, apenas visualizam.", type: 'error'});
+  };
 
   if (isLoading) {
     return <div className="text-center p-8">Carregando...</div>;

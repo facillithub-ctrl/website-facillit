@@ -31,9 +31,9 @@ export default function CreateTestModal({ onClose }: Props) {
   const [essayPrompts, setEssayPrompts] = useState<EssayPrompt[]>([]);
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
 
-  // NOVOS ESTADOS E REFS PARA UPLOAD
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const jsonInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
 
@@ -46,13 +46,11 @@ export default function CreateTestModal({ onClose }: Props) {
     fetchPrompts();
   }, []);
 
-  // NOVO: Função para lidar com o upload da imagem
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
-    // Salva na subpasta 'covers' do bucket 'tests'
     const filePath = `covers/${crypto.randomUUID()}_${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '')}`;
 
     const { error: uploadError } = await supabase.storage.from('tests').upload(filePath, file);
@@ -67,6 +65,49 @@ export default function CreateTestModal({ onClose }: Props) {
     setCoverImageUrl(data.publicUrl);
     setIsUploading(false);
     addToast({ title: "Upload Concluído", message: "Imagem de capa enviada com sucesso!", type: 'success' });
+  };
+  
+  const handleJsonImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const text = e.target?.result;
+            if (typeof text !== 'string') {
+                throw new Error("Não foi possível ler o arquivo.");
+            }
+            const importedQuestions = JSON.parse(text);
+
+            if (!Array.isArray(importedQuestions)) {
+                throw new Error("O JSON deve conter um array de questões.");
+            }
+            
+            const newQuestions: Question[] = importedQuestions.map(q => {
+                if (!q.question_type || !q.content || !q.content.statement) {
+                    throw new Error(`Questão inválida encontrada no arquivo: ${JSON.stringify(q)}`);
+                }
+                return {
+                    ...q,
+                    id: crypto.randomUUID(),
+                    points: q.points || 1,
+                };
+            });
+
+            setQuestions(prev => [...prev, ...newQuestions]);
+            addToast({ title: "Sucesso!", message: `${newQuestions.length} questões foram importadas.`, type: 'success' });
+
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+            addToast({ title: "Erro de Importação", message: `Não foi possível importar o arquivo: ${message}`, type: 'error' });
+        } finally {
+            if (jsonInputRef.current) {
+                jsonInputRef.current.value = "";
+            }
+        }
+    };
+    reader.readAsText(file);
   };
 
 
@@ -200,7 +241,25 @@ export default function CreateTestModal({ onClose }: Props) {
           </div>
           
           <div className="pt-4 border-t dark:border-gray-600 space-y-4">
-             <h4 className="font-bold text-md">Questões da Avaliação</h4>
+             <div className="flex justify-between items-center">
+                <h4 className="font-bold text-md">Questões da Avaliação ({questions.length})</h4>
+                <button 
+                    type="button" 
+                    onClick={() => jsonInputRef.current?.click()} 
+                    className="text-sm font-bold text-royal-blue hover:underline"
+                >
+                    <i className="fas fa-file-import mr-2"></i>
+                    Importar de JSON
+                </button>
+                <input 
+                    type="file" 
+                    ref={jsonInputRef} 
+                    onChange={handleJsonImport} 
+                    accept=".json" 
+                    className="hidden" 
+                />
+            </div>
+
              {questions.map((q, index) => (
                 <div key={q.id}>
                     <p className="font-semibold mb-2 text-sm">Questão {index + 1}</p>

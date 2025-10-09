@@ -6,7 +6,6 @@ import { submitTestAttempt } from '../actions';
 import type { TestWithQuestions, StudentAnswer } from '../actions';
 import Timer from './Timer';
 import { useToast } from '@/contexts/ToastContext';
-// Verifique se esta linha de importação está correta
 import ConfirmationModal from '@/components/ConfirmationModal';
 
 type Props = {
@@ -95,6 +94,12 @@ export default function AttemptView({ test, onFinish }: Props) {
                 </div>
 
                 <div>
+                    {/* CÓDIGO CORRIGIDO ADICIONADO AQUI */}
+                    {currentQuestion.content.base_text && (
+                        <div className="prose dark:prose-invert max-w-none mb-6 border dark:border-dark-border rounded-lg p-4 bg-gray-50 dark:bg-dark-card/50" dangerouslySetInnerHTML={{ __html: currentQuestion.content.base_text }} />
+                    )}
+                    {/* FIM DA CORREÇÃO */}
+
                     {currentQuestion.content.statement && (
                         <div className="prose dark:prose-invert max-w-none mb-6" dangerouslySetInnerHTML={{ __html: currentQuestion.content.statement }} />
                     )}
