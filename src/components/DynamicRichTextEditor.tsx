@@ -28,15 +28,14 @@ export default function DynamicRichTextEditor({ value, onChange, placeholder, he
       init={{
         height: height,
         menubar: false,
-        plugins: [
-          'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-          'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-          'insertdatetime', 'media', 'table', 'help', 'wordcount'
-        ],
-        toolbar: 'undo redo | blocks | ' +
-          'bold italic forecolor | alignleft aligncenter ' +
-          'alignright alignjustify | bullist numlist outdent indent | ' +
-          'removeformat | help',
+        // CORREÇÃO: Plugins atualizados para incluir mais funcionalidades
+        plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
+        // CORREÇÃO: Barra de ferramentas atualizada para o layout completo
+        toolbar: 'undo redo | blocks fontfamily fontsize | ' +
+                 'bold italic underline strikethrough | ' +
+                 'link image media table | ' +
+                 'align lineheight | numlist bullist indent outdent | ' +
+                 'emoticons charmap | removeformat',
         content_style: 'body { font-family:Inter,sans-serif; font-size:14px }',
         placeholder: placeholder
       }}
