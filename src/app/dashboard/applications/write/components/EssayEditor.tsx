@@ -1,4 +1,3 @@
-// src/app/dashboard/applications/write/components/EssayEditor.tsx
 "use client";
 
 import { useState, useTransition, useRef, useEffect } from 'react';
@@ -13,6 +12,7 @@ import Timer from './Timer';
 import PlagiarismResultModal, { type PlagiarismResult } from './PlagiarismResultModal';
 import { useToast } from '@/contexts/ToastContext';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import RichTextEditor from '@/components/DynamicRichTextEditor'; // Importação do novo editor
 
 type Props = {
   essay: Partial<Essay> | null;
@@ -233,12 +233,10 @@ export default function EssayEditor({ essay, prompts, onBack }: Props) {
                   </div>
                 ) : (
                   <>
-                    <textarea
-                        placeholder="Comece a escrever aqui..."
+                    <RichTextEditor
                         value={currentEssay.content || ''}
-                        onChange={(e) => setCurrentEssay(prev => ({ ...prev, content: e.target.value }))}
-                        className="w-full h-96 p-4 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-royal-blue dark:text-white-text force-ltr" // <-- CLASSE ADICIONADA AQUI
-                        dir="ltr" // <-- ADICIONA O ATRIBUTO DIR
+                        onChange={(content) => setCurrentEssay(prev => ({ ...prev, content }))}
+                        placeholder="Comece a escrever aqui..."
                     />
                     <div className="text-center my-4"><span className="text-sm text-text-muted dark:text-dark-text-muted">OU</span></div>
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/png, image/jpeg, image/jpg" className="hidden" />

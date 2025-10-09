@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import RichTextEditor from './RichTextEditor';
+import RichTextEditor from '@/components/DynamicRichTextEditor'; // CORRECTION: Path updated from './RichTextEditor'
 import createClient from '@/utils/supabase/client';
 
 export type QuestionContent = {
@@ -34,10 +34,10 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
   }, [question]);
 
   const handleContentChange = (field: keyof QuestionContent, value: string | string[] | number | undefined) => {
-    setLocalQuestion(prev => ({
-      ...prev,
-      content: { ...prev.content, [field]: value },
-    }));
+    const updatedContent = { ...localQuestion.content, [field]: value };
+    const updatedQuestion = { ...localQuestion, content: updatedContent };
+    setLocalQuestion(updatedQuestion);
+    onUpdate(updatedQuestion); // Notify parent immediately for better state sync
   };
 
   const handleOptionChange = (index: number, value: string) => {
@@ -45,7 +45,7 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
     newOptions[index] = value;
     handleContentChange('options', newOptions);
   };
-  
+
   const handleSaveChanges = () => {
     onUpdate(localQuestion);
   };
@@ -74,7 +74,9 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
     setLocalQuestion(updatedQuestion);
     onUpdate(updatedQuestion);
   };
-
+  
+  // This function is kept for compatibility with the RichTextEditor's potential image button,
+  // but the new unified editor handles image insertion via URL prompt.
   const handleImageUpload = async (file: File): Promise<string | null> => {
     setIsUploading(true);
     const filePath = `question-images/${crypto.randomUUID()}-${file.name}`;
@@ -90,9 +92,7 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
     const { data } = supabase.storage.from('tests').getPublicUrl(filePath);
     const newImageUrl = data.publicUrl;
     
-    const updatedQuestion = { ...localQuestion, content: { ...localQuestion.content, image_url: newImageUrl } };
-    setLocalQuestion(updatedQuestion);
-    onUpdate(updatedQuestion);
+    handleContentChange('image_url', newImageUrl);
 
     setIsUploading(false);
     return newImageUrl;
@@ -125,7 +125,6 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
         value={localQuestion.content.statement}
         onChange={(value) => handleContentChange('statement', value)}
         placeholder="Digite o enunciado da questão aqui..."
-        onImageUpload={handleImageUpload}
       />
 
       {localQuestion.question_type === 'multiple_choice' && (

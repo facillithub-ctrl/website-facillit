@@ -6,8 +6,7 @@ import { upsertUpdate, deleteUpdate } from '../mutations';
 import type { Update } from '@/app/dashboard/types';
 import { useToast } from '@/contexts/ToastContext';
 import ConfirmationModal from '@/components/ConfirmationModal';
-// Reutilizando o editor de texto rico que já existe no seu projeto
-import RichTextEditor from '@/app/dashboard/applications/test/components/RichTextEditor';
+import RichTextEditor from '@/components/DynamicRichTextEditor'; // Importando o novo editor unificado
 
 type Props = {
     updates: Update[];
@@ -23,7 +22,6 @@ export default function ManageUpdates({ updates }: Props) {
     const { addToast } = useToast();
 
     const handleOpenModal = (update: Partial<Update> | null) => {
-        // Garante que o 'content' nunca seja nulo para o editor
         setCurrentUpdate(update || { content: '' }); 
         setIsModalOpen(true);
     };
@@ -66,12 +64,6 @@ export default function ManageUpdates({ updates }: Props) {
                 router.refresh();
             }
         });
-    };
-    
-    // Função necessária para o RichTextEditor, mesmo que o upload seja tratado dentro dele
-    const handleImageUpload = async (file: File): Promise<string | null> => {
-        console.log("Upload de imagem será tratado pelo RichTextEditor:", file.name);
-        return null; 
     };
 
     return (
@@ -147,7 +139,6 @@ export default function ManageUpdates({ updates }: Props) {
                                     <RichTextEditor
                                         value={currentUpdate.content || ''}
                                         onChange={value => setCurrentUpdate(p => p ? ({ ...p, content: value }) : null)}
-                                        onImageUpload={handleImageUpload}
                                         placeholder="Escreva os detalhes da atualização..."
                                     />
                                 </div>

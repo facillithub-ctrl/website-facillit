@@ -58,8 +58,8 @@ body.noscroll {
   background: linear-gradient(to bottom right, #111114, #190894);
 }
 
-/* NOVA CLASSE DE CORREÇÃO ATUALIZADA */
-.force-ltr {
+/* CORREÇÃO ATUALIZADA E MAIS FORTE */
+.force-ltr, .force-ltr * {
   direction: ltr !important;
-  unicode-bidi: bidi-override !important;
+  text-align: left !important;
 }
