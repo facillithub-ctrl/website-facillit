@@ -10,9 +10,9 @@ import {
   getFrequentErrors,
   getCurrentEvents,
   getCorrectedEssaysForTeacher,
-  getPendingEssaysForTeacher // MODIFICAÇÃO: Nova função importada
+  getPendingEssaysForTeacher
 } from './actions';
-import type { UserProfile } from '../../types'; // MODIFICAÇÃO: Importar UserProfile
+import type { UserProfile } from '../../types';
 
 export default async function WritePage() {
   const supabase = await createSupabaseServerClient();
@@ -22,7 +22,6 @@ export default async function WritePage() {
     redirect('/login');
   }
 
-  // MODIFICAÇÃO: Buscar perfil completo para obter organization_id
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
@@ -57,7 +56,6 @@ export default async function WritePage() {
       getCurrentEvents(),
     ]);
     
-    // Busca a data do vestibular se o usuário tiver um selecionado
     let examDate: { name: string, exam_date: string } | null = null;
     if (profile?.target_exam) {
         const { data } = await supabase
@@ -86,8 +84,8 @@ export default async function WritePage() {
   // ROTA PARA PROFESSOR (GLOBAL E INSTITUCIONAL), GESTOR E ADMIN
   if (['professor', 'gestor', 'administrator', 'diretor'].includes(profile.user_category || '')) {
      const [pendingEssaysResult, correctedEssaysResult] = await Promise.all([
-        getPendingEssaysForTeacher(user.id, profile.organization_id), // MODIFICAÇÃO
-        getCorrectedEssaysForTeacher(user.id, profile.organization_id)  // MODIFICAÇÃO
+        getPendingEssaysForTeacher(user.id, profile.organization_id),
+        getCorrectedEssaysForTeacher(user.id, profile.organization_id)
      ]);
 
     return (

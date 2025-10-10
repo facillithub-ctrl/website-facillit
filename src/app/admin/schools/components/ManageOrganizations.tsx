@@ -6,20 +6,17 @@ import { createOrganization, generateInviteCode } from '../../actions';
 import { useToast } from '@/contexts/ToastContext';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
-// Tipagem para os dados que chegam do servidor
+// Tipagem corrigida para aceitar um array de perfis
 type Organization = {
     id: string;
     name: string;
     cnpj: string | null;
     created_at: string;
-    // A consulta retorna um array de perfis (mesmo que seja só o dono), então usamos `[]`
-    profiles: { full_name: string | null }[] | null; 
+    profiles: { full_name: string | null }[] | null;
 };
-// --- SUB-COMPONENTES (MODAIS) ---
-// ✅ CORREÇÃO: Os componentes dos modais foram movidos para fora do componente principal.
 
+// Componente do Modal de Criação movido para fora
 const CreateOrgModal = ({ isOpen, onClose, onSave, isPending }: { isOpen: boolean, onClose: () => void, onSave: (name: string, cnpj: string | null) => void, isPending: boolean }) => {
-    // Hooks agora são chamados no nível superior do seu próprio componente
     const [name, setName] = useState('');
     const [cnpj, setCnpj] = useState('');
 
@@ -59,8 +56,8 @@ const CreateOrgModal = ({ isOpen, onClose, onSave, isPending }: { isOpen: boolea
     );
 };
 
+// Componente do Modal de Geração de Código movido para fora
 const GenerateCodeModal = ({ org, onClose, onGenerate, isPending }: { org: Organization | null, onClose: () => void, onGenerate: (role: 'diretor' | 'professor' | 'aluno') => void, isPending: boolean }) => {
-    // Hook agora é chamado no nível superior do seu próprio componente
     const [role, setRole] = useState<'diretor' | 'professor' | 'aluno'>('aluno');
 
     if (!org) return null;
@@ -91,8 +88,7 @@ const GenerateCodeModal = ({ org, onClose, onGenerate, isPending }: { org: Organ
     );
 };
 
-
-// --- Componente Principal da Página ---
+// Componente Principal
 export default function ManageOrganizations({ initialOrganizations }: { initialOrganizations: Organization[] }) {
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const [orgForCode, setOrgForCode] = useState<Organization | null>(null);

@@ -2,8 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-// ✅ CORREÇÃO: Corrigindo o caminho da importação
-import { updateUserVerification } from '@/app/admin/actions';
+import { updateUserVerification } from '../../actions'; 
 import { VerificationBadge } from '@/components/VerificationBadge';
 import { useToast } from '@/contexts/ToastContext';
 
@@ -68,7 +67,6 @@ const ProfessorRow = ({ professor }: { professor: Professor }) => {
         </tr>
     );
 };
-
 
 export default function ManageProfessors({ professors }: { professors: Professor[] }) {
     return (

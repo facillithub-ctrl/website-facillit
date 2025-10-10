@@ -7,11 +7,11 @@ import { getTestWithQuestions } from '../actions';
 import type { Test, TestWithQuestions } from '../actions';
 import { useToast } from '@/contexts/ToastContext';
 import createClient from '@/utils/supabase/client';
-import type { UserProfile } from '@/app/dashboard/types'; // Importar UserProfile
+import type { UserProfile } from '@/app/dashboard/types';
 
 type Props = {
   initialTests: Test[];
-  userProfile: UserProfile; // MODIFICAÇÃO: Receber o perfil do usuário
+  userProfile: UserProfile;
 };
 
 type SchoolClass = {
@@ -28,11 +28,9 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
   const { addToast } = useToast();
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   
-  // MODIFICAÇÃO: Verifica se a conta é institucional
   const isInstitutional = !!userProfile.organization_id;
 
   useEffect(() => {
-    // Busca as turmas apenas se for um professor institucional
     if (isInstitutional) {
       const fetchClasses = async () => {
         const supabase = createClient();
@@ -45,7 +43,6 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
         if (error) {
           console.error("Erro ao buscar turmas do professor:", error);
         } else if (data) {
-          // Mapeia os dados para o formato esperado
           const mappedClasses = data.map(item => item.school_classes).filter(Boolean) as SchoolClass[];
           setClasses(mappedClasses);
         }

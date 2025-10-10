@@ -20,29 +20,81 @@ async function isAdmin() {
 }
 
 //================================================================//
-// FUNÇÕES PARA GESTÃO DE ESCOLAS (PAINEL DO DIRETOR)
-//================================================================//
-// (As funções existentes como getOrganizationData, createClass, etc. permanecem aqui)
-// ...
-
-//================================================================//
 // FUNÇÕES PARA GESTÃO DO WRITE (/admin/write)
 //================================================================//
-// (As funções existentes como updateUserVerification, getWriteModuleData, etc. permanecem aqui)
-// ...
 
+export async function updateUserVerification(userId: string, badge: string | null) {
+    if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
+    const supabase = await createSupabaseServerClient();
+    
+    const { error } = await supabase
+        .from('profiles')
+        .update({ verification_badge: badge })
+        .eq('id', userId);
+
+    if (error) {
+        return { error: error.message };
+    }
+
+    revalidatePath('/admin/write');
+    return { success: true };
+}
+
+export async function getWriteModuleData() {
+    if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
+    const supabase = await createSupabaseServerClient();
+    
+    const { data: students, error: studentsError } = await supabase
+        .from('profiles')
+        .select('id, full_name, user_category, created_at, verification_badge')
+        .in('user_category', ['student', 'vestibulando']);
+
+    const { data: professors, error: professorsError } = await supabase
+        .from('profiles')
+        .select('id, full_name, verification_badge')
+        .eq('user_category', 'professor');
+
+    const { data: prompts, error: promptsError } = await supabase
+        .from('essay_prompts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (studentsError || professorsError || promptsError) {
+        const error = studentsError || professorsError || promptsError;
+        return { error: error?.message };
+    }
+
+    return { data: { students, professors, prompts } };
+}
+
+export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
+    if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.from('essay_prompts').upsert(promptData).select().single();
+    
+    if (error) return { error: error.message };
+    
+    revalidatePath('/admin/write');
+    return { data };
+}
+
+export async function deletePrompt(promptId: string) {
+    if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
+    const supabase = await createSupabaseServerClient();
+    const { error } = await supabase.from('essay_prompts').delete().eq('id', promptId);
+
+    if (error) return { error: error.message };
+
+    revalidatePath('/admin/write');
+    return { success: true };
+}
 
 // =================================================================
-// == NOVAS FUNÇÕES PARA GESTÃO DE INSTITUIÇÕES (PAINEL DO ADMIN) ==
+// == FUNÇÕES PARA GESTÃO DE INSTITUIÇÕES (PAINEL DO ADMIN) ==
 // =================================================================
 
-/**
- * Busca todas as organizações cadastradas na plataforma.
- * Apenas para administradores.
- */
 export async function getAllOrganizations() {
     if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
-
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
         .from('organizations')
@@ -50,35 +102,24 @@ export async function getAllOrganizations() {
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error("Erro ao buscar organizações:", error.message);
         return { error: error.message };
     }
     
     return { data };
 }
 
-/**
- * Cria uma nova organização (instituição de ensino).
- * Apenas para administradores.
- */
 export async function createOrganization(name: string, cnpj: string | null) {
     if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
-
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     
     const { data, error } = await supabase
         .from('organizations')
-        .insert({
-            name,
-            cnpj,
-            owner_id: user!.id // O admin que cria é o "dono" inicial
-        })
+        .insert({ name, cnpj, owner_id: user!.id })
         .select()
         .single();
     
     if (error) {
-        console.error("Erro ao criar organização:", error.message);
         return { error: `Erro do banco de dados: ${error.message}` };
     }
 
@@ -86,13 +127,8 @@ export async function createOrganization(name: string, cnpj: string | null) {
     return { data };
 }
 
-/**
- * Gera um novo código de convite para uma organização.
- * Apenas para administradores.
- */
 export async function generateInviteCode(formData: { organizationId: string; role: 'diretor' | 'professor' | 'aluno'; fullName?: string; email?: string }) {
     if (!(await isAdmin())) return { error: 'Acesso não autorizado.' };
-    
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -109,7 +145,6 @@ export async function generateInviteCode(formData: { organizationId: string; rol
         .single();
 
     if (error) {
-        console.error("Erro ao gerar código:", error.message);
         return { error: `Erro do banco de dados: ${error.message}` };
     }
     
