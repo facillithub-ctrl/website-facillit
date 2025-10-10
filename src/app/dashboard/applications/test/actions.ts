@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 
 // --- TIPOS ---
 export type QuestionContent = {
-  base_text?: string | null; // Novo campo para o texto base
+  base_text?: string | null;
   statement: string;
   image_url?: string | null;
   options?: string[];
@@ -32,7 +32,7 @@ export type TestWithQuestions = {
   related_prompt_id?: string | null;
   cover_image_url?: string | null;
   collection?: string | null;
-  class_id?: string | null; // Adicionado para testes de turma
+  class_id?: string | null; 
 };
 
 export type Test = Omit<TestWithQuestions, 'questions'>;
@@ -51,16 +51,16 @@ export type TestAttempt = {
 
 // --- FUNÇÕES DO PROFESSOR ---
 
-export async function createOrUpdateTest(testData: {
-  title: string;
-  description: string | null;
-  questions: Omit<Question, 'id' | 'test_id'>[],
-  is_public: boolean,
-  is_knowledge_test: boolean,
-  related_prompt_id: string | null,
-  cover_image_url: string | null,
-  collection: string | null,
-  class_id: string | null; // MODIFICAÇÃO: Adicionado class_id
+export async function createOrUpdateTest(testData: { 
+    title: string; 
+    description: string | null; 
+    questions: Omit<Question, 'id' | 'test_id'>[], 
+    is_public: boolean, 
+    is_knowledge_test: boolean, 
+    related_prompt_id: string | null, 
+    cover_image_url: string | null, 
+    collection: string | null, 
+    class_id: string | null; 
 }) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -83,7 +83,7 @@ export async function createOrUpdateTest(testData: {
       related_prompt_id: testData.related_prompt_id,
       cover_image_url: testData.cover_image_url,
       collection: testData.collection,
-      class_id: testData.class_id, // MODIFICAÇÃO: Inserindo o class_id
+      class_id: testData.class_id,
     })
     .select()
     .single();
@@ -154,32 +154,29 @@ export async function getAvailableTestsForStudent(filters: { category?: string }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: "Usuário não autenticado" };
 
-    // Busca a turma do aluno
-    const { data: profile } = await supabase
+    const { data: classMemberships } = await supabase
         .from('class_members')
         .select('class_id')
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', user.id);
 
-    const classId = profile?.class_id;
+    const studentClassIds = classMemberships ? classMemberships.map(m => m.class_id) : [];
 
     let query = supabase
         .from('tests')
         .select(`
-            id, title, subject, duration_minutes, difficulty, points, cover_image_url, collection, class_id,
+            id, title, subject, duration_minutes, difficulty, points, cover_image_url, collection,
             questions ( count ),
             test_attempts ( score, student_id )
         `)
-        .eq('is_public', true)
         .eq('is_knowledge_test', false);
 
-    // MODIFICAÇÃO: Filtra por testes globais (sem class_id) OU testes da turma do aluno
-    if (classId) {
-        query = query.or(`class_id.is.null,class_id.eq.${classId}`);
+    const publicGlobalFilter = 'is_public.eq.true,class_id.is.null';
+    if (studentClassIds.length > 0) {
+        query = query.or(`${publicGlobalFilter},class_id.in.(${studentClassIds.join(',')})`);
     } else {
-        query = query.is('class_id', null);
+        query = query.or(publicGlobalFilter);
     }
-
+    
     if (filters.category && filters.category !== 'Todos') {
         query = query.eq('subject', filters.category);
     }
