@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { submitTestAttempt } from '../actions';
-import type { TestWithQuestions, StudentAnswer } from '../actions';
+import type { TestWithQuestions, StudentAnswerPayload } from '../actions';
 import Timer from './Timer';
 import { useToast } from '@/contexts/ToastContext';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -16,25 +16,74 @@ type Props = {
 export default function AttemptView({ test, onFinish }: Props) {
     const [isSubmitting, startSubmitTransition] = useTransition();
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [answers, setAnswers] = useState<StudentAnswer[]>(
-        test.questions.map(q => ({ questionId: q.id, answer: null }))
+    // Armazena o objeto completo da resposta, incluindo o tempo gasto
+    const [answers, setAnswers] = useState<StudentAnswerPayload[]>(
+        test.questions.map(q => ({ questionId: q.id, answer: null, time_spent: 0 }))
     );
     const router = useRouter();
     const { addToast } = useToast();
     const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
+
+    // Refs para controle de tempo
+    const questionStartTimeRef = useRef<number>(Date.now());
+    const totalTimeStartRef = useRef<number>(Date.now());
+
+    // Efeito para atualizar o tempo da questão ao trocar de slide
+    useEffect(() => {
+        const previousQuestionIndex = currentQuestionIndex > 0 ? currentQuestionIndex - 1 : 0;
+        const previousQuestionId = test.questions[previousQuestionIndex].id;
+        
+        // Zera o cronômetro para a nova questão
+        questionStartTimeRef.current = Date.now();
+
+        // Esta função de limpeza será chamada QUANDO a questão mudar
+        return () => {
+            const timeSpent = Math.round((Date.now() - questionStartTimeRef.current) / 1000);
+            setAnswers(currentAnswers =>
+                currentAnswers.map(a =>
+                    a.questionId === previousQuestionId
+                        ? { ...a, time_spent: a.time_spent + timeSpent }
+                        : a
+                )
+            );
+        };
+    }, [currentQuestionIndex, test.questions]);
 
     const handleAnswerChange = (questionId: string, answer: number | string) => {
         setAnswers(currentAnswers =>
             currentAnswers.map(a => (a.questionId === questionId ? { ...a, answer } : a))
         );
     };
+    
+    const goToNextQuestion = () => {
+        if (currentQuestionIndex < test.questions.length - 1) {
+            setCurrentQuestionIndex(i => i + 1);
+        }
+    };
+    
+    const goToPreviousQuestion = () => {
+        if (currentQuestionIndex > 0) {
+            setCurrentQuestionIndex(i => i - 1);
+        }
+    };
 
     const executeSubmit = () => {
+        // Salva o tempo da última questão antes de submeter
+        const lastQuestionId = test.questions[currentQuestionIndex].id;
+        const timeSpentOnLast = Math.round((Date.now() - questionStartTimeRef.current) / 1000);
+        const finalAnswers = answers.map(a => 
+            a.questionId === lastQuestionId 
+                ? { ...a, time_spent: a.time_spent + timeSpentOnLast } 
+                : a
+        );
+        const totalTimeSpent = Math.round((Date.now() - totalTimeStartRef.current) / 1000);
+
         setConfirmModalOpen(false);
         startSubmitTransition(async () => {
             const result = await submitTestAttempt({
                 test_id: test.id,
-                answers: answers,
+                answers: finalAnswers,
+                time_spent: totalTimeSpent
             });
 
             if (result.error) {
@@ -55,7 +104,6 @@ export default function AttemptView({ test, onFinish }: Props) {
     };
     
     const handleFinishAttempt = () => {
-        if (!test) return;
         setConfirmModalOpen(true);
     };
     
@@ -94,11 +142,9 @@ export default function AttemptView({ test, onFinish }: Props) {
                 </div>
 
                 <div>
-                    {/* CÓDIGO CORRIGIDO ADICIONADO AQUI */}
                     {currentQuestion.content.base_text && (
                         <div className="prose dark:prose-invert max-w-none mb-6 border dark:border-dark-border rounded-lg p-4 bg-gray-50 dark:bg-dark-card/50" dangerouslySetInnerHTML={{ __html: currentQuestion.content.base_text }} />
                     )}
-                    {/* FIM DA CORREÇÃO */}
 
                     {currentQuestion.content.statement && (
                         <div className="prose dark:prose-invert max-w-none mb-6" dangerouslySetInnerHTML={{ __html: currentQuestion.content.statement }} />
@@ -133,7 +179,7 @@ export default function AttemptView({ test, onFinish }: Props) {
                 
                 <div className="flex justify-between items-center mt-8 pt-4 border-t border-white/10">
                     <button 
-                        onClick={() => setCurrentQuestionIndex(i => i - 1)}
+                        onClick={goToPreviousQuestion}
                         disabled={currentQuestionIndex === 0}
                         className="bg-white/20 hover:bg-white/30 font-bold py-2 px-4 rounded-lg disabled:opacity-50"
                     >
@@ -145,7 +191,7 @@ export default function AttemptView({ test, onFinish }: Props) {
                         </button>
                     ) : (
                         <button 
-                            onClick={() => setCurrentQuestionIndex(i => i + 1)}
+                            onClick={goToNextQuestion}
                             className="bg-royal-blue hover:bg-opacity-90 font-bold py-2 px-4 rounded-lg"
                         >
                             Próxima

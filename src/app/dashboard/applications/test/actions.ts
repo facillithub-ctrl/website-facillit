@@ -18,6 +18,7 @@ export type Question = {
   question_type: 'multiple_choice' | 'dissertation';
   content: QuestionContent;
   points: number;
+  thematic_axis?: string | null; // Eixo temático adicionado
 };
 
 export type TestWithQuestions = {
@@ -32,22 +33,21 @@ export type TestWithQuestions = {
   related_prompt_id?: string | null;
   cover_image_url?: string | null;
   collection?: string | null;
-  class_id?: string | null; // Testes podem pertencer a uma turma
+  class_id?: string | null;
 };
 
 export type Test = Omit<TestWithQuestions, 'questions'>;
-export type StudentAnswer = { questionId: string, answer: number | string | null };
+export type StudentAnswerPayload = { questionId: string, answer: number | string | null, time_spent: number };
 export type TestAttempt = {
   id: string;
   test_id: string;
   student_id: string;
-  answers: StudentAnswer[];
   score: number | null;
   started_at: string;
   completed_at: string | null;
   status: 'in_progress' | 'completed' | 'graded';
+  time_spent_seconds: number | null;
 };
-
 
 // --- FUNÇÕES DO PROFESSOR ---
 
@@ -60,15 +60,13 @@ export async function createOrUpdateTest(testData: {
   related_prompt_id: string | null,
   cover_image_url: string | null,
   collection: string | null,
-  class_id: string | null; // ID da turma para testes privados
+  class_id: string | null;
 }) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Usuário não autenticado.' };
 
   const totalPoints = testData.questions.reduce((sum, q) => sum + (q.points || 0), 0);
-
-  // Se for um teste de turma (class_id não é nulo), ele não pode ser público.
   const isPublicTest = testData.class_id ? false : testData.is_public;
 
   const { data: testResult, error: testError } = await supabase
@@ -77,7 +75,7 @@ export async function createOrUpdateTest(testData: {
       title: testData.title,
       description: testData.description,
       created_by: user.id,
-      is_public: isPublicTest, // Lógica corrigida
+      is_public: isPublicTest,
       subject: 'Geral',
       difficulty: 'Médio',
       duration_minutes: 60,
@@ -86,7 +84,7 @@ export async function createOrUpdateTest(testData: {
       related_prompt_id: testData.related_prompt_id,
       cover_image_url: testData.cover_image_url,
       collection: testData.collection,
-      class_id: testData.class_id, // Inserindo o class_id
+      class_id: testData.class_id,
     })
     .select()
     .single();
@@ -102,6 +100,7 @@ export async function createOrUpdateTest(testData: {
       question_type: q.question_type,
       content: q.content,
       points: q.points,
+      thematic_axis: q.thematic_axis // Salvando o eixo temático
     }));
     const { error: questionsError } = await supabase.from('questions').insert(questionsToInsert);
     if (questionsError) {
@@ -116,22 +115,21 @@ export async function createOrUpdateTest(testData: {
 }
 
 export async function getTestsForTeacher() {
-    const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: "Usuário não autenticado." };
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { data: null, error: "Usuário não autenticado." };
 
-    // Busca testes criados pelo professor, que podem ser globais ou de turma
-    const { data, error } = await supabase
-        .from('tests')
-        .select('*')
-        .eq('created_by', user.id)
-        .order('created_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('tests')
+    .select('*')
+    .eq('created_by', user.id)
+    .order('created_at', { ascending: false });
 
-    if (error) {
-        console.error("Erro ao buscar testes do professor:", error);
-        return { data: null, error: error.message };
-    }
-    return { data, error: null };
+  if (error) {
+    console.error("Erro ao buscar testes do professor:", error);
+    return { data: null, error: error.message };
+  }
+  return { data, error: null };
 }
 
 export async function getTestWithQuestions(testId: string): Promise<{ data: TestWithQuestions | null; error: string | null; }> {
@@ -153,95 +151,42 @@ export async function getTestWithQuestions(testId: string): Promise<{ data: Test
 
 // --- FUNÇÕES DO ALUNO ---
 
-export async function getAvailableTestsForStudent(filters: { category?: string } = {}) {
+export async function getAvailableTestsForStudent() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: "Usuário não autenticado" };
 
-    // As RLS no banco de dados já cuidam da lógica de visibilidade.
-    // A query agora pode ser muito mais simples e segura.
-    let query = supabase
-        .from('tests')
-        .select(`
-            id, title, subject, duration_minutes, difficulty, points, cover_image_url, collection, class_id,
-            questions ( count ),
-            test_attempts ( score, student_id )
-        `)
-        .eq('is_knowledge_test', false);
-
-
-    if (filters.category && filters.category !== 'Todos') {
-        query = query.eq('subject', filters.category);
-    }
-    
-    const { data, error } = await query.order('created_at', { ascending: false });
+    const { data, error } = await supabase.rpc('get_available_tests_for_student', { p_student_id: user.id });
 
     if (error) {
-        console.error("Erro ao buscar testes disponíveis:", error);
+        console.error("Erro ao chamar RPC get_available_tests_for_student:", error);
         return { data: null, error: error.message };
     }
 
-    const formattedData = data.map(test => {
-        const hasAttempted = test.test_attempts.some(attempt => attempt.student_id === user.id);
-        const total_attempts = test.test_attempts.length;
-        const avg_score = total_attempts > 0
-            ? test.test_attempts.reduce((acc, curr) => acc + (curr.score || 0), 0) / total_attempts
-            : 0;
-
-        return {
-            id: test.id,
-            title: test.title,
-            subject: test.subject,
-            question_count: test.questions[0]?.count || 0,
-            duration_minutes: test.duration_minutes || 60,
-            difficulty: test.difficulty || 'Médio',
-            points: test.points || 0,
-            avg_score,
-            total_attempts,
-            hasAttempted,
-            cover_image_url: test.cover_image_url,
-            collection: test.collection,
-        };
-    });
-
-    return { data: formattedData, error: null };
-}
-
-
-// ... (o restante das funções de submit, dashboard, etc., permanecem as mesmas)
-
-export async function getStudentTestDashboardData() {
-    const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Usuário não autenticado.' };
-
-    const [statsRes, performanceRes, recentRes] = await Promise.all([
-        supabase.rpc('get_student_test_stats', { p_student_id: user.id }),
-        supabase.rpc('get_student_performance_by_subject', { p_student_id: user.id }),
-        supabase.from('test_attempts').select('score, completed_at, tests (title, subject)').eq('student_id', user.id).eq('status', 'graded').order('completed_at', { ascending: false }).limit(3)
-    ]);
-
-    if (statsRes.error || performanceRes.error || recentRes.error) {
-        console.error("Erros ao buscar dados do dashboard:", { stats: statsRes.error, perf: performanceRes.error, recent: recentRes.error });
-        return { data: null, error: 'Erro ao carregar dados do dashboard.' };
-    }
+    const formattedData = data.map((test: any) => ({
+      id: test.id,
+      title: test.title,
+      subject: test.subject,
+      question_count: test.question_count,
+      duration_minutes: test.duration_minutes,
+      difficulty: test.difficulty,
+      points: test.points,
+      avg_score: test.avg_score,
+      total_attempts: test.total_attempts,
+      hasAttempted: test.has_attempted,
+      cover_image_url: test.cover_image_url,
+      collection: test.collection,
+      class_id: test.class_id,
+    }));
     
-    if (!statsRes.data || statsRes.data.simuladosFeitos === 0) {
-        return { data: null, error: null };
-    }
+    const globalTests = formattedData.filter((t: any) => !t.class_id);
+    const classTests = formattedData.filter((t: any) => t.class_id);
 
-    return {
-        data: {
-            stats: statsRes.data,
-            performanceBySubject: performanceRes.data,
-            recentAttempts: recentRes.data,
-        },
-        error: null,
-    };
+    return { data: { globalTests, classTests }, error: null };
 }
 
 export async function submitTestAttempt(
-  { test_id, answers }: { test_id: string; answers: StudentAnswer[]; }
+  { test_id, answers, time_spent }: { test_id: string; answers: StudentAnswerPayload[], time_spent: number }
 ) {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -258,66 +203,90 @@ export async function submitTestAttempt(
       return { error: 'Não foi possível encontrar o simulado para correção.' };
     }
 
-    let score = 0;
-    const totalPoints = test.questions.reduce((acc, q) => acc + (q.points || 0), 0);
+    // 1. Criar a tentativa (test_attempt)
+    const { data: attempt, error: attemptError } = await supabase
+        .from('test_attempts')
+        .insert({
+            test_id: test_id,
+            student_id: user.id,
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            time_spent_seconds: time_spent
+        })
+        .select('id')
+        .single();
     
-    for (const question of test.questions) {
-      const studentAnswer = answers.find(a => a.questionId === question.id);
-      if (studentAnswer && question.question_type === 'multiple_choice') {
-        const correctOption = (question.content as QuestionContent).correct_option;
-        if (studentAnswer.answer === correctOption) {
-          score += question.points || 0;
-        }
-      }
+    if (attemptError) {
+        console.error("Erro ao criar registro de tentativa:", attemptError);
+        return { error: `Erro ao iniciar salvamento: ${attemptError.message}` };
     }
 
-    const finalPercentage = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
-
-    const { data, error } = await supabase
-      .from('test_attempts')
-      .insert({
-        test_id: test_id,
-        student_id: user.id,
-        answers: answers,
-        score: finalPercentage,
-        status: 'graded',
-        completed_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-  
-    if (error) {
-        if (error.code === '23505') {
-            return { error: 'Você já completou este simulado.' };
+    // 2. Preparar e salvar cada resposta individualmente
+    let correctCount = 0;
+    const answersToInsert = answers.map(studentAnswer => {
+        const question = test.questions.find(q => q.id === studentAnswer.questionId);
+        let isCorrect = false;
+        if (question && question.question_type === 'multiple_choice') {
+            const correctOption = (question.content as QuestionContent).correct_option;
+            if (studentAnswer.answer === correctOption) {
+                isCorrect = true;
+                correctCount++;
+            }
         }
-        console.error('Erro do Supabase ao salvar tentativa:', error);
-        return { error: `Erro ao salvar tentativa: ${error.message}` };
+        return {
+            attempt_id: attempt.id,
+            question_id: studentAnswer.questionId,
+            student_id: user.id,
+            answer: studentAnswer.answer,
+            is_correct: isCorrect,
+            time_spent_seconds: studentAnswer.time_spent,
+        };
+    });
+
+    const { error: answersError } = await supabase.from('student_answers').insert(answersToInsert);
+
+    if(answersError) {
+        console.error("Erro ao salvar respostas individuais:", answersError);
+        // Rollback: deleta a tentativa se o salvamento das respostas falhar
+        await supabase.from('test_attempts').delete().eq('id', attempt.id);
+        return { error: `Erro ao salvar respostas: ${answersError.message}`};
+    }
+
+    // 3. Calcular score final e atualizar a tentativa
+    const finalScore = test.questions.length > 0 ? Math.round((correctCount / test.questions.length) * 100) : 0;
+    
+    const { error: updateError } = await supabase
+        .from('test_attempts')
+        .update({ score: finalScore, status: 'graded' })
+        .eq('id', attempt.id);
+
+    if (updateError) {
+        console.error("Erro ao atualizar o score final:", updateError);
+        // Aqui a tentativa já foi criada, então não fazemos rollback, mas notificamos o erro.
+        return { error: `Erro ao finalizar e calcular a nota: ${updateError.message}`};
     }
 
     revalidatePath('/dashboard/applications/test');
-    return { data };
+    return { data: { success: true, attemptId: attempt.id } };
 }
 
-export async function getLatestTestAttemptForDashboard() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { data: null, error: 'Usuário não autenticado.' };
+export async function getStudentTestDashboardData() {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'Usuário não autenticado.' };
 
-  const { data, error } = await supabase
-    .from('test_attempts')
-    .select('score, tests ( title )')
-    .eq('student_id', user.id)
-    .eq('status', 'graded')
-    .order('completed_at', { ascending: false })
-    .limit(1)
-    .single();
+    const { data, error } = await supabase.rpc('get_student_test_dashboard_stats', { p_student_id: user.id });
 
-  if (error && error.code !== 'PGRST116') {
-    console.error("Erro ao buscar última tentativa para o dashboard:", error);
-    return { data: null, error: error.message };
-  }
+    if(error) {
+        console.error("Erro ao buscar dados do dashboard do aluno via RPC:", error);
+        return { data: null, error: error.message };
+    }
+    
+    if(!data || !data.stats || data.stats.simuladosFeitos === 0) {
+        return { data: null, error: null };
+    }
 
-  return { data: data, error: null };
+    return { data, error: null };
 }
 
 export async function getKnowledgeTestsForDashboard() {

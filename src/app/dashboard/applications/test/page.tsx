@@ -2,10 +2,10 @@ import createSupabaseServerClient from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import StudentTestDashboard from './components/StudentTestDashboard';
 import TeacherTestDashboard from './components/TeacherTestDashboard';
-import {
-    getTestsForTeacher,
-    getStudentTestDashboardData,
-    getAvailableTestsForStudent,
+import { 
+    getTestsForTeacher, 
+    getStudentTestDashboardData, 
+    getAvailableTestsForStudent, 
     getKnowledgeTestsForDashboard
 } from './actions';
 import type { UserProfile } from '../../types';
@@ -35,36 +35,21 @@ export default async function TestPage() {
       getAvailableTestsForStudent(),
       getKnowledgeTestsForDashboard()
     ]);
-
-    // Adiciona logs no servidor para ajudar a depurar o que está sendo recebido
-    if (dashboardDataRes.error) {
-        console.error("Erro na página TestPage ao buscar getStudentTestDashboardData:", dashboardDataRes.error);
-    }
-    if (availableTestsRes.error) {
-        console.error("Erro na página TestPage ao buscar getAvailableTestsForStudent:", availableTestsRes.error);
-    }
-    if (knowledgeTestsRes.error) {
-        console.error("Erro na página TestPage ao buscar getKnowledgeTestsForDashboard:", knowledgeTestsRes.error);
-    }
-
+    
     return (
-      <StudentTestDashboard
-        // Garante que `null` seja passado se `data` for undefined, prevenindo erros
-        dashboardData={dashboardDataRes.data ?? null}
-        initialAvailableTests={availableTestsRes.data || []}
+      <StudentTestDashboard 
+        dashboardData={dashboardDataRes.data} 
+        globalTests={availableTestsRes.data?.globalTests || []}
+        classTests={availableTestsRes.data?.classTests || []}
         knowledgeTests={knowledgeTestsRes.data || []}
       />
     );
   }
 
-  // ROTA PARA PROFESSOR (GLOBAL E INSTITUCIONAL) E GESTOR/ADMIN
+  // ROTA PARA PROFESSOR E GESTORES
   if (['professor', 'gestor', 'administrator', 'diretor'].includes(profile.user_category || '')) {
-    const { data: teacherTests, error } = await getTestsForTeacher();
-
-    if (error) {
-        console.error("Erro na página TestPage ao buscar getTestsForTeacher:", error);
-    }
-
+    const { data: teacherTests } = await getTestsForTeacher();
+    
     return <TeacherTestDashboard initialTests={teacherTests || []} userProfile={profile as UserProfile} />;
   }
 

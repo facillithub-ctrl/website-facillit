@@ -15,7 +15,7 @@ export type Essay = {
   student_id: string;
   consent_to_ai_training?: boolean;
   image_submission_url?: string | null;
-  organization_id?: string | null; // Adicionado para lógica institucional
+  organization_id?: string | null;
 };
 
 export type Annotation = {
@@ -76,7 +76,6 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
 
   if (!user) return { error: 'Usuário não autenticado.' };
   
-  // Obter o organization_id do perfil do aluno
   const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
 
   if (essayData.status === 'submitted') {
@@ -115,7 +114,7 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
       submitted_at: essayData.status === 'submitted' ? new Date().toISOString() : essayData.submitted_at,
       consent_to_ai_training: essayData.consent_to_ai_training,
       image_submission_url: essayData.image_submission_url,
-      organization_id: profile?.organization_id, // Adiciona o ID da organização
+      organization_id: profile?.organization_id,
     })
     .select()
     .single();
@@ -191,7 +190,7 @@ export async function getLatestEssayForDashboard() {
 
   const { data, error } = await supabase
     .from('essays')
-    .select('id, title, status')
+    .select('id, title, status, final_grade, prompts(title)')
     .eq('student_id', user.id)
     .order('created_at', { ascending: false })
     .limit(1)
