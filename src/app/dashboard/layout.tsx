@@ -10,17 +10,17 @@ export default async function DashboardLayout({
 }) {
   const supabase = await createSupabaseServerClient();
 
-  // CORREÇÃO: Trocado getSession() por getUser() para segurança
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     redirect('/login');
   }
   
+  // ✅ CORREÇÃO APLICADA AQUI: Adicionado 'organization_id' à consulta
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('id, full_name, user_category, avatar_url, pronoun, nickname, birth_date, school_name, has_completed_onboarding, active_modules, target_exam, verification_badge')
-    .eq('id', user.id) // Usando o 'user.id' autenticado
+    .select('id, full_name, user_category, avatar_url, pronoun, nickname, birth_date, school_name, has_completed_onboarding, active_modules, target_exam, verification_badge, organization_id')
+    .eq('id', user.id)
     .single();
 
   if (error || !profile) {
@@ -42,6 +42,7 @@ export default async function DashboardLayout({
     active_modules: profile.active_modules,
     target_exam: profile.target_exam,
     verification_badge: profile.verification_badge,
+    organization_id: profile.organization_id, // ✅ CORREÇÃO APLICADA AQUI: Adicionada a propriedade ao objeto
   };
 
   return (
