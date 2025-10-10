@@ -8,12 +8,12 @@ export type UserProfile = {
   pronoun: string | null;
   birthDate: string | null;
   schoolName: string | null;
-  organization_id: string | null;
+  organization_id: string | null; // Garanta que esta linha existe
   target_exam: string | null;
   active_modules: string[] | null;
-  verification_badge: string | null; // Alterado para string para aceitar 'green', 'blue', 'red', etc.
-  role?: 'student' | 'teacher'; // Adicionado para membros da turma
-  has_completed_onboarding?: boolean; // Adicionado para o fluxo de onboarding
+  verification_badge: string | null;
+  has_completed_onboarding?: boolean;
+  role?: 'student' | 'teacher';
 };
 
 // Define a estrutura de uma organização/escola.

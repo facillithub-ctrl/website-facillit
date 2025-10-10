@@ -39,6 +39,7 @@ export default async function AdminLayout({
     active_modules: profile.active_modules,
     birthDate: profile.birth_date,
     schoolName: profile.school_name,
+    organization_id: profile.organization_id, // <-- CORREÇÃO AQUI
     target_exam: profile.target_exam,
     verification_badge: profile.verification_badge,
   };
