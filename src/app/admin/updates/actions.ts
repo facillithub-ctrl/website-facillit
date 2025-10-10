@@ -2,7 +2,6 @@
 
 import createSupabaseServerClient from '@/utils/supabase/server';
 
-// Função para buscar todas as atualizações (para uso exclusivo no lado do servidor, na página)
 export async function getUpdates() {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase

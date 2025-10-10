@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { UserProfile } from '@/app/dashboard/types';
 import AdminSidebar from './AdminSidebar';
 import Topbar from '@/components/dashboard/Topbar';
-import { ToastProvider } from '@/contexts/ToastContext'; // 1. Importe o ToastProvider
+import { ToastProvider } from '@/contexts/ToastContext';
 
 type AdminClientLayoutProps = {
   userProfile: UserProfile;
@@ -15,7 +15,6 @@ export default function AdminClientLayout({ userProfile, children }: AdminClient
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    // 2. Envolva todo o layout com o ToastProvider
     <ToastProvider>
       <div className="flex h-screen bg-background-light dark:bg-gray-900">
         <AdminSidebar 

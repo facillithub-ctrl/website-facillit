@@ -6,7 +6,7 @@ import { upsertUpdate, deleteUpdate } from '../mutations';
 import type { Update } from '@/app/dashboard/types';
 import { useToast } from '@/contexts/ToastContext';
 import ConfirmationModal from '@/components/ConfirmationModal';
-import RichTextEditor from '@/components/DynamicRichTextEditor'; // Importando o novo editor unificado
+import RichTextEditor from '@/components/DynamicRichTextEditor';
 
 type Props = {
     updates: Update[];

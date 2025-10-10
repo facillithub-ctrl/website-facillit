@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateUserVerification } from '../../actions';
 import { VerificationBadge } from '@/components/VerificationBadge';
-import { useToast } from '@/contexts/ToastContext'; // 1. Importar o hook
+import { useToast } from '@/contexts/ToastContext';
 
 type Professor = { 
   id: string; 
@@ -16,7 +16,7 @@ const ProfessorRow = ({ professor }: { professor: Professor }) => {
     const [selectedBadge, setSelectedBadge] = useState(professor.verification_badge || 'none');
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
-    const { addToast } = useToast(); // 2. Inicializar o hook
+    const { addToast } = useToast();
 
     const hasChanged = selectedBadge !== (professor.verification_badge || 'none');
 
@@ -26,7 +26,6 @@ const ProfessorRow = ({ professor }: { professor: Professor }) => {
             const result = await updateUserVerification(professor.id, newBadge);
 
             if (result.error) {
-                // 3. Substituir alert por addToast
                 addToast({ title: "Erro ao Atualizar", message: `Não foi possível atualizar o professor: ${result.error}`, type: 'error' });
                 setSelectedBadge(professor.verification_badge || 'none');
             } else {

@@ -29,7 +29,7 @@ export default function ClassManager({ organizationId, initialClasses, organizat
 
     const handleCreateClass = async () => {
         if (!newClassName.trim()) {
-            addToast({ title: 'Atenção', message: 'O nome da turma não pode estar vazio.', type: 'warning' });
+            addToast({ title: 'Atenção', message: 'O nome da turma não pode estar vazio.', type: 'error' });
             return;
         }
         startTransition(async () => {
@@ -46,7 +46,7 @@ export default function ClassManager({ organizationId, initialClasses, organizat
 
     const handleAddUserToClass = async () => {
         if (!userToAdd || !selectedClass) {
-            addToast({ title: 'Atenção', message: 'Selecione uma turma e um utilizador para adicionar.', type: 'warning' });
+            addToast({ title: 'Atenção', message: 'Selecione uma turma e um utilizador para adicionar.', type: 'error' });
             return;
         }
         startTransition(async () => {
@@ -97,7 +97,6 @@ export default function ClassManager({ organizationId, initialClasses, organizat
                     setClasses(updatedClasses);
                     const newlySelectedClass = updatedClasses.find(c => c.id === classId);
                     setSelectedClass(newlySelectedClass || null);
-                    // Apenas adiciona de volta à lista se ele não estiver em mais nenhuma turma (lógica simplificada)
                     if (!unassignedUsers.find(u => u.id === removedUser.id)) {
                         setUnassignedUsers(previousUsers => [...previousUsers, removedUser]);
                     }
@@ -191,10 +190,8 @@ export default function ClassManager({ organizationId, initialClasses, organizat
                 onClose={() => setModalOpen(false)}
                 onConfirm={handleRemoveUserFromClass}
                 title="Confirmar Remoção"
-                description="Tem a certeza de que deseja remover este utilizador da turma? Esta ação não pode ser desfeita."
+                message="Tem a certeza de que deseja remover este utilizador da turma? Esta ação não pode ser desfeita."
                 confirmText="Sim, Remover"
-                isDestructive={true}
-                isPending={isPending}
             />
         </div>
     );

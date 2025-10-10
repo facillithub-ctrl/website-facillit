@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import createSupabaseServerClient from '@/utils/supabase/server';
 import type { UserProfile } from '@/app/dashboard/types';
-import AdminClientLayout from './AdminClientLayout'; // CORREÇÃO: Garanta que a importação está sem chaves {}
+import AdminClientLayout from './AdminClientLayout';
 
 export default async function AdminLayout({
   children,
@@ -40,6 +40,7 @@ export default async function AdminLayout({
     birthDate: profile.birth_date,
     schoolName: profile.school_name,
     target_exam: profile.target_exam,
+    verification_badge: profile.verification_badge,
   };
 
   // Renderiza o Client Layout e passa o userProfile buscado como prop

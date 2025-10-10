@@ -15,7 +15,6 @@ export default async function AdminWritePage() {
             <h1 className="text-3xl font-bold mb-8 text-dark-text dark:text-white">Gerenciar Módulo Write</h1>
             
             <div className="space-y-10">
-                {/* Garanta que o ManageUpdates NÃO está mais aqui */}
                 <ManagePrompts prompts={data.prompts || []} />
                 <ManageStudents students={data.students || []} />
                 <ManageProfessors professors={data.professors || []} />
