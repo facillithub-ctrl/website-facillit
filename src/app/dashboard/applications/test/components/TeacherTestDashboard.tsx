@@ -31,9 +31,11 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
   const isInstitutional = !!userProfile.organization_id;
 
   useEffect(() => {
+    // Busca as turmas apenas se for um professor institucional
     if (isInstitutional) {
       const fetchClasses = async () => {
         const supabase = createClient();
+        // Busca as turmas onde o usuário é membro com o papel de professor
         const { data, error } = await supabase
           .from('class_members')
           .select('school_classes(id, name)')
@@ -43,12 +45,8 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
         if (error) {
           console.error("Erro ao buscar turmas do professor:", error);
         } else if (data) {
-          // ✅ CORREÇÃO APLICADA AQUI:
-          // O Supabase pode retornar um objeto ou um array. Esta lógica trata ambos os casos e aplana o resultado.
-          const mappedClasses = data
-            .map(item => item.school_classes)
-            .flat() // Achata o array caso a resposta seja aninhada
-            .filter((c): c is SchoolClass => c !== null); // Filtra quaisquer resultados nulos
+          // Mapeia os dados para o formato esperado [ { id: '...', name: '...' } ]
+          const mappedClasses = data.map(item => item.school_classes).filter(Boolean) as SchoolClass[];
           setClasses(mappedClasses);
         }
       };
@@ -121,6 +119,11 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
                                 </span>
                             )}
                         </div>
+                         {test.class_id && (
+                             <span className="text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full self-start mt-1">
+                                Turma Específica
+                            </span>
+                         )}
                         <p className="text-sm text-gray-500 mt-1 flex-grow">
                             {test.description || 'Nenhuma descrição fornecida.'}
                         </p>

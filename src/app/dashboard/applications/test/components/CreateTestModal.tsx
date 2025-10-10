@@ -16,7 +16,7 @@ type EssayPrompt = {
 type Props = {
   onClose: () => void;
   classes: { id: string; name: string }[];
-  isInstitutional: boolean; // MODIFICAÇÃO: Adicionada a prop
+  isInstitutional: boolean; // Indica se o professor pertence a uma instituição
 };
 
 export default function CreateTestModal({ onClose, classes, isInstitutional }: Props) {
@@ -24,7 +24,7 @@ export default function CreateTestModal({ onClose, classes, isInstitutional }: P
   const [description, setDescription] = useState('');
   const [coverImageUrl, setCoverImageUrl] = useState('');
   const [collection, setCollection] = useState('');
-  // MODIFICAÇÃO: Testes institucionais não são públicos por padrão
+  // Testes de professores institucionais não são públicos por padrão
   const [isPublic, setIsPublic] = useState(!isInstitutional);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isPending, startTransition] = useTransition();
@@ -39,6 +39,7 @@ export default function CreateTestModal({ onClose, classes, isInstitutional }: P
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
   
+  // O ID da turma selecionada
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
 
   useEffect(() => {
@@ -140,7 +141,7 @@ export default function CreateTestModal({ onClose, classes, isInstitutional }: P
       addToast({ title: "Campo Obrigatório", message: "O título da avaliação é obrigatório.", type: 'error' });
       return;
     }
-    // MODIFICAÇÃO: Força a seleção de turma para professor institucional
+    // Força a seleção de turma para professor institucional
     if (isInstitutional && !selectedClass) {
         addToast({ title: "Campo Obrigatório", message: "Você deve selecionar uma turma para criar uma avaliação.", type: 'error' });
         return;
@@ -155,12 +156,14 @@ export default function CreateTestModal({ onClose, classes, isInstitutional }: P
         title,
         description,
         questions,
-        is_public: isInstitutional ? false : isPublic, // Testes institucionais nunca são públicos
+        // Se uma turma é selecionada, o teste é privado para ela (is_public = false)
+        // Se for institucional, ele não pode ser público
+        is_public: selectedClass ? false : isInstitutional ? false : isPublic,
         is_knowledge_test: isKnowledgeTest,
         related_prompt_id: selectedPrompt,
         cover_image_url: coverImageUrl || null,
         collection: collection || null,
-        class_id: selectedClass 
+        class_id: selectedClass // Passa o ID da turma selecionada
       });
 
       if (result.error) {
@@ -192,6 +195,7 @@ export default function CreateTestModal({ onClose, classes, isInstitutional }: P
               className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
           </div>
           
+          {/* Seletor de Turma */}
           <div>
             <label htmlFor="class_id" className="block text-sm font-medium mb-1">
               Atribuir para Turma {isInstitutional && <span className="text-red-500">*</span>}
@@ -201,16 +205,26 @@ export default function CreateTestModal({ onClose, classes, isInstitutional }: P
               value={selectedClass || ''}
               onChange={e => setSelectedClass(e.target.value || null)}
               className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 bg-white"
-              required={isInstitutional}
+              required={isInstitutional} // Obrigatório se for professor de instituição
             >
-              {!isInstitutional && <option value="">Disponível para todos (Global)</option>}
+              {/* Se não for institucional, pode criar um teste global */}
+              {!isInstitutional && <option value="">Disponível para todos (Global/Público)</option>}
+              
+              {/* Se for institucional, precisa escolher uma turma */}
               {isInstitutional && <option value="">Selecione a turma</option>}
+
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
             </select>
+             <p className="text-xs text-text-muted mt-1">
+                {isInstitutional 
+                    ? "Avaliações atribuídas a uma turma são visíveis apenas para os alunos daquela turma."
+                    : "Para criar um teste privado, primeiro crie uma turma no módulo Facillit Edu."
+                }
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -237,8 +251,9 @@ export default function CreateTestModal({ onClose, classes, isInstitutional }: P
                 <p className="text-xs text-text-muted">Capa atual: {coverImageUrl.substring(0, 50)}... <button type="button" onClick={() => setCoverImageUrl('')} className="text-red-500 hover:underline ml-2">Remover</button></p>
             </div>
           )}
-
-          {!isInstitutional && (
+          
+          {/* Checkbox de "Público" só aparece se for um teste global E não institucional */}
+          {!isInstitutional && !selectedClass && (
             <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md border dark:border-gray-700">
               <input id="is_public" type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)}
                 className="h-5 w-5 rounded border-gray-300 text-royal-blue focus:ring-royal-blue" />

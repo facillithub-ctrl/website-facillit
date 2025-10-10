@@ -5,9 +5,10 @@ import { revalidatePath } from "next/cache";
 import { UserProfile } from "../../types";
 
 /**
- * Helper para verificar se o usuário logado é um diretor.
+ * Helper de segurança para verificar se o usuário logado é um administrador da plataforma
+ * OU um diretor da organização especificada.
  */
-async function isDirector() {
+async function isOrganizationManager(organizationId: string): Promise<boolean> {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
@@ -18,7 +19,19 @@ async function isDirector() {
     .eq('id', user.id)
     .single();
 
-  return profile?.user_category === 'diretor' && !!profile.organization_id;
+  if (!profile) return false;
+
+  // Administradores da plataforma podem gerenciar qualquer organização
+  if (profile.user_category === 'administrator') {
+    return true;
+  }
+
+  // Diretores só podem gerenciar a sua própria organização
+  if (profile.user_category === 'diretor' && profile.organization_id === organizationId) {
+    return true;
+  }
+
+  return false;
 }
 
 // =================================================================
@@ -106,7 +119,10 @@ export async function getUnassignedUsers(orgId: string): Promise<UserProfile[]> 
  * Cria uma nova turma dentro de uma organização.
  */
 export async function createClass(organizationId: string, name: string) {
-    if (!(await isDirector())) return { error: 'Acesso não autorizado.' };
+    // Verificação de permissão aprimorada
+    if (!(await isOrganizationManager(organizationId))) {
+        return { error: 'Acesso não autorizado para criar turmas nesta instituição.' };
+    }
 
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
@@ -130,9 +146,23 @@ export async function createClass(organizationId: string, name: string) {
  * Adiciona um usuário a uma turma.
  */
 export async function addUserToClass(classId: string, userId: string, role: 'student' | 'teacher') {
-    if (!(await isDirector())) return { error: 'Acesso não autorizado.' };
-
     const supabase = await createSupabaseServerClient();
+    
+    // Busca o organization_id da turma para validar a permissão
+    const { data: classData, error: classError } = await supabase
+        .from('school_classes')
+        .select('organization_id')
+        .eq('id', classId)
+        .single();
+    
+    if (classError || !classData) {
+        return { error: 'Turma não encontrada.' };
+    }
+
+    if (!(await isOrganizationManager(classData.organization_id))) {
+        return { error: 'Acesso não autorizado para modificar esta turma.' };
+    }
+
     const { data, error } = await supabase
         .from('class_members')
         .insert({ class_id: classId, user_id: userId, role: role });
@@ -149,9 +179,23 @@ export async function addUserToClass(classId: string, userId: string, role: 'stu
  * Remove um usuário de uma turma.
  */
 export async function removeUserFromClass(classId: string, userId: string) {
-    if (!(await isDirector())) return { error: 'Acesso não autorizado.' };
-
     const supabase = await createSupabaseServerClient();
+
+    // Busca o organization_id da turma para validar a permissão
+    const { data: classData, error: classError } = await supabase
+        .from('school_classes')
+        .select('organization_id')
+        .eq('id', classId)
+        .single();
+
+    if (classError || !classData) {
+        return { error: 'Turma não encontrada.' };
+    }
+    
+    if (!(await isOrganizationManager(classData.organization_id))) {
+        return { error: 'Acesso não autorizado para modificar esta turma.' };
+    }
+
     const { error } = await supabase
         .from('class_members')
         .delete()
