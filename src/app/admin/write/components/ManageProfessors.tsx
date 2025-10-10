@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { updateUserVerification } from '../../actions';
+// ✅ CORREÇÃO: Corrigindo o caminho da importação
+import { updateUserVerification } from '@/app/admin/actions';
 import { VerificationBadge } from '@/components/VerificationBadge';
 import { useToast } from '@/contexts/ToastContext';
 
