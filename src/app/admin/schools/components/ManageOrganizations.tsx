@@ -12,9 +12,9 @@ type Organization = {
     name: string;
     cnpj: string | null;
     created_at: string;
-    profiles: { full_name: string | null } | null;
+    // A consulta retorna um array de perfis (mesmo que seja só o dono), então usamos `[]`
+    profiles: { full_name: string | null }[] | null; 
 };
-
 // --- SUB-COMPONENTES (MODAIS) ---
 // ✅ CORREÇÃO: Os componentes dos modais foram movidos para fora do componente principal.
 
