@@ -18,12 +18,10 @@ export default async function ManageSchoolsPage() {
         .eq('id', user.id)
         .single();
 
-    // Redireciona se o utilizador não for um diretor.
-    if (profile?.user_category !== 'diretor') {
+    if (profile?.user_category !== 'diretor' && profile?.user_category !== 'admin') {
         return redirect('/dashboard');
     }
 
-    // Mostra uma mensagem se o diretor não estiver ligado a nenhuma escola.
     if (!profile.organization_id) {
         return (
             <div className="p-4 md:p-8">
@@ -33,10 +31,7 @@ export default async function ManageSchoolsPage() {
         );
     }
     
-    // Busca os dados completos da organização (escola, turmas, membros).
     const organizationData = await getOrganizationData(profile.organization_id);
-    
-    // Busca os utilizadores da organização que ainda não pertencem a nenhuma turma.
     const unassignedUsers: UserProfile[] = await getUnassignedUsers(profile.organization_id);
 
     return (

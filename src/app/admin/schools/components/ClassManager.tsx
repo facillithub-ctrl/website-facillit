@@ -53,7 +53,7 @@ export default function ClassManager({ organizationId, initialClasses, organizat
             const result = await addUserToClass(selectedClass.id, userToAdd, roleToAdd);
             if (result.error) {
                 addToast({ title: 'Erro ao Adicionar', message: result.error, type: 'error' });
-            } else if (result.data) {
+            } else {
                 const addedUser = organizationMembers.find(member => member.id === userToAdd);
                 if (addedUser) {
                     const updatedClasses = classes.map(currentClass => 
@@ -97,7 +97,10 @@ export default function ClassManager({ organizationId, initialClasses, organizat
                     setClasses(updatedClasses);
                     const newlySelectedClass = updatedClasses.find(c => c.id === classId);
                     setSelectedClass(newlySelectedClass || null);
-                    setUnassignedUsers(previousUsers => [...previousUsers, removedUser]);
+                    // Apenas adiciona de volta à lista se ele não estiver em mais nenhuma turma (lógica simplificada)
+                    if (!unassignedUsers.find(u => u.id === removedUser.id)) {
+                        setUnassignedUsers(previousUsers => [...previousUsers, removedUser]);
+                    }
                     addToast({ title: 'Sucesso', message: 'Utilizador removido da turma!', type: 'success' });
                 }
             }
@@ -128,18 +131,18 @@ export default function ClassManager({ organizationId, initialClasses, organizat
                 <div className="md:col-span-1">
                     <h3 className="font-bold mb-2 dark:text-white">Turmas Existentes</h3>
                     <ul className="space-y-2 max-h-96 overflow-y-auto">
-                        {classes.map(c => (
+                        {classes.length > 0 ? classes.map(c => (
                             <li key={c.id}>
                                 <button onClick={() => setSelectedClass(c)} className={`w-full text-left p-3 rounded-lg border dark:border-gray-700 transition-all ${selectedClass?.id === c.id ? 'bg-blue-100 border-royal-blue dark:bg-blue-900/30 dark:border-royal-blue' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
                                     <p className="font-semibold dark:text-white">{c.name}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">{c.members.length} {c.members.length === 1 ? 'membro' : 'membros'}</p>
                                 </button>
                             </li>
-                        ))}
+                        )) : <p className="text-sm text-gray-500 p-3">Nenhuma turma criada ainda.</p>}
                     </ul>
                 </div>
 
-                {selectedClass && (
+                {selectedClass ? (
                     <div className="md:col-span-2 p-4 border dark:border-gray-700 rounded-lg">
                         <h3 className="font-bold text-lg mb-4 dark:text-white">Gerir Turma: {selectedClass.name}</h3>
 
@@ -163,19 +166,22 @@ export default function ClassManager({ organizationId, initialClasses, organizat
                         <div>
                             <h4 className="font-semibold mb-2 dark:text-white">Membros da Turma</h4>
                             <ul className="space-y-2 max-h-60 overflow-y-auto">
-                                {selectedClass.members.map(member => (
+                                {selectedClass.members.length > 0 ? selectedClass.members.map(member => (
                                     <li key={member.id} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800 rounded-md">
                                         <span className="dark:text-white">
                                             {member.fullName} <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">({member.role === 'teacher' ? 'Professor' : 'Aluno'})</span>
                                         </span>
                                         <button onClick={() => openConfirmationModal(selectedClass.id, member.id)} className="text-red-500 hover:text-red-700 text-sm font-medium">Remover</button>
                                     </li>
-                                ))}
-                                {selectedClass.members.length === 0 && (
+                                )) : (
                                     <p className="text-sm text-center text-gray-500 dark:text-gray-400 p-4">Esta turma ainda não tem membros.</p>
                                 )}
                             </ul>
                         </div>
+                    </div>
+                ) : (
+                    <div className="md:col-span-2 p-4 border dark:border-gray-700 rounded-lg flex items-center justify-center">
+                        <p className="text-gray-500 dark:text-gray-400">Selecione uma turma para ver os detalhes.</p>
                     </div>
                 )}
             </div>

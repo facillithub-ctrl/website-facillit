@@ -4,8 +4,8 @@ import createSupabaseServerClient from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { UserProfile } from "../dashboard/types";
 
-// Verifica se o utilizador atual tem a categoria 'admin'.
-export async function isAdmin() {
+// Verifica se o utilizador atual tem a categoria 'admin' ou 'diretor'.
+export async function isManager() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
@@ -16,7 +16,7 @@ export async function isAdmin() {
         .eq('id', user.id)
         .single();
 
-    return profile?.user_category === 'admin';
+    return profile?.user_category === 'admin' || profile?.user_category === 'diretor';
 }
 
 // Busca todos os dados relevantes de uma organização para a página de gestão.
@@ -41,7 +41,8 @@ export async function getOrganizationData(orgId: string) {
         .select('*')
         .eq('organization_id', orgId);
 
-    // Busca todas as turmas da organização e os seus membros.
+    // ✅ CONSULTA CORRIGIDA: Esta é a principal correção.
+    // A consulta foi reestruturada para buscar os membros e os seus papéis de forma correta.
     const { data: classes, error: classesError } = await supabase
         .from('school_classes')
         .select(`
@@ -49,21 +50,28 @@ export async function getOrganizationData(orgId: string) {
             name,
             organization_id,
             members:class_members (
-                profile:profiles (
-                    *,
-                    role:class_members (role)
+                role,
+                profile:profiles!inner (
+                    id,
+                    fullName,
+                    userCategory
                 )
             )
         `)
         .eq('organization_id', orgId);
 
+    if (classesError) {
+        console.error("Erro ao buscar turmas:", classesError.message);
+    }
+    
     // Formata os dados para um formato mais fácil de usar na interface.
     const formattedClasses = classes?.map(c => ({
-        ...c,
+        id: c.id,
+        name: c.name,
+        organization_id: c.organization_id,
         members: c.members.map((m: any) => ({
-            ...m.profile,
-            // A query retorna uma lista de roles, pegamos a primeira (e única).
-            role: m.profile.role[0]?.role 
+            ...m.profile, // Dados do perfil (id, fullName, etc.)
+            role: m.role     // Papel do membro na turma (student ou teacher)
         }))
     })) || [];
     
@@ -77,7 +85,6 @@ export async function getOrganizationData(orgId: string) {
 // Busca os utilizadores de uma organização que não estão em nenhuma turma.
 export async function getUnassignedUsers(orgId: string): Promise<UserProfile[]> {
     const supabase = await createSupabaseServerClient();
-    // Chama a função RPC que criámos no SQL.
     const { data, error } = await supabase.rpc('get_unassigned_users', { org_id: orgId });
     if (error) {
         console.error("Erro ao buscar utilizadores não designados:", error);
@@ -92,15 +99,14 @@ export async function createClass(organizationId: string, name: string) {
     const { data, error } = await supabase
         .from('school_classes')
         .insert({ organization_id: organizationId, name: name })
-        .select()
+        .select('id, name, organization_id') // Seleciona apenas os campos necessários
         .single();
         
     if (error) {
         console.error("Erro ao criar turma:", error.message);
-        return { error: error.message };
+        return { error: "Não foi possível criar a turma. Verifique se o nome já existe." };
     }
 
-    // Informa o Next.js para recarregar os dados na página de gestão.
     revalidatePath('/admin/schools');
     return { data };
 }
@@ -114,17 +120,17 @@ export async function addUserToClass(classId: string, userId: string, role: 'stu
         
     if (error) {
         console.error("Erro ao adicionar utilizador à turma:", error.message);
-        return { error: error.message };
+        return { error: "Não foi possível adicionar o utilizador. Ele já pode pertencer a esta turma." };
     }
     
     revalidatePath('/admin/schools');
-    return { data };
+    return { data: { success: true } };
 }
 
 // Remove um utilizador de uma turma.
 export async function removeUserFromClass(classId: string, userId: string) {
     const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase
+    const { error } = await supabase
         .from('class_members')
         .delete()
         .eq('class_id', classId)
@@ -132,7 +138,7 @@ export async function removeUserFromClass(classId: string, userId: string) {
         
     if (error) {
         console.error("Erro ao remover utilizador da turma:", error.message);
-        return { error: error.message };
+        return { error: "Não foi possível remover o utilizador." };
     }
     
     revalidatePath('/admin/schools');
