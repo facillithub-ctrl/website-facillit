@@ -330,23 +330,31 @@ export async function getKnowledgeTestsForDashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: "Usuário não autenticado" };
     
-    const { data, error } = await supabase
+    // ✅ CORREÇÃO APLICADA AQUI: Consulta simplificada para evitar o erro de RLS
+    const { data: allKnowledgeTests, error: testsError } = await supabase
         .from('tests')
-        .select(`
-            id, title, subject,
-            questions ( count ),
-            test_attempts!left(student_id)
-        `)
+        .select('id, title, subject, questions(count)')
         .eq('is_public', true)
-        .eq('is_knowledge_test', true)
-        .eq('test_attempts.student_id', user.id);
+        .eq('is_knowledge_test', true);
 
-    if (error) {
-        console.error("Erro ao buscar testes de conhecimento:", error);
-        return { data: null, error: error.message };
+    if (testsError) {
+        console.error("Erro ao buscar testes de conhecimento:", testsError);
+        return { data: null, error: testsError.message };
     }
-    
-    const unattempted = data.filter(test => test.test_attempts.length === 0);
+
+    const { data: attemptedTests, error: attemptsError } = await supabase
+        .from('test_attempts')
+        .select('test_id')
+        .eq('student_id', user.id);
+
+    if (attemptsError) {
+        console.error("Erro ao buscar tentativas:", attemptsError);
+        return { data: null, error: attemptsError.message };
+    }
+
+    const attemptedTestIds = new Set(attemptedTests.map(a => a.test_id));
+    const unattempted = allKnowledgeTests.filter(test => !attemptedTestIds.has(test.id));
+
     return { data: unattempted, error: null };
 }
 

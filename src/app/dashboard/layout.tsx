@@ -22,17 +22,20 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single();
 
-  if (error || !profile) {
-    console.error("Erro ao buscar perfil ou perfil não encontrado:", error); 
+  // ✅ CORREÇÃO APLICADA AQUI
+  // Verificamos se o erro é REALMENTE um problema de banco de dados,
+  // ignorando o erro 'PGRST116', que significa apenas "nenhuma linha encontrada".
+  // Se o perfil for nulo, mas não houver outro erro, a aplicação continua,
+  // pois a tela de Onboarding cuidará da criação do perfil.
+  if (error && error.code !== 'PGRST116') {
+    console.error("Erro ao buscar perfil:", error); 
     await supabase.auth.signOut();
     redirect('/login');
   }
 
-  // ✅ CORREÇÃO: LÓGICA DE REDIRECIONAMENTO REMOVIDA
-  // O layout não irá mais forçar o redirecionamento. O usuário 'diretor'
-  // chegará normalmente ao dashboard principal.
-  
-  const userProfile: UserProfile = {
+  // Se o perfil for nulo (novo usuário), criamos um objeto 'UserProfile' parcial
+  // para que o layout do cliente possa renderizar a tela de Onboarding.
+  const userProfile: UserProfile = profile ? {
     id: profile.id,
     fullName: profile.full_name,
     userCategory: profile.user_category,
@@ -46,6 +49,21 @@ export default async function DashboardLayout({
     target_exam: profile.target_exam,
     verification_badge: profile.verification_badge,
     organization_id: profile.organization_id,
+  } : {
+    // Objeto padrão para um novo usuário sem perfil
+    id: user.id,
+    fullName: null,
+    userCategory: null,
+    avatarUrl: null,
+    pronoun: null,
+    nickname: null,
+    birthDate: null,
+    schoolName: null,
+    has_completed_onboarding: false,
+    active_modules: [],
+    target_exam: null,
+    verification_badge: null,
+    organization_id: null,
   };
 
   return (

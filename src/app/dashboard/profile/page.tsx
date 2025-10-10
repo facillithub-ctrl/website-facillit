@@ -38,7 +38,7 @@ export default async function ProfilePage() {
     active_modules: profileData.active_modules,
     birthDate: profileData.birth_date,
     schoolName: profileData.school_name,
-    organization_id: profileData.organization_id, // <-- CORREÇÃO AQUI
+    organization_id: profileData.organization_id, // <-- ✅ CORREÇÃO AQUI
     target_exam: profileData.target_exam,
     verification_badge: profileData.verification_badge,
   };

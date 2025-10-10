@@ -149,7 +149,7 @@ export default function ManageUpdates({ updates }: Props) {
                                 </div>
                             </div>
                             <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-2 mt-auto">
-                                <button type="button" onClick={handleCloseModal} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancelar</button>
+                                <button type="button" onClick={handleCloseModal} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button>
                                 <button type="submit" disabled={isPending} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg disabled:bg-gray-400">
                                     {isPending ? 'Salvando...' : 'Salvar'}
                                 </button>
