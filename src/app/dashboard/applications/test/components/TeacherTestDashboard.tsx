@@ -43,9 +43,11 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
         if (error) {
           console.error("Erro ao buscar turmas do professor:", error);
         } else if (data) {
-          // ✅ CORREÇÃO: Mapeia corretamente a estrutura aninhada retornada pelo Supabase.
+          // ✅ CORREÇÃO APLICADA AQUI:
+          // O Supabase pode retornar um objeto ou um array. Esta lógica trata ambos os casos e aplana o resultado.
           const mappedClasses = data
             .map(item => item.school_classes)
+            .flat() // Achata o array caso a resposta seja aninhada
             .filter((c): c is SchoolClass => c !== null); // Filtra quaisquer resultados nulos
           setClasses(mappedClasses);
         }

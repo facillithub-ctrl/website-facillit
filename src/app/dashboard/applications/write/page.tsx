@@ -14,6 +14,15 @@ import {
 } from './actions';
 import type { UserProfile } from '../../types';
 
+// ✅ CORREÇÃO: Definindo o tipo esperado para a lista de redações
+type EssayListItem = {
+  id: string;
+  title: string | null;
+  submitted_at: string | null;
+  profiles: { full_name: string | null; } | null;
+  essay_corrections?: { final_grade: number }[] | null;
+};
+
 export default async function WritePage() {
   const supabase = await createSupabaseServerClient();
 
@@ -91,8 +100,9 @@ export default async function WritePage() {
     return (
         <TeacherDashboard
             userProfile={profile as UserProfile}
-            pendingEssays={pendingEssaysResult.data || []}
-            correctedEssays={correctedEssaysResult.data || []}
+            // ✅ CORREÇÃO: Adicionando asserção de tipo para garantir a compatibilidade
+            pendingEssays={pendingEssaysResult.data as EssayListItem[] || []}
+            correctedEssays={correctedEssaysResult.data as EssayListItem[] || []}
         />
     );
   }
