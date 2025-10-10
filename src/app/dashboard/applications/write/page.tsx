@@ -14,7 +14,7 @@ import {
 } from './actions';
 import type { UserProfile } from '../../types';
 
-// ✅ CORREÇÃO: Definindo o tipo esperado para a lista de redações
+// O tipo esperado pelo componente TeacherDashboard
 type EssayListItem = {
   id: string;
   title: string | null;
@@ -96,13 +96,25 @@ export default async function WritePage() {
         getPendingEssaysForTeacher(user.id, profile.organization_id),
         getCorrectedEssaysForTeacher(user.id, profile.organization_id)
      ]);
+     
+    // ✅ CORREÇÃO APLICADA: Transformando os dados para o formato correto.
+    const transformData = (data: any[] | null): EssayListItem[] => {
+      if (!data) return [];
+      return data.map(item => ({
+        ...item,
+        // Garante que 'profiles' seja um objeto ou nulo, não um array.
+        profiles: Array.isArray(item.profiles) ? item.profiles[0] || null : item.profiles,
+      }));
+    };
+
+    const pendingEssays = transformData(pendingEssaysResult.data);
+    const correctedEssays = transformData(correctedEssaysResult.data);
 
     return (
         <TeacherDashboard
             userProfile={profile as UserProfile}
-            // ✅ CORREÇÃO: Adicionando asserção de tipo para garantir a compatibilidade
-            pendingEssays={pendingEssaysResult.data as EssayListItem[] || []}
-            correctedEssays={correctedEssaysResult.data as EssayListItem[] || []}
+            pendingEssays={pendingEssays}
+            correctedEssays={correctedEssays}
         />
     );
   }
