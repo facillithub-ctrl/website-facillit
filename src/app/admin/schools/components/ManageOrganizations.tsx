@@ -15,12 +15,15 @@ type Organization = {
     profiles: { full_name: string | null } | null;
 };
 
-// --- Sub-Componentes (Modais) ---
+// --- SUB-COMPONENTES (MODAIS) ---
+// ✅ CORREÇÃO: Os componentes dos modais foram movidos para fora do componente principal.
 
 const CreateOrgModal = ({ isOpen, onClose, onSave, isPending }: { isOpen: boolean, onClose: () => void, onSave: (name: string, cnpj: string | null) => void, isPending: boolean }) => {
-    if (!isOpen) return null;
+    // Hooks agora são chamados no nível superior do seu próprio componente
     const [name, setName] = useState('');
     const [cnpj, setCnpj] = useState('');
+
+    if (!isOpen) return null;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -57,8 +60,10 @@ const CreateOrgModal = ({ isOpen, onClose, onSave, isPending }: { isOpen: boolea
 };
 
 const GenerateCodeModal = ({ org, onClose, onGenerate, isPending }: { org: Organization | null, onClose: () => void, onGenerate: (role: 'diretor' | 'professor' | 'aluno') => void, isPending: boolean }) => {
-    if (!org) return null;
+    // Hook agora é chamado no nível superior do seu próprio componente
     const [role, setRole] = useState<'diretor' | 'professor' | 'aluno'>('aluno');
+
+    if (!org) return null;
 
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -87,7 +92,7 @@ const GenerateCodeModal = ({ org, onClose, onGenerate, isPending }: { org: Organ
 };
 
 
-// ✅ CORREÇÃO: Garantindo que este é o único export `default`
+// --- Componente Principal da Página ---
 export default function ManageOrganizations({ initialOrganizations }: { initialOrganizations: Organization[] }) {
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const [orgForCode, setOrgForCode] = useState<Organization | null>(null);
