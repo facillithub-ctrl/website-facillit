@@ -2,13 +2,13 @@ import createSupabaseServerClient from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import StudentTestDashboard from './components/StudentTestDashboard';
 import TeacherTestDashboard from './components/TeacherTestDashboard';
-import { 
-    getTestsForTeacher, 
-    getStudentTestDashboardData, 
-    getAvailableTestsForStudent, 
+import {
+    getTestsForTeacher,
+    getStudentTestDashboardData,
+    getAvailableTestsForStudent,
     getKnowledgeTestsForDashboard
 } from './actions';
-import type { UserProfile } from '../../types'; // Importar o tipo UserProfile
+import type { UserProfile } from '../../types';
 
 export default async function TestPage() {
   const supabase = await createSupabaseServerClient();
@@ -18,10 +18,9 @@ export default async function TestPage() {
     redirect('/login');
   }
 
-  // MODIFICAÇÃO: Buscar o perfil completo do usuário
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*') // Busca todos os campos para ter o perfil completo
+    .select('*')
     .eq('id', user.id)
     .single();
 
@@ -36,10 +35,22 @@ export default async function TestPage() {
       getAvailableTestsForStudent(),
       getKnowledgeTestsForDashboard()
     ]);
-    
+
+    // Adiciona logs no servidor para ajudar a depurar o que está sendo recebido
+    if (dashboardDataRes.error) {
+        console.error("Erro na página TestPage ao buscar getStudentTestDashboardData:", dashboardDataRes.error);
+    }
+    if (availableTestsRes.error) {
+        console.error("Erro na página TestPage ao buscar getAvailableTestsForStudent:", availableTestsRes.error);
+    }
+    if (knowledgeTestsRes.error) {
+        console.error("Erro na página TestPage ao buscar getKnowledgeTestsForDashboard:", knowledgeTestsRes.error);
+    }
+
     return (
-      <StudentTestDashboard 
-        dashboardData={dashboardDataRes.data} 
+      <StudentTestDashboard
+        // Garante que `null` seja passado se `data` for undefined, prevenindo erros
+        dashboardData={dashboardDataRes.data ?? null}
         initialAvailableTests={availableTestsRes.data || []}
         knowledgeTests={knowledgeTestsRes.data || []}
       />
@@ -48,9 +59,12 @@ export default async function TestPage() {
 
   // ROTA PARA PROFESSOR (GLOBAL E INSTITUCIONAL) E GESTOR/ADMIN
   if (['professor', 'gestor', 'administrator', 'diretor'].includes(profile.user_category || '')) {
-    const { data: teacherTests } = await getTestsForTeacher();
-    
-    // MODIFICAÇÃO: Passar o perfil completo para o dashboard do professor
+    const { data: teacherTests, error } = await getTestsForTeacher();
+
+    if (error) {
+        console.error("Erro na página TestPage ao buscar getTestsForTeacher:", error);
+    }
+
     return <TeacherTestDashboard initialTests={teacherTests || []} userProfile={profile as UserProfile} />;
   }
 
