@@ -41,8 +41,7 @@ type FormData = {
     };
 };
 
-// ... (Todos os componentes de etapa como PersonalDataStep, AddressDataStep, etc. permanecem aqui sem alterações) ...
-// --- Componentes de Etapa (Trazidos da página de registo principal) ---
+// --- Componentes de Etapa (Steps) ---
 
 const PersonalDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Partial<FormData>) => void, onBack: () => void, initialData: FormData }) => {
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -52,16 +51,21 @@ const PersonalDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Part
     return (
         <form onSubmit={handleSubmit} className="space-y-4 text-sm">
             <h2 className="text-xl font-bold text-center mb-4">Seus Dados Pessoais</h2>
-            <div><label htmlFor="fullName" className="font-medium">Nome Completo</label><input type="text" name="fullName" defaultValue={initialData.fullName} required className="w-full p-2 border rounded-md mt-1" /></div>
-            <div><label htmlFor="birthDate" className="font-medium">Data de Nascimento</label><input type="date" name="birthDate" defaultValue={initialData.birthDate} required className="w-full p-2 border rounded-md mt-1" /></div>
-            <div><label htmlFor="cpf" className="font-medium">CPF</label><input type="text" name="cpf" defaultValue={initialData.cpf} required placeholder="000.000.000-00" className="w-full p-2 border rounded-md mt-1" /></div>
+            <div><label htmlFor="fullName" className="font-medium">Nome Completo</label><input type="text" name="fullName" defaultValue={initialData.fullName || ''} required className="w-full p-2 border rounded-md mt-1" /></div>
+            <div><label htmlFor="birthDate" className="font-medium">Data de Nascimento</label><input type="date" name="birthDate" defaultValue={initialData.birthDate || ''} required className="w-full p-2 border rounded-md mt-1" /></div>
+            <div><label htmlFor="cpf" className="font-medium">CPF</label><input type="text" name="cpf" defaultValue={initialData.cpf || ''} required placeholder="000.000.000-00" className="w-full p-2 border rounded-md mt-1" /></div>
             <div className="flex justify-between items-center pt-4"><button type="button" onClick={onBack} className="text-sm text-text-muted hover:text-dark-text">Voltar</button><button type="submit" className="py-2 px-5 bg-royal-blue text-white rounded-lg font-bold">Próximo</button></div>
         </form>
     );
 };
 
 const AddressDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Partial<FormData>) => void, onBack: () => void, initialData: FormData }) => {
-    const [address, setAddress] = useState({ street: initialData.addressStreet || '', neighborhood: initialData.addressNeighborhood || '', city: initialData.addressCity || '', state: initialData.addressState || '' });
+    const [address, setAddress] = useState({ 
+        street: initialData.addressStreet || '', 
+        neighborhood: initialData.addressNeighborhood || '', 
+        city: initialData.addressCity || '', 
+        state: initialData.addressState || '' 
+    });
 
     const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
         const cep = e.target.value.replace(/\D/g, '');
@@ -70,7 +74,13 @@ const AddressDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Parti
             const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
             const data = await response.json();
             if (!data.erro) {
-                setAddress({ street: data.logouro, neighborhood: data.bairro, city: data.localidade, state: data.uf });
+                // ✅ CORREÇÃO: Garante que os valores sejam sempre strings
+                setAddress({ 
+                    street: data.logouro || '', 
+                    neighborhood: data.bairro || '', 
+                    city: data.localidade || '', 
+                    state: data.uf || '' 
+                });
             }
         } catch (error) {
             console.error("Erro ao buscar CEP:", error);
@@ -80,17 +90,25 @@ const AddressDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Parti
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const form = e.currentTarget;
-        onNext({ addressCep: form.cep.value, addressStreet: form.street.value, addressNumber: form.number.value, addressComplement: form.complement.value, addressNeighborhood: form.neighborhood.value, addressCity: form.city.value, addressState: form.state.value });
+        onNext({ 
+            addressCep: form.cep.value, 
+            addressStreet: form.street.value, 
+            addressNumber: form.number.value, 
+            addressComplement: form.complement.value, 
+            addressNeighborhood: form.neighborhood.value, 
+            addressCity: form.city.value, 
+            addressState: form.state.value 
+        });
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-3 text-sm">
             <h3 className="text-xl font-bold text-center mb-4">Seu Endereço</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div><label htmlFor="cep" className="font-medium">CEP</label><input type="text" name="cep" onBlur={handleCepBlur} defaultValue={initialData.addressCep} required className="w-full p-2 border rounded-md mt-1" /></div>
+                <div><label htmlFor="cep" className="font-medium">CEP</label><input type="text" name="cep" onBlur={handleCepBlur} defaultValue={initialData.addressCep || ''} required className="w-full p-2 border rounded-md mt-1" /></div>
                 <div><label htmlFor="street" className="font-medium">Rua</label><input type="text" name="street" value={address.street} onChange={e => setAddress(a => ({...a, street: e.target.value}))} required className="w-full p-2 border rounded-md mt-1" /></div>
-                <div><label htmlFor="number" className="font-medium">Número</label><input type="text" name="number" defaultValue={initialData.addressNumber} required className="w-full p-2 border rounded-md mt-1" /></div>
-                <div><label htmlFor="complement" className="font-medium">Complemento</label><input type="text" name="complement" defaultValue={initialData.addressComplement} className="w-full p-2 border rounded-md mt-1" /></div>
+                <div><label htmlFor="number" className="font-medium">Número</label><input type="text" name="number" defaultValue={initialData.addressNumber || ''} required className="w-full p-2 border rounded-md mt-1" /></div>
+                <div><label htmlFor="complement" className="font-medium">Complemento</label><input type="text" name="complement" defaultValue={initialData.addressComplement || ''} className="w-full p-2 border rounded-md mt-1" /></div>
                 <div><label htmlFor="neighborhood" className="font-medium">Bairro</label><input type="text" name="neighborhood" value={address.neighborhood} onChange={e => setAddress(a => ({...a, neighborhood: e.target.value}))} required className="w-full p-2 border rounded-md mt-1" /></div>
                 <div><label htmlFor="city" className="font-medium">Cidade</label><input type="text" name="city" value={address.city} onChange={e => setAddress(a => ({...a, city: e.target.value}))} required className="w-full p-2 border rounded-md mt-1" /></div>
                 <div><label htmlFor="state" className="font-medium">Estado</label><input type="text" name="state" value={address.state} onChange={e => setAddress(a => ({...a, state: e.target.value}))} required className="w-full p-2 border rounded-md mt-1" /></div>
@@ -124,7 +142,7 @@ const AuthStep = ({ onNext, onBack, initialData }: { onNext: (data: Partial<Form
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <h2 className="text-2xl font-bold text-center mb-4">Crie seus dados de acesso</h2>
-            <div><label htmlFor="email" className="block text-sm font-medium mb-1">Seu melhor e-mail</label><input type="email" name="email" defaultValue={initialData.email} required className="w-full p-3 border rounded-lg" /></div>
+            <div><label htmlFor="email" className="block text-sm font-medium mb-1">Seu melhor e-mail</label><input type="email" name="email" defaultValue={initialData.email || ''} required className="w-full p-3 border rounded-lg" /></div>
             <div className="relative">
                 <label htmlFor="password" className="block text-sm font-medium mb-1">Crie uma senha</label>
                 <input type={showPassword ? 'text' : 'password'} name="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border rounded-lg" />
@@ -151,8 +169,8 @@ const PersonalizationStep = ({ onSubmit, onBack, isLoading, agreedToTerms, setAg
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <h2 className="text-2xl font-bold text-center mb-4">Quase lá! Personalize seu perfil</h2>
-            <div><label htmlFor="nickname" className="block text-sm font-medium mb-1">Como gostaria de ser chamado(a)? (Apelido)</label><input type="text" name="nickname" defaultValue={initialData.nickname} className="w-full p-3 border rounded-lg" /></div>
-            <div><label htmlFor="pronoun" className="block text-sm font-medium mb-1">Pronome</label><select name="pronoun" defaultValue={initialData.pronoun} className="w-full p-3 border rounded-lg bg-white"><option>Ele/Dele</option><option>Ela/Dela</option><option>Elu/Delu</option><option>Prefiro não informar</option></select></div>
+            <div><label htmlFor="nickname" className="block text-sm font-medium mb-1">Como gostaria de ser chamado(a)? (Apelido)</label><input type="text" name="nickname" defaultValue={initialData.nickname || ''} className="w-full p-3 border rounded-lg" /></div>
+            <div><label htmlFor="pronoun" className="block text-sm font-medium mb-1">Pronome</label><select name="pronoun" defaultValue={initialData.pronoun || ''} className="w-full p-3 border rounded-lg bg-white"><option>Ele/Dele</option><option>Ela/Dela</option><option>Elu/Delu</option><option>Prefiro não informar</option></select></div>
             <div className="pt-2">
                 <label className="flex items-start gap-3 cursor-pointer">
                     <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} className="h-5 w-5 mt-1 rounded border-gray-300 text-royal-blue focus:ring-royal-blue flex-shrink-0" />
@@ -179,15 +197,14 @@ const SuccessStep = () => {
     );
 };
 
-
 // --- Componente Principal Unificado ---
 function InstitutionalRegister() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const supabase = createClient();
 
-    const [step, setStep] = useState('verifying'); // Novo estado inicial
-    const [formData, setFormData] = useState<FormData>({ userCategory: 'aluno' }); // Define 'aluno' como padrão
+    const [step, setStep] = useState('verifying');
+    const [formData, setFormData] = useState<FormData>({ userCategory: 'aluno' });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -197,7 +214,6 @@ function InstitutionalRegister() {
         initParticlesEngine(async (engine) => { await loadSlim(engine); }).then(() => { setInit(true); });
     }, []);
     
-    // Efeito para verificar o código
     useEffect(() => {
         const code = searchParams.get('code');
         if (!code) {
@@ -206,8 +222,6 @@ function InstitutionalRegister() {
         }
 
         const verifyCodeAndGetOrg = async () => {
-            // ✅ CORREÇÃO DE TIPAGEM APLICADA AQUI
-            // Especificamos o tipo de retorno esperado da chamada RPC
             const { data, error } = await supabase
                 .rpc('get_organization_for_invitation_code', { p_code: code })
                 .single<{ organization_id: string; organization_name: string }>();
@@ -222,7 +236,7 @@ function InstitutionalRegister() {
                     organizationId: data.organization_id,
                     organizationName: data.organization_name,
                 }));
-                setStep('personalData'); // Muda para a primeira etapa do formulário
+                setStep('personalData');
             }
         };
         
@@ -284,7 +298,7 @@ function InstitutionalRegister() {
                     pronoun: fullData.pronoun,
                     user_category: fullData.userCategory,
                     cpf: fullData.cpf,
-                    school_name: fullData.organizationName, // Usando o nome da organização
+                    school_name: fullData.organizationName,
                     organization_id: fullData.organizationId,
                     address_cep: fullData.addressCep,
                     address_street: fullData.addressStreet,

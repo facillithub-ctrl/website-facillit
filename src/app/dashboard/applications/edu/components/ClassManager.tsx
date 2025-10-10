@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { SchoolClass, UserProfile } from '@/app/dashboard/types';
-import { createClass, addUserToClass, removeUserFromClass } from '../../actions';
+import { createClass, addUserToClass, removeUserFromClass } from '../actions';
 import { useToast } from '@/contexts/ToastContext';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { useRouter } from 'next/navigation';
@@ -15,8 +15,6 @@ type ClassManagerProps = {
 };
 
 export default function ClassManager({ organizationId, initialClasses, organizationMembers, initialUnassignedUsers }: ClassManagerProps) {
-    const [classes, setClasses] = useState(initialClasses);
-    const [unassignedUsers, setUnassignedUsers] = useState(initialUnassignedUsers);
     const [newClassName, setNewClassName] = useState('');
     const [selectedClass, setSelectedClass] = useState<(SchoolClass & { members: UserProfile[] }) | null>(null);
     const [userToAdd, setUserToAdd] = useState('');
@@ -36,23 +34,16 @@ export default function ClassManager({ organizationId, initialClasses, organizat
     const handleCreateClass = async () => {
         const trimmedName = newClassName.trim();
         if (!trimmedName) {
-            alert('O nome da turma não pode estar vazio.');
             addToast({ title: 'Atenção', message: 'O nome da turma não pode estar vazio.', type: 'error' });
             return;
         }
 
-        console.log(`[CLIENT] Iniciando criação da turma: "${trimmedName}"`);
-
         startTransition(async () => {
             const result = await createClass(organizationId, trimmedName);
             
-            // ✅ ALERTA EXPLÍCITO AQUI
             if (result.error) {
-                console.error("[CLIENT] Erro recebido do servidor:", result.error);
-                alert(`FALHA AO CRIAR TURMA:\n\n${result.error}`);
                 addToast({ title: 'Erro ao Criar Turma', message: result.error, type: 'error' });
             } else {
-                console.log("[CLIENT] Turma criada com sucesso. Atualizando a interface...");
                 setNewClassName('');
                 addToast({ title: 'Sucesso', message: `Turma "${trimmedName}" criada com sucesso!`, type: 'success' });
                 refreshData();
@@ -62,7 +53,7 @@ export default function ClassManager({ organizationId, initialClasses, organizat
 
     const handleAddUserToClass = async () => {
         if (!userToAdd || !selectedClass) {
-            addToast({ title: 'Atenção', message: 'Selecione uma turma e um utilizador para adicionar.', type: 'error' });
+            addToast({ title: 'Atenção', message: 'Selecione uma turma e um usuário para adicionar.', type: 'error' });
             return;
         }
         startTransition(async () => {
@@ -71,7 +62,7 @@ export default function ClassManager({ organizationId, initialClasses, organizat
                 addToast({ title: 'Erro ao Adicionar', message: result.error, type: 'error' });
             } else {
                 setUserToAdd('');
-                addToast({ title: 'Sucesso', message: 'Utilizador adicionado à turma!', type: 'success' });
+                addToast({ title: 'Sucesso', message: 'Usuário adicionado à turma!', type: 'success' });
                 refreshData();
             }
         });
@@ -91,7 +82,7 @@ export default function ClassManager({ organizationId, initialClasses, organizat
             if (result.error) {
                 addToast({ title: 'Erro ao Remover', message: result.error, type: 'error' });
             } else {
-                addToast({ title: 'Sucesso', message: 'Utilizador removido da turma!', type: 'success' });
+                addToast({ title: 'Sucesso', message: 'Usuário removido da turma!', type: 'success' });
                 refreshData();
             }
             setModalOpen(false);
@@ -121,7 +112,7 @@ export default function ClassManager({ organizationId, initialClasses, organizat
                 <div className="md:col-span-1">
                     <h3 className="font-bold mb-2 dark:text-white">Turmas Existentes</h3>
                     <ul className="space-y-2 max-h-96 overflow-y-auto">
-                        {classes.length > 0 ? classes.map(c => (
+                        {initialClasses.length > 0 ? initialClasses.map(c => (
                             <li key={c.id}>
                                 <button onClick={() => setSelectedClass(c)} className={`w-full text-left p-3 rounded-lg border dark:border-gray-700 transition-all ${selectedClass?.id === c.id ? 'bg-blue-100 border-royal-blue dark:bg-blue-900/30 dark:border-royal-blue' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
                                     <p className="font-semibold dark:text-white">{c.name}</p>
@@ -140,8 +131,8 @@ export default function ClassManager({ organizationId, initialClasses, organizat
                             <h4 className="font-semibold mb-2 dark:text-white">Adicionar Membro</h4>
                             <div className="flex flex-col sm:flex-row gap-2">
                                 <select value={userToAdd} onChange={e => setUserToAdd(e.target.value)} className="p-2 border rounded-md flex-grow dark:bg-gray-800 dark:border-gray-600 dark:text-white">
-                                    <option value="">Selecione um utilizador</option>
-                                    {unassignedUsers.map(user => <option key={user.id} value={user.id}>{user.fullName} ({user.userCategory})</option>)}
+                                    <option value="">Selecione um usuário</option>
+                                    {initialUnassignedUsers.map(user => <option key={user.id} value={user.id}>{user.fullName} ({user.userCategory})</option>)}
                                 </select>
                                 <select value={roleToAdd} onChange={e => setRoleToAdd(e.target.value as any)} className="p-2 border rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-white">
                                     <option value="student">Aluno</option>

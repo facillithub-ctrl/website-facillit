@@ -6,8 +6,9 @@ import {
     getTestsForTeacher, 
     getStudentTestDashboardData, 
     getAvailableTestsForStudent, 
-    getKnowledgeTestsForDashboard // Importado
+    getKnowledgeTestsForDashboard
 } from './actions';
+import type { UserProfile } from '../../types'; // Importar o tipo UserProfile
 
 export default async function TestPage() {
   const supabase = await createSupabaseServerClient();
@@ -17,9 +18,10 @@ export default async function TestPage() {
     redirect('/login');
   }
 
+  // MODIFICAÇÃO: Buscar o perfil completo do usuário
   const { data: profile } = await supabase
     .from('profiles')
-    .select('user_category')
+    .select('*') // Busca todos os campos para ter o perfil completo
     .eq('id', user.id)
     .single();
 
@@ -29,26 +31,27 @@ export default async function TestPage() {
 
   // ROTA PARA ALUNO
   if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
-    // CORREÇÃO: Busca todos os dados necessários em paralelo
     const [dashboardDataRes, availableTestsRes, knowledgeTestsRes] = await Promise.all([
       getStudentTestDashboardData(),
       getAvailableTestsForStudent(),
-      getKnowledgeTestsForDashboard() // Função agora está sendo chamada
+      getKnowledgeTestsForDashboard()
     ]);
     
     return (
       <StudentTestDashboard 
         dashboardData={dashboardDataRes.data} 
         initialAvailableTests={availableTestsRes.data || []}
-        knowledgeTests={knowledgeTestsRes.data || []} // Dados sendo passados como prop
+        knowledgeTests={knowledgeTestsRes.data || []}
       />
     );
   }
 
-  // ROTA PARA PROFESSOR
-  if (['professor', 'gestor', 'administrator'].includes(profile.user_category || '')) {
+  // ROTA PARA PROFESSOR (GLOBAL E INSTITUCIONAL) E GESTOR/ADMIN
+  if (['professor', 'gestor', 'administrator', 'diretor'].includes(profile.user_category || '')) {
     const { data: teacherTests } = await getTestsForTeacher();
-    return <TeacherTestDashboard initialTests={teacherTests || []} />;
+    
+    // MODIFICAÇÃO: Passar o perfil completo para o dashboard do professor
+    return <TeacherTestDashboard initialTests={teacherTests || []} userProfile={profile as UserProfile} />;
   }
 
   return (

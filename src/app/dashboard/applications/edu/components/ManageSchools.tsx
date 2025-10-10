@@ -1,8 +1,8 @@
-"use client";
+    "use client";
 
 import { useState } from 'react';
 import { Organization, SchoolClass, UserProfile } from '@/app/dashboard/types';
-import ClassManager from './ClassManager';
+import ClassManager from './ClassManager'; // A importação relativa agora funciona
 
 type ManageSchoolsProps = {
     organization: Organization;
@@ -12,7 +12,7 @@ type ManageSchoolsProps = {
 };
 
 export default function ManageSchools({ organization, classes: initialClasses, members, unassignedUsers: initialUnassignedUsers }: ManageSchoolsProps) {
-    const [activeTab, setActiveTab] = useState('details');
+    const [activeTab, setActiveTab] = useState('classes'); // Iniciar na aba de turmas por padrão
 
     return (
         <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow">
@@ -22,13 +22,13 @@ export default function ManageSchools({ organization, classes: initialClasses, m
                         onClick={() => setActiveTab('details')} 
                         className={`py-2 px-4 font-medium text-sm transition-colors ${activeTab === 'details' ? 'border-b-2 border-royal-blue text-royal-blue' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                     >
-                        Detalhes da Escola
+                        Detalhes da Instituição
                     </button>
                     <button 
                         onClick={() => setActiveTab('classes')} 
                         className={`py-2 px-4 font-medium text-sm transition-colors ${activeTab === 'classes' ? 'border-b-2 border-royal-blue text-royal-blue' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                     >
-                        Turmas
+                        Gerenciar Turmas
                     </button>
                 </nav>
             </div>

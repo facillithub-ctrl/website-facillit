@@ -15,6 +15,7 @@ export type Essay = {
   student_id: string;
   consent_to_ai_training?: boolean;
   image_submission_url?: string | null;
+  organization_id?: string | null; // Adicionado para lógica institucional
 };
 
 export type Annotation = {
@@ -74,6 +75,9 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return { error: 'Usuário não autenticado.' };
+  
+  // Obter o organization_id do perfil do aluno
+  const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
 
   if (essayData.status === 'submitted') {
     if (!essayData.consent_to_ai_training) {
@@ -111,6 +115,7 @@ export async function saveOrUpdateEssay(essayData: Partial<Essay>) {
       submitted_at: essayData.status === 'submitted' ? new Date().toISOString() : essayData.submitted_at,
       consent_to_ai_training: essayData.consent_to_ai_training,
       image_submission_url: essayData.image_submission_url,
+      organization_id: profile?.organization_id, // Adiciona o ID da organização
     })
     .select()
     .single();
@@ -206,7 +211,6 @@ type CorrectionWithProfile = Omit<EssayCorrection, 'ai_feedback'> & {
 export async function getCorrectionForEssay(essayId: string): Promise<{ data?: CorrectionWithProfile; error?: string }> {
     const supabase = await createSupabaseServerClient();
 
-    // CORREÇÃO: Removido 'ai_feedback(*)' para evitar o erro de relação
     const { data, error } = await supabase
         .from('essay_corrections')
         .select(`
@@ -465,25 +469,58 @@ export async function getCurrentEvents() {
     return { data };
 }
 
-export async function getCorrectedEssaysForTeacher() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Usuário não autenticado.' };
 
-  const { data, error } = await supabase
+// =============================================================================
+// == NOVAS FUNÇÕES E MODIFICAÇÕES ABAIXO ======================================
+// =============================================================================
+
+export async function getPendingEssaysForTeacher(teacherId: string, organizationId: string | null) {
+    const supabase = await createSupabaseServerClient();
+    
+    let query = supabase
+        .from('essays')
+        .select('id, title, submitted_at, profiles(full_name)')
+        .eq('status', 'submitted');
+
+    // Se for professor institucional, filtre pelas redações da mesma instituição
+    if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+    } else {
+        // Se for professor global, busque apenas redações sem instituição (globais)
+        query = query.is('organization_id', null);
+    }
+    
+    const { data, error } = await query.order('submitted_at', { ascending: true });
+
+    if (error) {
+        console.error("Erro ao buscar redações pendentes:", error);
+        return { data: null, error: error.message };
+    }
+    return { data, error: null };
+}
+
+export async function getCorrectedEssaysForTeacher(teacherId: string, organizationId: string | null) {
+  const supabase = await createSupabaseServerClient();
+
+  let query = supabase
     .from('essays')
     .select('id, title, submitted_at, profiles(full_name), essay_corrections!inner(final_grade, corrector_id)')
     .eq('status', 'corrected')
-    .eq('essay_corrections.corrector_id', user.id)
-    .order('submitted_at', { ascending: false });
+    .eq('essay_corrections.corrector_id', teacherId);
 
-  if (error) return { error: error.message };
+  // Se for professor institucional, filtre pelas redações da mesma instituição
+  if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+  }
+
+  const { data, error } = await query.order('submitted_at', { ascending: false });
+
+  if (error) {
+      console.error("Erro ao buscar redações corrigidas:", error);
+      return { data: null, error: error.message };
+  }
   return { data };
 }
-
-// =============================================================================
-// == NOVAS FUNÇÕES SERÃO ADICIONADAS ABAIXO DESTA LINHA =========================
-// =============================================================================
 
 export async function getAIFeedbackForEssay(essayId: string) {
     const supabase = await createSupabaseServerClient();

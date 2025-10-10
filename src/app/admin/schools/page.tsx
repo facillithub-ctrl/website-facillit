@@ -1,10 +1,10 @@
-import createSupabaseServerClient from "@/utils/supabase/server";
 import { redirect } from 'next/navigation';
-import ManageSchools from "./components/ManageSchools";
-import { getOrganizationData, getUnassignedUsers } from "../actions";
-import { UserProfile } from "@/app/dashboard/types";
+import createSupabaseServerClient from '@/utils/supabase/server';
+import { getAllOrganizations } from '../actions';
+// ✅ CORREÇÃO: A importação deve ser padrão e apontar para o local correto.
+import ManageOrganizations from './components/ManageOrganizations';
 
-export default async function ManageSchoolsPage() {
+export default async function AdminManageSchoolsPage() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -14,43 +14,24 @@ export default async function ManageSchoolsPage() {
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('organization_id, user_category')
+        .select('user_category')
         .eq('id', user.id)
         .single();
 
-    // ✅ CORREÇÃO APLICADA AQUI
-    // Adicionado 'administrator' à verificação de permissão.
-    if (profile?.user_category !== 'diretor' && profile?.user_category !== 'administrator') {
+    if (profile?.user_category !== 'administrator') {
         return redirect('/dashboard');
     }
 
-    if (!profile.organization_id) {
-        return (
-            <div className="p-4 md:p-8">
-                <h1 className="text-2xl font-bold mb-4">Nenhuma Instituição Encontrada</h1>
-                <p>Para aceder a esta página, o seu perfil de gestor precisa de estar associado a uma instituição.</p>
-            </div>
-        );
+    const { data: organizations, error } = await getAllOrganizations();
+
+    if (error) {
+        return <div className="p-8 text-red-500">Erro ao carregar instituições: {error}</div>;
     }
-    
-    const organizationData = await getOrganizationData(profile.organization_id);
-    const unassignedUsers: UserProfile[] = await getUnassignedUsers(profile.organization_id);
 
     return (
-        <div className="p-4 md:p-8">
-            <h1 className="text-3xl font-bold mb-6">Gestão da Instituição</h1>
-            {organizationData ? (
-                <ManageSchools 
-                    organization={organizationData.organization}
-                    classes={organizationData.classes}
-                    members={organizationData.members}
-                    unassignedUsers={unassignedUsers}
-                />
-            ) : (
-                <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow">
-                    <p>Não foi possível carregar os dados da instituição.</p>
-                </div>
-            )}
+        <div>
+            <h1 className="text-3xl font-bold mb-8 text-dark-text dark:text-white">Gerenciar Instituições</h1>
+            <ManageOrganizations initialOrganizations={organizations || []} />
         </div>
     );
 }

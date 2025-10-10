@@ -20,7 +20,6 @@ const allNavLinks = [
   { href: '/dashboard/applications/test', slug: 'test', icon: 'fa-file-alt', label: 'Facillit Test' },
   { href: '/dashboard/applications/task', slug: 'task', icon: 'fa-tasks', label: 'Facillit Task' },
   { href: '/dashboard/applications/create', slug: 'create', icon: 'fa-lightbulb', label: 'Facillit Create' },
-  // ROTA ATUALIZADA para o novo painel de admin
   { href: '/admin', slug: 'admin', icon: 'fa-user-shield', label: 'Painel Admin' },
 ];
 
@@ -43,19 +42,18 @@ export default function Sidebar({ userProfile, isMobileOpen, setIsMobileOpen, is
   };
 
   const activeNavLinks = allNavLinks.filter(link => {
-    // Sempre mostrar o dashboard
-    if (link.slug === 'dashboard') {
-      return true;
-    }
-    // Mostrar o painel de admin apenas para a categoria 'administrator'
-    if (link.slug === 'admin') {
-      return userProfile.userCategory === 'administrator';
-    }
-    // Ocultar os links de módulos regulares para o administrador, se desejado
+    // Para o administrador, mostre apenas o dashboard e o painel de admin.
     if (userProfile.userCategory === 'administrator') {
-      return false;
+        return ['dashboard', 'admin'].includes(link.slug);
     }
-    // Para outros usuários, verificar se o módulo está ativo
+
+    // Para o diretor, mostre o dashboard e o Facillit Edu (seu painel principal).
+    if (userProfile.userCategory === 'diretor') {
+        return ['dashboard', 'edu'].includes(link.slug);
+    }
+    
+    // Para outros usuários, mostre o dashboard e os módulos ativos.
+    if (link.slug === 'dashboard') return true;
     return userProfile.active_modules?.includes(link.slug);
   });
 
@@ -73,8 +71,6 @@ export default function Sidebar({ userProfile, isMobileOpen, setIsMobileOpen, is
           ${isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'}
           lg:translate-x-0 ${isDesktopCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
         style={{ background: 'linear-gradient(180deg, #2E14ED, #190894, #5E55F9)' }}
-
-
       >
         <div className="flex items-center justify-between mb-8 h-8">
             <div className={`flex items-center gap-3 ${isDesktopCollapsed ? 'lg:justify-center lg:w-full' : ''}`}>

@@ -30,8 +30,9 @@ export type TestWithQuestions = {
   questions: Question[];
   is_knowledge_test?: boolean;
   related_prompt_id?: string | null;
-  cover_image_url?: string | null; // Novo campo
-  collection?: string | null;      // Novo campo
+  cover_image_url?: string | null;
+  collection?: string | null;
+  class_id?: string | null; // Adicionado para testes de turma
 };
 
 export type Test = Omit<TestWithQuestions, 'questions'>;
@@ -50,7 +51,17 @@ export type TestAttempt = {
 
 // --- FUNÇÕES DO PROFESSOR ---
 
-export async function createOrUpdateTest(testData: { title: string; description: string | null; questions: Omit<Question, 'id' | 'test_id'>[], is_public: boolean, is_knowledge_test: boolean, related_prompt_id: string | null, cover_image_url: string | null, collection: string | null }) {
+export async function createOrUpdateTest(testData: {
+  title: string;
+  description: string | null;
+  questions: Omit<Question, 'id' | 'test_id'>[],
+  is_public: boolean,
+  is_knowledge_test: boolean,
+  related_prompt_id: string | null,
+  cover_image_url: string | null,
+  collection: string | null,
+  class_id: string | null; // MODIFICAÇÃO: Adicionado class_id
+}) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Usuário não autenticado.' };
@@ -64,14 +75,15 @@ export async function createOrUpdateTest(testData: { title: string; description:
       description: testData.description,
       created_by: user.id,
       is_public: testData.is_public,
-      subject: 'Geral', // Pode ser aprimorado para pegar do form
-      difficulty: 'Médio', // Pode ser aprimorado
-      duration_minutes: 60, // Pode ser aprimorado
+      subject: 'Geral',
+      difficulty: 'Médio',
+      duration_minutes: 60,
       points: totalPoints,
       is_knowledge_test: testData.is_knowledge_test,
       related_prompt_id: testData.related_prompt_id,
       cover_image_url: testData.cover_image_url,
       collection: testData.collection,
+      class_id: testData.class_id, // MODIFICAÇÃO: Inserindo o class_id
     })
     .select()
     .single();
@@ -142,15 +154,31 @@ export async function getAvailableTestsForStudent(filters: { category?: string }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: "Usuário não autenticado" };
 
+    // Busca a turma do aluno
+    const { data: profile } = await supabase
+        .from('class_members')
+        .select('class_id')
+        .eq('user_id', user.id)
+        .single();
+
+    const classId = profile?.class_id;
+
     let query = supabase
         .from('tests')
         .select(`
-            id, title, subject, duration_minutes, difficulty, points, cover_image_url, collection,
+            id, title, subject, duration_minutes, difficulty, points, cover_image_url, collection, class_id,
             questions ( count ),
             test_attempts ( score, student_id )
         `)
         .eq('is_public', true)
         .eq('is_knowledge_test', false);
+
+    // MODIFICAÇÃO: Filtra por testes globais (sem class_id) OU testes da turma do aluno
+    if (classId) {
+        query = query.or(`class_id.is.null,class_id.eq.${classId}`);
+    } else {
+        query = query.is('class_id', null);
+    }
 
     if (filters.category && filters.category !== 'Todos') {
         query = query.eq('subject', filters.category);

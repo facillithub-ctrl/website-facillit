@@ -8,29 +8,38 @@ import Link from 'next/link';
 import { useToast } from '@/contexts/ToastContext';
 
 const modulesData = [
-    { slug: 'edu', icon: 'fa-graduation-cap', title: 'Facillit Edu', description: 'Gestão pedagógica e de alunos.', roles: ['aluno', 'professor', 'gestor'] },
+    { slug: 'edu', icon: 'fa-graduation-cap', title: 'Facillit Edu', description: 'Gestão pedagógica e de alunos.', roles: ['aluno', 'professor', 'gestor', 'diretor'] }, // Adicionado 'diretor'
     { slug: 'games', icon: 'fa-gamepad', title: 'Facillit Games', description: 'Gamificação para aprender.', roles: ['aluno', 'vestibulando'] },
     { slug: 'write', icon: 'fa-pencil-alt', title: 'Facillit Write', description: 'Enviar e corrigir redações.', roles: ['aluno', 'professor', 'vestibulando'] },
-    { slug: 'day', icon: 'fa-calendar-check', title: 'Facillit Day', description: 'Agenda, tarefas e hábitos.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
-    { slug: 'play', icon: 'fa-play-circle', title: 'Facillit Play', description: 'Streaming educacional.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
-    { slug: 'library', icon: 'fa-book-open', title: 'Facillit Library', description: 'Biblioteca e portfólios.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
-    { slug: 'connect', icon: 'fa-users', title: 'Facillit Connect', description: 'Rede social de estudos.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
-    { slug: 'coach-career', icon: 'fa-bullseye', title: 'Facillit Coach', description: 'Soft skills e orientação de carreira.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
+    { slug: 'day', icon: 'fa-calendar-check', title: 'Facillit Day', description: 'Agenda, tarefas e hábitos.', roles: ['aluno', 'professor', 'gestor', 'vestibulando', 'diretor'] },
+    { slug: 'play', icon: 'fa-play-circle', title: 'Facillit Play', description: 'Streaming educacional.', roles: ['aluno', 'professor', 'gestor', 'vestibulando', 'diretor'] },
+    { slug: 'library', icon: 'fa-book-open', title: 'Facillit Library', description: 'Biblioteca e portfólios.', roles: ['aluno', 'professor', 'gestor', 'vestibulando', 'diretor'] },
+    { slug: 'connect', icon: 'fa-users', title: 'Facillit Connect', description: 'Rede social de estudos.', roles: ['aluno', 'professor', 'gestor', 'vestibulando', 'diretor'] },
+    { slug: 'coach-career', icon: 'fa-bullseye', title: 'Facillit Coach', description: 'Soft skills e orientação de carreira.', roles: ['aluno', 'professor', 'gestor', 'vestibulando', 'diretor'] },
     { slug: 'lab', icon: 'fa-flask', title: 'Facillit Lab', description: 'Laboratório virtual de STEM.', roles: ['aluno', 'professor', 'vestibulando'] },
     { slug: 'test', icon: 'fa-file-alt', title: 'Facillit Test', description: 'Simulados, quizzes e provas.', roles: ['aluno', 'professor', 'vestibulando'] },
-    { slug: 'task', icon: 'fa-tasks', title: 'Facillit Task', description: 'Gestão de tarefas gerais.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
-    { slug: 'create', icon: 'fa-lightbulb', title: 'Facillit Create', description: 'Mapas mentais e gráficos.', roles: ['aluno', 'professor', 'gestor', 'vestibulando'] },
+    { slug: 'task', icon: 'fa-tasks', title: 'Facillit Task', description: 'Gestão de tarefas gerais.', roles: ['aluno', 'professor', 'gestor', 'vestibulando', 'diretor'] },
+    { slug: 'create', icon: 'fa-lightbulb', title: 'Facillit Create', description: 'Mapas mentais e gráficos.', roles: ['aluno', 'professor', 'gestor', 'vestibulando', 'diretor'] },
 ];
 
 export default function Onboarding({ userProfile }: { userProfile: UserProfile }) {
     const supabase = createClient();
     const router = useRouter();
-    const [selectedModules, setSelectedModules] = useState<string[]>(['write', 'test']);
+    // MODIFICAÇÃO: Se for diretor, 'edu' vem pré-selecionado
+    const [selectedModules, setSelectedModules] = useState<string[]>(
+        userProfile.userCategory === 'diretor' ? ['edu', 'write', 'test'] : ['write', 'test']
+    );
     const [agreedToModuleTerms, setAgreedToModuleTerms] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const { addToast } = useToast();
 
     const toggleModule = (slug: string) => {
+        // MODIFICAÇÃO: Diretor não pode desmarcar o módulo Edu
+        if (userProfile.userCategory === 'diretor' && slug === 'edu') {
+            addToast({ title: "Módulo Essencial", message: "O Facillit Edu é essencial para o seu perfil de diretor.", type: 'error' });
+            return;
+        }
+
         const selectableModules = ['write', 'test'];
         if (!selectableModules.includes(slug)) return;
         
@@ -44,16 +53,22 @@ export default function Onboarding({ userProfile }: { userProfile: UserProfile }
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
+            const finalModules = userProfile.userCategory === 'diretor' 
+                ? Array.from(new Set(['edu', ...selectedModules])) 
+                : selectedModules;
+
             const { error } = await supabase
                 .from('profiles')
                 .update({
-                    active_modules: selectedModules,
+                    active_modules: finalModules,
                     has_completed_onboarding: true
                 })
                 .eq('id', user.id);
 
             if (!error) {
-                window.location.assign('/dashboard');
+                // Redireciona para o painel correto após o onboarding
+                const redirectPath = userProfile.userCategory === 'diretor' ? '/dashboard/applications/edu' : '/dashboard';
+                window.location.assign(redirectPath);
             } else {
                 addToast({ title: "Erro ao Salvar", message: "Não foi possível salvar sua seleção. Tente novamente.", type: 'error'});
                 setIsLoading(false);
@@ -68,7 +83,7 @@ export default function Onboarding({ userProfile }: { userProfile: UserProfile }
         userProfile.userCategory && module.roles.includes(userProfile.userCategory)
     );
 
-    const isContinueDisabled = isLoading || !selectedModules.includes('write') || !agreedToModuleTerms;
+    const isContinueDisabled = isLoading || !agreedToModuleTerms || (selectedModules.length === 0);
 
     return (
         <div className="min-h-screen bg-background-light flex items-center justify-center p-4">
@@ -77,24 +92,25 @@ export default function Onboarding({ userProfile }: { userProfile: UserProfile }
                 <p className="text-text-muted mb-8">Personalize sua experiência. Comece com nossos módulos essenciais. Os outros serão liberados em breve!</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
                     {availableModules.map(module => {
-                        const isSelectable = ['write', 'test'].includes(module.slug);
+                        // MODIFICAÇÃO: Lógica para habilitar/desabilitar módulos
+                        const isSelectableForRole = ['write', 'test'].includes(module.slug) || (userProfile.userCategory === 'diretor' && module.slug === 'edu');
                         const isSelected = selectedModules.includes(module.slug);
 
                         return (
                             <button
                                 key={module.slug}
                                 onClick={() => toggleModule(module.slug)}
-                                disabled={!isSelectable}
+                                disabled={!isSelectableForRole}
                                 className={`relative p-4 border rounded-lg text-center transition-all duration-200
                                     ${isSelected ? 'bg-royal-blue text-white border-royal-blue ring-2 ring-blue-300' 
-                                                : isSelectable ? 'hover:border-royal-blue hover:bg-blue-50' 
+                                                : isSelectableForRole ? 'hover:border-royal-blue hover:bg-blue-50' 
                                                                 : 'bg-gray-100 opacity-60 cursor-not-allowed'}
                                 `}
                             >
-                                <i className={`fas ${module.icon} text-3xl mb-2 ${isSelected ? 'text-white' : isSelectable ? 'text-royal-blue' : 'text-gray-400'}`}></i>
+                                <i className={`fas ${module.icon} text-3xl mb-2 ${isSelected ? 'text-white' : isSelectableForRole ? 'text-royal-blue' : 'text-gray-400'}`}></i>
                                 <h3 className="font-bold">{module.title}</h3>
                                 <p className="text-xs opacity-80">{module.description}</p>
-                                {!isSelectable && (
+                                {!isSelectableForRole && (
                                     <span className="absolute top-2 right-2 bg-gray-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                                         Em Breve
                                     </span>

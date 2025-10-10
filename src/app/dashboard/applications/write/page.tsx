@@ -9,8 +9,10 @@ import {
   getUserStateRank,
   getFrequentErrors,
   getCurrentEvents,
-  getCorrectedEssaysForTeacher
+  getCorrectedEssaysForTeacher,
+  getPendingEssaysForTeacher // MODIFICAÇÃO: Nova função importada
 } from './actions';
+import type { UserProfile } from '../../types'; // MODIFICAÇÃO: Importar UserProfile
 
 export default async function WritePage() {
   const supabase = await createSupabaseServerClient();
@@ -20,9 +22,10 @@ export default async function WritePage() {
     redirect('/login');
   }
 
+  // MODIFICAÇÃO: Buscar perfil completo para obter organization_id
   const { data: profile } = await supabase
     .from('profiles')
-    .select('user_category, target_exam') // Adicionado 'target_exam'
+    .select('*')
     .eq('id', user.id)
     .single();
 
@@ -80,32 +83,18 @@ export default async function WritePage() {
     );
   }
 
-  // ROTA PARA PROFESSOR/GESTOR
-  if (['professor', 'gestor'].includes(profile.user_category || '')) {
+  // ROTA PARA PROFESSOR (GLOBAL E INSTITUCIONAL), GESTOR E ADMIN
+  if (['professor', 'gestor', 'administrator', 'diretor'].includes(profile.user_category || '')) {
      const [pendingEssaysResult, correctedEssaysResult] = await Promise.all([
-        supabase
-          .from('essays')
-          .select('id, title, submitted_at, profiles(full_name)')
-          .eq('status', 'submitted')
-          .order('submitted_at', { ascending: true }),
-        getCorrectedEssaysForTeacher()
+        getPendingEssaysForTeacher(user.id, profile.organization_id), // MODIFICAÇÃO
+        getCorrectedEssaysForTeacher(user.id, profile.organization_id)  // MODIFICAÇÃO
      ]);
-
-    const pendingEssays = pendingEssaysResult.data?.map(essay => ({
-      ...essay,
-      profiles: Array.isArray(essay.profiles) ? essay.profiles[0] : essay.profiles,
-    })) || [];
-
-    const correctedEssays = correctedEssaysResult.data?.map(essay => ({
-        ...essay,
-        profiles: Array.isArray(essay.profiles) ? essay.profiles[0] : essay.profiles,
-    })) || [];
-
 
     return (
         <TeacherDashboard
-            pendingEssays={pendingEssays}
-            correctedEssays={correctedEssays}
+            userProfile={profile as UserProfile}
+            pendingEssays={pendingEssaysResult.data || []}
+            correctedEssays={correctedEssaysResult.data || []}
         />
     );
   }

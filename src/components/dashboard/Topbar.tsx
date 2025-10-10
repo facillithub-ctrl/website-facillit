@@ -7,7 +7,7 @@ import type { UserProfile } from '@/app/dashboard/types';
 import { useTheme } from '@/components/ThemeProvider';
 import createClient from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { VerificationBadge } from '@/components/VerificationBadge'; // Importar o componente
+import { VerificationBadge } from '@/components/VerificationBadge';
 
 const modulesData = [
   { slug: 'edu', icon: 'fa-graduation-cap', title: 'Edu' },
@@ -45,6 +45,12 @@ const ModuleManager = ({ userProfile, onClose }: { userProfile: UserProfile; onC
     const router = useRouter();
 
     const toggleModule = (slug: string) => {
+        // MODIFICAÇÃO: Diretor não pode desativar o módulo Edu
+        if (userProfile.userCategory === 'diretor' && slug === 'edu') {
+            alert("O módulo Edu é essencial para diretores e não pode ser desativado.");
+            return;
+        }
+
         setSelectedModules(prev =>
             prev.includes(slug) ? prev.filter(m => m !== slug) : [...prev, slug]
         );
@@ -73,14 +79,23 @@ const ModuleManager = ({ userProfile, onClose }: { userProfile: UserProfile; onC
             <div className="grid grid-cols-3 gap-2">
                 {modulesData.map((module) => {
                     const isSelected = selectedModules.includes(module.slug);
+                    // MODIFICAÇÃO: Lógica para desabilitar o módulo Edu para não-diretores
+                    const isDisabled = module.slug === 'edu' && userProfile.userCategory !== 'diretor';
+                    
                     return (
                         <button
                             key={module.slug}
                             onClick={() => toggleModule(module.slug)}
-                            className={`relative flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${isSelected ? 'bg-royal-blue text-white border-royal-blue' : 'hover:border-royal-blue'}`}
+                            disabled={isDisabled}
+                            className={`relative flex flex-col items-center justify-center p-3 rounded-lg border transition-all 
+                                ${isSelected ? 'bg-royal-blue text-white border-royal-blue' 
+                                            : 'hover:border-royal-blue'}
+                                ${isDisabled ? 'bg-gray-100 opacity-60 cursor-not-allowed hover:border-gray-300' : ''}
+                            `}
                         >
-                             <i className={`fas ${module.icon} text-2xl mb-1 ${isSelected ? 'text-white' : 'text-royal-blue'}`}></i>
+                             <i className={`fas ${module.icon} text-2xl mb-1 ${isSelected ? 'text-white' : 'text-royal-blue'} ${isDisabled ? '!text-gray-400' : ''}`}></i>
                              <span className="text-xs font-medium">{module.title}</span>
+                             {isDisabled && <span className="absolute top-1 right-1 text-[8px] font-bold bg-gray-500 text-white px-1.5 py-0.5 rounded-full">Gestor</span>}
                         </button>
                     );
                 })}
@@ -240,7 +255,6 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
                 {userProfile.avatarUrl ? (<Image src={userProfile.avatarUrl} alt="Avatar" width={40} height={40} className="rounded-full" />) : (<span>{userProfile.fullName?.charAt(0)}</span>)}
             </div>
             <div className="text-left hidden md:block dark:text-white">
-                {/* ✅ CORREÇÃO: Adicionado o selo de verificação */}
                 <div className="flex items-center gap-2">
                     <p className="font-bold text-sm truncate">{userProfile.fullName}</p>
                     <VerificationBadge badge={userProfile.verification_badge} size="10px" />

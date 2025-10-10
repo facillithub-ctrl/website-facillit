@@ -1,35 +1,70 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import CreateTestModal from './CreateTestModal';
 import TestDetailView from './TestDetailView';
 import { getTestWithQuestions } from '../actions';
 import type { Test, TestWithQuestions } from '../actions';
 import { useToast } from '@/contexts/ToastContext';
+import createClient from '@/utils/supabase/client';
+import type { UserProfile } from '@/app/dashboard/types'; // Importar UserProfile
 
 type Props = {
   initialTests: Test[];
+  userProfile: UserProfile; // MODIFICAÇÃO: Receber o perfil do usuário
 };
 
-export default function TeacherTestDashboard({ initialTests }: Props) {
+type SchoolClass = {
+  id: string;
+  name: string;
+};
+
+export default function TeacherTestDashboard({ initialTests, userProfile }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tests] = useState(initialTests);
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
   const [selectedTest, setSelectedTest] = useState<TestWithQuestions | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { addToast } = useToast();
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
+  
+  // MODIFICAÇÃO: Verifica se a conta é institucional
+  const isInstitutional = !!userProfile.organization_id;
+
+  useEffect(() => {
+    // Busca as turmas apenas se for um professor institucional
+    if (isInstitutional) {
+      const fetchClasses = async () => {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('class_members')
+          .select('school_classes(id, name)')
+          .eq('user_id', userProfile.id)
+          .eq('role', 'teacher');
+
+        if (error) {
+          console.error("Erro ao buscar turmas do professor:", error);
+        } else if (data) {
+          // Mapeia os dados para o formato esperado
+          const mappedClasses = data.map(item => item.school_classes).filter(Boolean) as SchoolClass[];
+          setClasses(mappedClasses);
+        }
+      };
+
+      fetchClasses();
+    }
+  }, [isInstitutional, userProfile.id]);
 
   const handleViewDetails = async (testId: string) => {
     setIsLoading(true);
     const { data, error } = await getTestWithQuestions(testId);
     if (error) {
       addToast({ title: "Erro ao Carregar", message: "Não foi possível carregar os detalhes da avaliação.", type: 'error' });
-      setIsLoading(false);
     } else if (data) {
       setSelectedTest(data);
       setCurrentView('detail');
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
 
   const handleBackToList = () => {
@@ -51,7 +86,7 @@ export default function TeacherTestDashboard({ initialTests }: Props) {
 
   return (
     <div>
-      {isModalOpen && <CreateTestModal onClose={() => setIsModalOpen(false)} />}
+      {isModalOpen && <CreateTestModal onClose={() => setIsModalOpen(false)} classes={classes} isInstitutional={isInstitutional} />}
 
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-dark-text dark:text-white">Gerenciador de Avaliações</h1>
@@ -84,7 +119,6 @@ export default function TeacherTestDashboard({ initialTests }: Props) {
                                 </span>
                             )}
                         </div>
-
                         <p className="text-sm text-gray-500 mt-1 flex-grow">
                             {test.description || 'Nenhuma descrição fornecida.'}
                         </p>

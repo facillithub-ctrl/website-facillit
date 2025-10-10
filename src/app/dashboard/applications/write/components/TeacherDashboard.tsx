@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import CorrectionInterface from './CorrectionInterface';
-import EssayCorrectionView from './EssayCorrectionView'; // Importado
+import EssayCorrectionView from './EssayCorrectionView';
+import type { UserProfile } from '@/app/dashboard/types'; // MODIFICAÇÃO: Importar UserProfile
 
 type EssayListItem = {
   id: string;
@@ -13,14 +14,18 @@ type EssayListItem = {
 };
 
 type TeacherDashboardProps = {
+  userProfile: UserProfile; // MODIFICAÇÃO: Adicionar userProfile
   pendingEssays: EssayListItem[];
   correctedEssays: EssayListItem[];
 };
 
-export default function TeacherDashboard({ pendingEssays, correctedEssays }: TeacherDashboardProps) {
+export default function TeacherDashboard({ userProfile, pendingEssays, correctedEssays }: TeacherDashboardProps) {
   const [view, setView] = useState<'list' | 'correct' | 'view_correction'>('list');
   const [selectedEssayId, setSelectedEssayId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'pending' | 'corrected'>('pending');
+  
+  // MODIFICAÇÃO: Identificar se o professor é institucional
+  const isInstitutional = !!userProfile.organization_id;
 
   const handleSelectEssay = (essayId: string, status: 'pending' | 'corrected') => {
     setSelectedEssayId(essayId);
@@ -30,6 +35,7 @@ export default function TeacherDashboard({ pendingEssays, correctedEssays }: Tea
   const handleBack = () => {
     setSelectedEssayId(null);
     setView('list');
+    // Idealmente, aqui você faria um router.refresh() para recarregar a lista
   };
 
   if (view === 'correct' && selectedEssayId) {
@@ -44,7 +50,19 @@ export default function TeacherDashboard({ pendingEssays, correctedEssays }: Tea
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-dark-text dark:text-white mb-6">Painel do Corretor</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-dark-text dark:text-white">Painel do Corretor</h1>
+        {/* MODIFICAÇÃO: Botão de criar temas (futuramente abrirá um modal) */}
+        <button 
+            className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90"
+            onClick={() => alert('Em breve: Modal para criar temas globais ou para turmas específicas.')}
+        >
+          <i className="fas fa-plus mr-2"></i> Novo Tema de Redação
+        </button>
+      </div>
+      {isInstitutional && (
+          <p className="text-sm text-text-muted mb-6">Você está visualizando as redações da sua instituição: <strong>{userProfile.schoolName}</strong>.</p>
+      )}
 
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
         <nav className="flex space-x-4" aria-label="Tabs">
