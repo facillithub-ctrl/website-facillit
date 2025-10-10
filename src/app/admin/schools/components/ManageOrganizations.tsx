@@ -6,13 +6,13 @@ import { createOrganization, generateInviteCode } from '../../actions';
 import { useToast } from '@/contexts/ToastContext';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
-// Tipagem corrigida para aceitar um array de perfis
 type Organization = {
     id: string;
     name: string;
     cnpj: string | null;
     created_at: string;
-    profiles: { full_name: string | null }[] | null;
+    // A consulta retorna um array de perfis, então usamos `[]`
+    profiles: { full_name: string | null }[] | null; 
 };
 
 // Componente do Modal de Criação movido para fora

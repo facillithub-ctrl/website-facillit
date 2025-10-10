@@ -43,7 +43,10 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
         if (error) {
           console.error("Erro ao buscar turmas do professor:", error);
         } else if (data) {
-          const mappedClasses = data.map(item => item.school_classes).filter(Boolean) as SchoolClass[];
+          // ✅ CORREÇÃO: Mapeia corretamente a estrutura aninhada retornada pelo Supabase.
+          const mappedClasses = data
+            .map(item => item.school_classes)
+            .filter((c): c is SchoolClass => c !== null); // Filtra quaisquer resultados nulos
           setClasses(mappedClasses);
         }
       };
