@@ -122,7 +122,12 @@ export default function ManageUpdates({ updates }: Props) {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium mb-1">Categoria</label>
-                                        <select value={currentUpdate.category || ''} onChange={e => setCurrentUpdate(p => p ? ({ ...p, category: e.target.value }) : null)} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 bg-white">
+                                        {/* ✅ CORREÇÃO APLICADA AQUI */}
+                                        <select 
+                                            value={currentUpdate.category || ''} 
+                                            onChange={e => setCurrentUpdate(p => p ? ({ ...p, category: e.target.value as Update['category'] }) : null)} 
+                                            className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 bg-white"
+                                        >
                                             <option value="">Selecione...</option>
                                             <option>Nova Funcionalidade</option>
                                             <option>Melhoria</option>

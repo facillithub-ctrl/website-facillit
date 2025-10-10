@@ -23,7 +23,6 @@ export async function isManager() {
 export async function getOrganizationData(orgId: string) {
     const supabase = await createSupabaseServerClient();
     
-    // Busca os detalhes da organização.
     const { data: organization, error: orgError } = await supabase
         .from('organizations')
         .select('*')
@@ -35,14 +34,12 @@ export async function getOrganizationData(orgId: string) {
         return null;
     }
 
-    // Busca todos os membros (perfis) da organização.
     const { data: members, error: membersError } = await supabase
         .from('profiles')
         .select('*')
         .eq('organization_id', orgId);
 
-    // ✅ CONSULTA CORRIGIDA: Esta é a principal correção.
-    // A consulta foi reestruturada para buscar os membros e os seus papéis de forma correta.
+    // ✅ CORREÇÃO APLICADA NA CONSULTA E NA FORMATAÇÃO ABAIXO
     const { data: classes, error: classesError } = await supabase
         .from('school_classes')
         .select(`
@@ -53,8 +50,8 @@ export async function getOrganizationData(orgId: string) {
                 role,
                 profile:profiles!inner (
                     id,
-                    fullName,
-                    userCategory
+                    full_name, 
+                    userCategory:user_category
                 )
             )
         `)
@@ -62,6 +59,7 @@ export async function getOrganizationData(orgId: string) {
 
     if (classesError) {
         console.error("Erro ao buscar turmas:", classesError.message);
+        return null; // Adicionado para evitar processamento com erro
     }
     
     // Formata os dados para um formato mais fácil de usar na interface.
@@ -70,8 +68,10 @@ export async function getOrganizationData(orgId: string) {
         name: c.name,
         organization_id: c.organization_id,
         members: c.members.map((m: any) => ({
-            ...m.profile, // Dados do perfil (id, fullName, etc.)
-            role: m.role     // Papel do membro na turma (student ou teacher)
+            // Mapeamento explícito de full_name para fullName
+            ...m.profile,
+            fullName: m.profile.full_name,
+            role: m.role
         }))
     })) || [];
     
@@ -99,7 +99,7 @@ export async function createClass(organizationId: string, name: string) {
     const { data, error } = await supabase
         .from('school_classes')
         .insert({ organization_id: organizationId, name: name })
-        .select('id, name, organization_id') // Seleciona apenas os campos necessários
+        .select('id, name, organization_id')
         .single();
         
     if (error) {

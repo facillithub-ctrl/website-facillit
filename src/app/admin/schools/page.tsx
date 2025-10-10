@@ -18,7 +18,9 @@ export default async function ManageSchoolsPage() {
         .eq('id', user.id)
         .single();
 
-    if (profile?.user_category !== 'diretor' && profile?.user_category !== 'admin') {
+    // ✅ CORREÇÃO APLICADA AQUI
+    // Adicionado 'administrator' à verificação de permissão.
+    if (profile?.user_category !== 'diretor' && profile?.user_category !== 'administrator') {
         return redirect('/dashboard');
     }
 
