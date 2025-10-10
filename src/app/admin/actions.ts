@@ -2,24 +2,12 @@
 
 import createSupabaseServerClient from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
-import { UserProfile } from "../dashboard/types";
+import { EssayPrompt, UserProfile } from "../dashboard/types";
 
-// Verifica se o utilizador atual tem a categoria 'admin' ou 'diretor'.
-export async function isManager() {
-    const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
+//================================================================//
+// FUNÇÕES PARA GESTÃO DE ESCOLAS (/admin/schools)
+//================================================================//
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('user_category')
-        .eq('id', user.id)
-        .single();
-
-    return profile?.user_category === 'admin' || profile?.user_category === 'diretor';
-}
-
-// Busca todos os dados relevantes de uma organização para a página de gestão.
 export async function getOrganizationData(orgId: string) {
     const supabase = await createSupabaseServerClient();
     
@@ -34,41 +22,32 @@ export async function getOrganizationData(orgId: string) {
         return null;
     }
 
-    const { data: members, error: membersError } = await supabase
+    const { data: members } = await supabase
         .from('profiles')
         .select('*')
         .eq('organization_id', orgId);
 
-    // ✅ CORREÇÃO APLICADA NA CONSULTA E NA FORMATAÇÃO ABAIXO
     const { data: classes, error: classesError } = await supabase
         .from('school_classes')
         .select(`
-            id,
-            name,
-            organization_id,
+            id, name, organization_id,
             members:class_members (
                 role,
-                profile:profiles!inner (
-                    id,
-                    full_name, 
-                    userCategory:user_category
-                )
+                profile:profiles!inner ( id, full_name, userCategory:user_category )
             )
         `)
         .eq('organization_id', orgId);
 
     if (classesError) {
         console.error("Erro ao buscar turmas:", classesError.message);
-        return null; // Adicionado para evitar processamento com erro
+        return null;
     }
     
-    // Formata os dados para um formato mais fácil de usar na interface.
     const formattedClasses = classes?.map(c => ({
         id: c.id,
         name: c.name,
         organization_id: c.organization_id,
         members: c.members.map((m: any) => ({
-            // Mapeamento explícito de full_name para fullName
             ...m.profile,
             fullName: m.profile.full_name,
             role: m.role
@@ -82,7 +61,6 @@ export async function getOrganizationData(orgId: string) {
     };
 }
 
-// Busca os utilizadores de uma organização que não estão em nenhuma turma.
 export async function getUnassignedUsers(orgId: string): Promise<UserProfile[]> {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase.rpc('get_unassigned_users', { org_id: orgId });
@@ -93,7 +71,6 @@ export async function getUnassignedUsers(orgId: string): Promise<UserProfile[]> 
     return data as UserProfile[];
 }
 
-// Cria uma nova turma na base de dados.
 export async function createClass(organizationId: string, name: string) {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
@@ -104,14 +81,16 @@ export async function createClass(organizationId: string, name: string) {
         
     if (error) {
         console.error("Erro ao criar turma:", error.message);
-        return { error: "Não foi possível criar a turma. Verifique se o nome já existe." };
+        if (error.code === '23505') {
+            return { error: `Já existe uma turma chamada "${name}" nesta instituição.` };
+        }
+        return { error: `Erro do banco de dados: ${error.message}` };
     }
 
     revalidatePath('/admin/schools');
     return { data };
 }
 
-// Adiciona um utilizador a uma turma.
 export async function addUserToClass(classId: string, userId: string, role: 'student' | 'teacher') {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
@@ -127,7 +106,6 @@ export async function addUserToClass(classId: string, userId: string, role: 'stu
     return { data: { success: true } };
 }
 
-// Remove um utilizador de uma turma.
 export async function removeUserFromClass(classId: string, userId: string) {
     const supabase = await createSupabaseServerClient();
     const { error } = await supabase
@@ -143,4 +121,76 @@ export async function removeUserFromClass(classId: string, userId: string) {
     
     revalidatePath('/admin/schools');
     return { data: { success: true } };
+}
+
+//================================================================//
+// FUNÇÕES PARA GESTÃO DO WRITE (/admin/write)
+//================================================================//
+
+// ✅ FUNÇÃO ADICIONADA
+export async function updateUserVerification(userId: string, badge: string | null) {
+    const supabase = await createSupabaseServerClient();
+    
+    const { error } = await supabase
+        .from('profiles')
+        .update({ verification_badge: badge })
+        .eq('id', userId);
+
+    if (error) {
+        console.error("Erro ao atualizar selo de verificação:", error.message);
+        return { error: error.message };
+    }
+
+    revalidatePath('/admin/write');
+    return { success: true };
+}
+
+// ✅ FUNÇÃO ADICIONADA
+export async function getWriteModuleData() {
+    const supabase = await createSupabaseServerClient();
+    
+    const { data: students, error: studentsError } = await supabase
+        .from('profiles')
+        .select('id, full_name, user_category, created_at, verification_badge')
+        .in('user_category', ['student', 'vestibulando']);
+
+    const { data: professors, error: professorsError } = await supabase
+        .from('profiles')
+        .select('id, full_name, verification_badge')
+        .eq('user_category', 'professor');
+
+    const { data: prompts, error: promptsError } = await supabase
+        .from('essay_prompts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (studentsError || professorsError || promptsError) {
+        const error = studentsError || professorsError || promptsError;
+        console.error("Erro ao buscar dados do módulo Write:", error?.message);
+        return { error: error?.message };
+    }
+
+    return { data: { students, professors, prompts } };
+}
+
+// ✅ FUNÇÃO ADICIONADA
+export async function upsertPrompt(promptData: Partial<EssayPrompt>) {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.from('essay_prompts').upsert(promptData).select().single();
+    
+    if (error) return { error: error.message };
+    
+    revalidatePath('/admin/write');
+    return { data };
+}
+
+// ✅ FUNÇÃO ADICIONADA
+export async function deletePrompt(promptId: string) {
+    const supabase = await createSupabaseServerClient();
+    const { error } = await supabase.from('essay_prompts').delete().eq('id', promptId);
+
+    if (error) return { error: error.message };
+
+    revalidatePath('/admin/write');
+    return { success: true };
 }

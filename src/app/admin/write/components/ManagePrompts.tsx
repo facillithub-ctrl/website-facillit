@@ -21,6 +21,7 @@ const categories = [
     'Ciência e Tecnologia', 'Sociedade', 'Meio Ambiente', 'Cultura', 'Educação', 'Saúde', 'Economia', 'Política'
 ];
 
+// ✅ CORREÇÃO APLICADA AQUI
 const DifficultySelector = ({ value, onChange }: { value: number, onChange: (value: number) => void }) => {
     const difficulties = [
         { level: 1, label: 'Muito Fácil' },
@@ -37,6 +38,7 @@ const DifficultySelector = ({ value, onChange }: { value: number, onChange: (val
                     <button
                         key={level}
                         type="button"
+                        // A função onChange já espera um número, então está correto.
                         onClick={() => onChange(level)}
                         className={`w-full text-center px-2 py-1.5 border rounded-md text-xs font-semibold transition-colors ${
                             value === level

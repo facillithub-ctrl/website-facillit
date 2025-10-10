@@ -5,6 +5,7 @@ import { SchoolClass, UserProfile } from '@/app/dashboard/types';
 import { createClass, addUserToClass, removeUserFromClass } from '../../actions';
 import { useToast } from '@/contexts/ToastContext';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import { useRouter } from 'next/navigation';
 
 type ClassManagerProps = {
     organizationId: string;
@@ -22,24 +23,39 @@ export default function ClassManager({ organizationId, initialClasses, organizat
     const [roleToAdd, setRoleToAdd] = useState<'student' | 'teacher'>('student');
     const [isPending, startTransition] = useTransition();
     const { addToast } = useToast();
+    const router = useRouter(); 
     
     const [isModalOpen, setModalOpen] = useState(false);
     const [memberToRemove, setMemberToRemove] = useState<{classId: string, userId: string} | null>(null);
 
+    const refreshData = () => {
+        router.refresh();
+        setSelectedClass(null);
+    };
 
     const handleCreateClass = async () => {
-        if (!newClassName.trim()) {
+        const trimmedName = newClassName.trim();
+        if (!trimmedName) {
+            alert('O nome da turma não pode estar vazio.');
             addToast({ title: 'Atenção', message: 'O nome da turma não pode estar vazio.', type: 'error' });
             return;
         }
+
+        console.log(`[CLIENT] Iniciando criação da turma: "${trimmedName}"`);
+
         startTransition(async () => {
-            const result = await createClass(organizationId, newClassName.trim());
+            const result = await createClass(organizationId, trimmedName);
+            
+            // ✅ ALERTA EXPLÍCITO AQUI
             if (result.error) {
+                console.error("[CLIENT] Erro recebido do servidor:", result.error);
+                alert(`FALHA AO CRIAR TURMA:\n\n${result.error}`);
                 addToast({ title: 'Erro ao Criar Turma', message: result.error, type: 'error' });
-            } else if (result.data) {
-                setClasses(previousClasses => [...previousClasses, { ...result.data, members: [] }]);
+            } else {
+                console.log("[CLIENT] Turma criada com sucesso. Atualizando a interface...");
                 setNewClassName('');
-                addToast({ title: 'Sucesso', message: 'Turma criada com sucesso!', type: 'success' });
+                addToast({ title: 'Sucesso', message: `Turma "${trimmedName}" criada com sucesso!`, type: 'success' });
+                refreshData();
             }
         });
     };
@@ -54,20 +70,9 @@ export default function ClassManager({ organizationId, initialClasses, organizat
             if (result.error) {
                 addToast({ title: 'Erro ao Adicionar', message: result.error, type: 'error' });
             } else {
-                const addedUser = organizationMembers.find(member => member.id === userToAdd);
-                if (addedUser) {
-                    const updatedClasses = classes.map(currentClass => 
-                        currentClass.id === selectedClass.id 
-                        ? { ...currentClass, members: [...currentClass.members, { ...addedUser, role: roleToAdd }] } 
-                        : currentClass
-                    );
-                    setClasses(updatedClasses);
-                    const newlySelectedClass = updatedClasses.find(c => c.id === selectedClass.id);
-                    setSelectedClass(newlySelectedClass || null);
-                    setUnassignedUsers(previousUsers => previousUsers.filter(user => user.id !== userToAdd));
-                    setUserToAdd('');
-                    addToast({ title: 'Sucesso', message: 'Utilizador adicionado à turma!', type: 'success' });
-                }
+                setUserToAdd('');
+                addToast({ title: 'Sucesso', message: 'Utilizador adicionado à turma!', type: 'success' });
+                refreshData();
             }
         });
     };
@@ -81,27 +86,13 @@ export default function ClassManager({ organizationId, initialClasses, organizat
         if (!memberToRemove) return;
         
         startTransition(async () => {
-            const { classId, userId } = memberToRemove;
-            const result = await removeUserFromClass(classId, userId);
+            const result = await removeUserFromClass(memberToRemove.classId, memberToRemove.userId);
             
             if (result.error) {
                 addToast({ title: 'Erro ao Remover', message: result.error, type: 'error' });
             } else {
-                const removedUser = organizationMembers.find(member => member.id === userId);
-                if (removedUser) {
-                    const updatedClasses = classes.map(currentClass =>
-                        currentClass.id === classId
-                        ? { ...currentClass, members: currentClass.members.filter(member => member.id !== userId) }
-                        : currentClass
-                    );
-                    setClasses(updatedClasses);
-                    const newlySelectedClass = updatedClasses.find(c => c.id === classId);
-                    setSelectedClass(newlySelectedClass || null);
-                    if (!unassignedUsers.find(u => u.id === removedUser.id)) {
-                        setUnassignedUsers(previousUsers => [...previousUsers, removedUser]);
-                    }
-                    addToast({ title: 'Sucesso', message: 'Utilizador removido da turma!', type: 'success' });
-                }
+                addToast({ title: 'Sucesso', message: 'Utilizador removido da turma!', type: 'success' });
+                refreshData();
             }
             setModalOpen(false);
             setMemberToRemove(null);
