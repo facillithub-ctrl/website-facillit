@@ -100,7 +100,7 @@ export async function createOrUpdateTest(testData: {
       question_type: q.question_type,
       content: q.content,
       points: q.points,
-      thematic_axis: q.thematic_axis // Salvando o eixo temático
+      thematic_axis: q.thematic_axis
     }));
     const { error: questionsError } = await supabase.from('questions').insert(questionsToInsert);
     if (questionsError) {
@@ -203,7 +203,6 @@ export async function submitTestAttempt(
       return { error: 'Não foi possível encontrar o simulado para correção.' };
     }
 
-    // 1. Criar a tentativa (test_attempt)
     const { data: attempt, error: attemptError } = await supabase
         .from('test_attempts')
         .insert({
@@ -221,7 +220,6 @@ export async function submitTestAttempt(
         return { error: `Erro ao iniciar salvamento: ${attemptError.message}` };
     }
 
-    // 2. Preparar e salvar cada resposta individualmente
     let correctCount = 0;
     const answersToInsert = answers.map(studentAnswer => {
         const question = test.questions.find(q => q.id === studentAnswer.questionId);
@@ -247,12 +245,10 @@ export async function submitTestAttempt(
 
     if(answersError) {
         console.error("Erro ao salvar respostas individuais:", answersError);
-        // Rollback: deleta a tentativa se o salvamento das respostas falhar
         await supabase.from('test_attempts').delete().eq('id', attempt.id);
         return { error: `Erro ao salvar respostas: ${answersError.message}`};
     }
 
-    // 3. Calcular score final e atualizar a tentativa
     const finalScore = test.questions.length > 0 ? Math.round((correctCount / test.questions.length) * 100) : 0;
     
     const { error: updateError } = await supabase
@@ -262,7 +258,6 @@ export async function submitTestAttempt(
 
     if (updateError) {
         console.error("Erro ao atualizar o score final:", updateError);
-        // Aqui a tentativa já foi criada, então não fazemos rollback, mas notificamos o erro.
         return { error: `Erro ao finalizar e calcular a nota: ${updateError.message}`};
     }
 
