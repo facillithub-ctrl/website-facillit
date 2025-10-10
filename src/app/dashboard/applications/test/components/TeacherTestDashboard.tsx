@@ -86,10 +86,13 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
           console.error("Erro ao buscar turmas:", classError);
           addToast({ title: "Erro", message: "Não foi possível carregar suas turmas.", type: "error" });
         } else if (classData) {
-          // LINHA CORRIGIDA ABAIXO
+          // BLOCO CORRIGIDO
           const mappedClasses = classData
-            .map(item => item.school_classes)
-            .filter((c): c is SchoolClass => c !== null && c !== undefined);
+            .map(item => {
+              const sc = item.school_classes;
+              return Array.isArray(sc) ? sc[0] : sc;
+            })
+            .filter((c): c is SchoolClass => !!c);
             
           setClasses(mappedClasses);
 
