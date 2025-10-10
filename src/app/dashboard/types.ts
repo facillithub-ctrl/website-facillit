@@ -1,24 +1,41 @@
+// Define a estrutura de um perfil de utilizador, como vem da base de dados.
 export type UserProfile = {
   id: string;
   fullName: string | null;
-  userCategory: string | null;
-  avatarUrl: string | null;
-  pronoun: string | null;
   nickname: string | null;
-  has_completed_onboarding: boolean | null;
+  avatarUrl: string | null;
+  userCategory: string | null;
+  pronoun: string | null;
+  birthDate: string | null;
+  schoolName: string | null;
+  organization_id: string | null;
+  target_exam: string | null;
   active_modules: string[] | null;
-  birthDate?: string | null;
-  schoolName?: string | null;
-  target_exam?: string | null;
-  verification_badge?: string | null;
+  verification_badge: 'bronze' | 'silver' | 'gold' | null;
+  role?: 'student' | 'teacher'; // Adicionado para membros da turma
 };
 
-export type Update = {
+// Define a estrutura de uma organização/escola.
+export type Organization = {
     id: string;
-    created_at: string;
+    name: string;
+    cnpj: string | null;
+};
+
+// Define a estrutura de uma turma.
+export type SchoolClass = {
+    id: string;
+    name: string;
+    organization_id: string;
+};
+
+// Define a estrutura de um tema de redação.
+export type EssayPrompt = {
+    id: string;
     title: string;
-    content: string;
-    module_slug: string | null;
-    version: string | null;
-    category?: string | null; // <-- ADICIONE ESTA LINHA
+    description: string;
+    image_url: string | null;
+    difficulty: number | null;
+    tags: string[] | null;
+    publication_date: string | null;
 };

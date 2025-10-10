@@ -7,6 +7,7 @@ import type { UserProfile } from '@/app/dashboard/types';
 import { useTheme } from '@/components/ThemeProvider';
 import createClient from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import { VerificationBadge } from '@/components/VerificationBadge'; // Importar o componente
 
 const modulesData = [
   { slug: 'edu', icon: 'fa-graduation-cap', title: 'Edu' },
@@ -37,7 +38,6 @@ type Notification = {
   created_at: string;
 };
 
-// NOVO: Componente para gerenciar os módulos
 const ModuleManager = ({ userProfile, onClose }: { userProfile: UserProfile; onClose: () => void; }) => {
     const [selectedModules, setSelectedModules] = useState(userProfile.active_modules || []);
     const [isPending, startTransition] = useTransition();
@@ -240,7 +240,11 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
                 {userProfile.avatarUrl ? (<Image src={userProfile.avatarUrl} alt="Avatar" width={40} height={40} className="rounded-full" />) : (<span>{userProfile.fullName?.charAt(0)}</span>)}
             </div>
             <div className="text-left hidden md:block dark:text-white">
-              <p className="font-bold text-sm truncate">{userProfile.fullName}</p>
+                {/* ✅ CORREÇÃO: Adicionado o selo de verificação */}
+                <div className="flex items-center gap-2">
+                    <p className="font-bold text-sm truncate">{userProfile.fullName}</p>
+                    <VerificationBadge badge={userProfile.verification_badge} size="10px" />
+                </div>
               <p className="text-xs text-gray-500 capitalize dark:text-gray-400">{userProfile.userCategory}</p>
             </div>
           </button>

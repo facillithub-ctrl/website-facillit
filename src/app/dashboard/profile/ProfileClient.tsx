@@ -33,6 +33,8 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
   const supabase = createClient();
   const { addToast } = useToast();
 
+  const isInstitutionalAccount = !!initialProfile.organization_id;
+
   useEffect(() => {
     setFormData(initialProfile);
   }, [initialProfile]);
@@ -60,7 +62,8 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
           nickname: formData.nickname,
           pronoun: formData.pronoun,
           birth_date: formData.birthDate,
-          school_name: formData.schoolName,
+          // Apenas atualiza o nome da escola se NÃO for uma conta institucional
+          school_name: isInstitutionalAccount ? initialProfile.schoolName : formData.schoolName,
           target_exam: formData.target_exam,
         })
         .eq('id', formData.id);
@@ -174,9 +177,11 @@ export default function ProfileClient({ profile: initialProfile, userEmail, stat
                 id="schoolName" name="schoolName" type="text"
                 value={formData.schoolName || ''}
                 onChange={handleChange}
-                disabled={!isEditing}
+                // ✅ CAMPO BLOQUEADO PARA CONTAS INSTITUCIONAIS
+                disabled={!isEditing || isInstitutionalAccount}
                 className="w-full p-2 border rounded-md mt-1 bg-gray-50 disabled:bg-gray-200 dark:bg-gray-700 dark:disabled:bg-gray-800 dark:text-white dark:border-dark-border"
               />
+              {isInstitutionalAccount && <p className="text-xs text-gray-500 mt-1">O nome da instituição não pode ser alterado para contas institucionais.</p>}
             </div>
             <div>
               <label htmlFor="target_exam" className="text-sm font-bold text-gray-600 dark:text-gray-300">Meu foco é:</label>
