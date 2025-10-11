@@ -6,7 +6,8 @@ import {
     getTestsForTeacher, 
     getStudentTestDashboardData, 
     getAvailableTestsForStudent, 
-    getKnowledgeTestsForDashboard
+    getKnowledgeTestsForDashboard,
+    getCampaignsForStudent // ✅ IMPORTAÇÃO ADICIONADA
 } from './actions';
 import type { UserProfile } from '../../types';
 
@@ -30,10 +31,12 @@ export default async function TestPage() {
 
   // ROTA PARA ALUNO
   if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
-    const [dashboardDataRes, availableTestsRes, knowledgeTestsRes] = await Promise.all([
+    // ✅ BUSCA DAS CAMPANHAS É ADICIONADA AQUI
+    const [dashboardDataRes, availableTestsRes, knowledgeTestsRes, campaignsRes] = await Promise.all([
       getStudentTestDashboardData(),
       getAvailableTestsForStudent(),
-      getKnowledgeTestsForDashboard()
+      getKnowledgeTestsForDashboard(),
+      getCampaignsForStudent() // <-- Nova chamada
     ]);
     
     return (
@@ -42,6 +45,7 @@ export default async function TestPage() {
         globalTests={availableTestsRes.data?.globalTests || []}
         classTests={availableTestsRes.data?.classTests || []}
         knowledgeTests={knowledgeTestsRes.data || []}
+        campaigns={campaignsRes.data || []} // ✅ DADOS DA CAMPANHA SÃO PASSADOS
       />
     );
   }

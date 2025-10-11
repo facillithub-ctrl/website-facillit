@@ -12,7 +12,8 @@ import {
     getTestWithQuestions, 
     type TestWithQuestions, 
     getQuickTest, 
-    getStudentResultsHistory 
+    getStudentResultsHistory,
+    type StudentCampaign // ✅ IMPORTAÇÃO DO TIPO
 } from '../actions';
 
 // --- TIPOS ---
@@ -76,9 +77,44 @@ type Props = {
   globalTests: TestCardInfo[];
   classTests: TestCardInfo[];
   knowledgeTests: KnowledgeTest[];
+  campaigns: StudentCampaign[]; // ✅ NOVA PROP: 'campaigns'
 };
 
 // --- SUB-COMPONENTES ---
+
+// NOVO COMPONENTE: Card de Campanha
+const CampaignCard = ({ campaign, onStartTest }: { campaign: StudentCampaign, onStartTest: (testId: string) => void }) => {
+    const endDate = new Date(campaign.end_date);
+    const now = new Date();
+    const diffTime = endDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return (
+        <div className="glass-card p-6">
+            <div className="flex justify-between items-start mb-2">
+                <h3 className="text-xl font-bold dark:text-white">{campaign.title}</h3>
+                <span className="text-xs font-semibold bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                    Termina em {diffDays} {diffDays === 1 ? 'dia' : 'dias'}
+                </span>
+            </div>
+            <p className="text-sm text-dark-text-muted mb-4">{campaign.description}</p>
+            <div className="space-y-2">
+                {campaign.tests?.map(test => (
+                    <div key={test.id} className="flex justify-between items-center p-2 rounded-md bg-white/10">
+                        <div>
+                            <p className="font-semibold text-sm dark:text-white">{test.title}</p>
+                            <p className="text-xs text-dark-text-muted">{test.question_count} questões</p>
+                        </div>
+                        <button onClick={() => onStartTest(test.id)} className="bg-royal-blue text-white text-xs font-bold py-1 px-3 rounded-md">
+                            Iniciar
+                        </button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 
 const StatCard = ({ title, value, icon, unit }: { title: string; value: string | number; icon: string, unit?: string }) => (
     <div className="glass-card p-4 flex items-center justify-between h-full">
@@ -127,7 +163,7 @@ const CollectionGroup = ({ collection, tests, onStart, onViewDetails }: { collec
     </div>
 );
 
-const TestBrowser = ({ globalTests, classTests, onStartTest, onViewDetails }: { globalTests: TestCardInfo[], classTests: TestCardInfo[], onStartTest: (testId: string) => void, onViewDetails: (testId: string) => void }) => {
+const TestBrowser = ({ globalTests, classTests, campaigns, onStartTest, onViewDetails }: { globalTests: TestCardInfo[], classTests: TestCardInfo[], campaigns: StudentCampaign[], onStartTest: (testId: string) => void, onViewDetails: (testId: string) => void }) => {
     
     const groupTestsByCollection = (tests: TestCardInfo[]) => {
         return tests.reduce((acc, test) => {
@@ -143,6 +179,18 @@ const TestBrowser = ({ globalTests, classTests, onStartTest, onViewDetails }: { 
 
     return (
         <div className="space-y-12">
+            {/* ✅ SEÇÃO DE CAMPANHAS ADICIONADA */}
+            {campaigns.length > 0 && (
+                 <div>
+                    <h2 className="text-2xl font-bold mb-6 pb-2 border-b-2 border-yellow-400 text-dark-text dark:text-white">Campanhas Ativas</h2>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {campaigns.map(campaign => (
+                            <CampaignCard key={campaign.id} campaign={campaign} onStartTest={onStartTest} />
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {Object.keys(classCollections).length > 0 && (
                 <div>
                     <h2 className="text-2xl font-bold mb-6 pb-2 border-b-2 border-royal-blue text-dark-text dark:text-white">Simulados da Turma</h2>
@@ -177,7 +225,7 @@ const RecentTests = ({ data }: { data: RecentAttempt[] }) => { const getIconForS
 
 
 // --- COMPONENTE PRINCIPAL ---
-export default function StudentTestDashboard({ dashboardData, globalTests, classTests, knowledgeTests }: Props) {
+export default function StudentTestDashboard({ dashboardData, globalTests, classTests, knowledgeTests, campaigns }: Props) {
   const [view, setView] = useState<"dashboard" | "browse" | "attempt" | "detail" | "results">("dashboard");
   const [selectedTest, setSelectedTest] = useState<TestWithQuestions | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -231,6 +279,18 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
             <ActionCard title="Meus Resultados" description="Análise detalhada" icon="fa-chart-pie" actionText="Ver relatórios" onClick={handleViewResults} />
           </div>
           
+          {/* ✅ RENDERIZAÇÃO DAS CAMPANHAS NO DASHBOARD PRINCIPAL */}
+          {campaigns.length > 0 && (
+                 <div>
+                    <h2 className="text-2xl font-bold mb-6 text-dark-text dark:text-white">Campanhas Ativas</h2>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {campaigns.map(campaign => (
+                            <CampaignCard key={campaign.id} campaign={campaign} onStartTest={handleInitiateTestFromBrowse} />
+                        ))}
+                    </div>
+                </div>
+            )}
+
           <div className="grid grid-cols-1 lg:grid-cols-8 gap-6">
             <div className="lg:col-span-5">
                 {dashboardData.performanceBySubject?.length > 0 && <PerformanceChart data={dashboardData.performanceBySubject} />}
@@ -255,7 +315,7 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
   const renderContent = () => {
     if (isLoading) { return <div className="text-center p-8">Carregando...</div>; }
     switch (view) {
-      case "browse": return ( <><button onClick={handleBackToDashboard} className="text-sm font-bold text-royal-blue mb-6"><i className="fas fa-arrow-left mr-2"></i> Voltar</button><TestBrowser globalTests={globalTests} classTests={classTests} onStartTest={handleInitiateTestFromBrowse} onViewDetails={handleViewDetails} /></> );
+      case "browse": return ( <><button onClick={handleBackToDashboard} className="text-sm font-bold text-royal-blue mb-6"><i className="fas fa-arrow-left mr-2"></i> Voltar</button><TestBrowser globalTests={globalTests} classTests={classTests} campaigns={campaigns} onStartTest={handleInitiateTestFromBrowse} onViewDetails={handleViewDetails} /></> );
       case "attempt": if (!selectedTest) { setView("browse"); return null; } return <AttemptView test={selectedTest} onFinish={handleFinishAttempt} />;
       case "detail": if (!selectedTest) { setView("browse"); return null; } return <TestDetailView test={selectedTest} onBack={() => setView("browse")} onStartTest={handleStartTest} />;
       case "results": return <ResultsView attempts={resultsHistory} onBack={handleBackToDashboard} />;

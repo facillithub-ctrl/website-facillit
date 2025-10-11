@@ -95,7 +95,6 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
           console.error("Erro ao buscar turmas:", classError);
           addToast({ title: "Erro", message: "Não foi possível carregar suas turmas.", type: "error" });
         } else if (classData) {
-          // BLOCO CORRIGIDO
           const mappedClasses = classData
             .map(item => {
               const sc = item.school_classes;
@@ -105,7 +104,11 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
             
           setClasses(mappedClasses);
 
-          // 2. Buscar estatísticas para cada turma encontrada
+          // =========================================================================
+          // !! BLOCO DAS ESTATÍSTICAS TEMPORARIAMENTE DESATIVADO !!
+          // Após aplicar o SQL da próxima etapa, você pode descomentar este bloco.
+          // =========================================================================
+          /*
           if(mappedClasses.length > 0) {
             const classIds = mappedClasses.map(c => c.id);
             const { data: statsData, error: statsError } = await supabase.rpc('get_class_performance_summary', { p_class_ids: classIds });
@@ -117,6 +120,7 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
                 setClassStats(statsData || []);
             }
           }
+          */
         }
         setIsLoading(false);
       };

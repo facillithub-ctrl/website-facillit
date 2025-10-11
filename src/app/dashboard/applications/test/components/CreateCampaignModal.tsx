@@ -12,7 +12,8 @@ type Props = {
 };
 
 export default function CreateCampaignModal({ tests, onClose, onCampaignCreated }: Props) {
-  const [name, setName] = useState('');
+  // ✅ CORREÇÃO APLICADA AQUI: 'name' foi renomeado para 'title'
+  const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -35,7 +36,7 @@ export default function CreateCampaignModal({ tests, onClose, onCampaignCreated 
 
     startTransition(async () => {
       const result = await createCampaign({
-        name,
+        title, // <-- DE 'name' PARA 'title'
         description,
         start_date: startDate,
         end_date: endDate,
@@ -62,7 +63,8 @@ export default function CreateCampaignModal({ tests, onClose, onCampaignCreated 
           <div className="p-6 space-y-4 overflow-y-auto">
             <div>
               <label className="block text-sm font-medium mb-1">Nome da Campanha</label>
-              <input type="text" value={name} onChange={e => setName(e.target.value)} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
+              {/* ✅ CORREÇÃO APLICADA AQUI: O estado agora é 'title' */}
+              <input type="text" value={title} onChange={e => setTitle(e.target.value)} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Descrição</label>

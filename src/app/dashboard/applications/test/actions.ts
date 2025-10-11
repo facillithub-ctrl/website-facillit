@@ -18,7 +18,7 @@ export type Question = {
   question_type: 'multiple_choice' | 'dissertation';
   content: QuestionContent;
   points: number;
-  thematic_axis?: string | null; // Eixo temático adicionado
+  thematic_axis?: string | null;
 };
 
 export type TestWithQuestions = {
@@ -51,7 +51,7 @@ export type TestAttempt = {
 
 export type Campaign = {
     id: string;
-    name: string;
+    title: string;
     description: string | null;
     start_date: string;
     end_date: string;
@@ -59,6 +59,21 @@ export type Campaign = {
     organization_id: string | null;
     campaign_tests: { test_id: string }[];
 };
+
+// NOVO TIPO: Define a estrutura de uma campanha para o aluno
+export type StudentCampaign = {
+    id: string;
+    title: string;
+    description: string | null;
+    end_date: string;
+    tests: {
+        id: string;
+        title: string;
+        subject: string | null;
+        question_count: number;
+    }[];
+};
+
 
 // --- FUNÇÕES DO PROFESSOR ---
 
@@ -171,7 +186,7 @@ export async function getClassAnalytics(classId: string) {
     return { data, error: null };
 }
 
-export async function createCampaign(campaignData: Omit<Campaign, 'id' | 'created_by' | 'organization_id' | 'campaign_tests'> & { test_ids: string[] }) {
+export async function createCampaign(campaignData: { title: string, description: string | null, start_date: string, end_date: string, test_ids: string[] }) {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Usuário não autenticado.' };
@@ -183,7 +198,10 @@ export async function createCampaign(campaignData: Omit<Campaign, 'id' | 'create
     const { data: newCampaign, error: campaignError } = await supabase
         .from('campaigns')
         .insert({
-            ...campaignDetails,
+            title: campaignDetails.title,
+            description: campaignDetails.description,
+            start_date: campaignDetails.start_date,
+            end_date: campaignDetails.end_date,
             created_by: user.id,
             organization_id: profile?.organization_id,
         })
@@ -201,7 +219,6 @@ export async function createCampaign(campaignData: Omit<Campaign, 'id' | 'create
         }));
         const { error: linkError } = await supabase.from('campaign_tests').insert(testsToLink);
         if (linkError) {
-            // Rollback campaign creation
             await supabase.from('campaigns').delete().eq('id', newCampaign.id);
             return { error: `Erro ao associar testes à campanha: ${linkError.message}` };
         }
@@ -230,6 +247,21 @@ export async function getCampaignsForTeacher() {
 
 
 // --- FUNÇÕES DO ALUNO ---
+
+// ✅ NOVA FUNÇÃO ADICIONADA: Busca as campanhas ativas para o aluno.
+export async function getCampaignsForStudent() {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'Usuário não autenticado' };
+
+    const { data, error } = await supabase.rpc('get_campaigns_for_student', { p_student_id: user.id });
+
+    if (error) {
+        console.error("Erro ao chamar RPC get_campaigns_for_student:", error);
+        return { data: null, error: error.message };
+    }
+    return { data: data as StudentCampaign[], error: null };
+}
 
 export async function getAvailableTestsForStudent() {
     const supabase = await createSupabaseServerClient();

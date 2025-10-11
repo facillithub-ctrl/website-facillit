@@ -35,7 +35,7 @@ const CampaignManager = () => {
   useEffect(() => {
     fetchCampaigns();
     fetchTests();
-  }, []);
+  }, [addToast]);
 
   const getStatus = (startDate: string, endDate: string) => {
     const now = new Date();
@@ -80,7 +80,8 @@ const CampaignManager = () => {
                 const status = getStatus(campaign.start_date, campaign.end_date);
                 return (
                   <tr key={campaign.id} className="border-b dark:border-gray-700">
-                    <td className="px-6 py-4 font-medium text-dark-text dark:text-white">{campaign.name}</td>
+                    {/* ✅ CORREÇÃO APLICADA AQUI: 'campaign.name' foi renomeado para 'campaign.title' */}
+                    <td className="px-6 py-4 font-medium text-dark-text dark:text-white">{campaign.title}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${status.color}`}>
                         {status.text}
