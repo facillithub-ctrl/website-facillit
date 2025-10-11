@@ -49,6 +49,17 @@ export type TestAttempt = {
   time_spent_seconds: number | null;
 };
 
+export type Campaign = {
+    id: string;
+    name: string;
+    description: string | null;
+    start_date: string;
+    end_date: string;
+    created_by: string;
+    organization_id: string | null;
+    campaign_tests: { test_id: string }[];
+};
+
 // --- FUNÇÕES DO PROFESSOR ---
 
 export async function createOrUpdateTest(testData: {
@@ -145,6 +156,75 @@ export async function getTestWithQuestions(testId: string): Promise<{ data: Test
         return { data: null, error: `Erro ao buscar detalhes do teste: ${error.message}` };
     }
     
+    return { data, error: null };
+}
+
+export async function getClassAnalytics(classId: string) {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.rpc('get_class_analytics', { p_class_id: classId });
+
+    if (error) {
+        console.error(`Error fetching analytics for class ${classId}:`, error);
+        return { data: null, error: error.message };
+    }
+
+    return { data, error: null };
+}
+
+export async function createCampaign(campaignData: Omit<Campaign, 'id' | 'created_by' | 'organization_id' | 'campaign_tests'> & { test_ids: string[] }) {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Usuário não autenticado.' };
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+
+    const { test_ids, ...campaignDetails } = campaignData;
+
+    const { data: newCampaign, error: campaignError } = await supabase
+        .from('campaigns')
+        .insert({
+            ...campaignDetails,
+            created_by: user.id,
+            organization_id: profile?.organization_id,
+        })
+        .select()
+        .single();
+    
+    if (campaignError) {
+        return { error: `Erro ao criar campanha: ${campaignError.message}` };
+    }
+
+    if (test_ids && test_ids.length > 0) {
+        const testsToLink = test_ids.map(test_id => ({
+            campaign_id: newCampaign.id,
+            test_id: test_id,
+        }));
+        const { error: linkError } = await supabase.from('campaign_tests').insert(testsToLink);
+        if (linkError) {
+            // Rollback campaign creation
+            await supabase.from('campaigns').delete().eq('id', newCampaign.id);
+            return { error: `Erro ao associar testes à campanha: ${linkError.message}` };
+        }
+    }
+
+    revalidatePath('/dashboard/applications/test');
+    return { data: newCampaign, error: null };
+}
+
+export async function getCampaignsForTeacher() {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'Usuário não autenticado.' };
+
+    const { data, error } = await supabase
+        .from('campaigns')
+        .select('*, campaign_tests(test_id)')
+        .eq('created_by', user.id)
+        .order('start_date', { ascending: false });
+
+    if (error) {
+        return { data: null, error: `Erro ao buscar campanhas: ${error.message}` };
+    }
     return { data, error: null };
 }
 

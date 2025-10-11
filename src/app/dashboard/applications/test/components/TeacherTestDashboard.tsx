@@ -3,11 +3,14 @@
 import { useState, useEffect } from 'react';
 import CreateTestModal from './CreateTestModal';
 import TestDetailView from './TestDetailView';
-import { getTestWithQuestions } from '../actions';
+import { getTestWithQuestions, getTestsForTeacher } from '../actions';
 import type { Test, TestWithQuestions } from '../actions';
 import { useToast } from '@/contexts/ToastContext';
 import createClient from '@/utils/supabase/client';
 import type { UserProfile } from '@/app/dashboard/types';
+import CampaignManager from './CampaignManager';
+import ResultsDashboard from './ResultsDashboard';
+import ClassAnalytics from './ClassAnalytics';
 
 // Tipos de dados aprimorados para o dashboard do professor
 type SchoolClass = {
@@ -58,15 +61,21 @@ const ClassStatCard = ({ stats, onSelectClass }: { stats: AggregatedClassStats, 
 
 export default function TeacherTestDashboard({ initialTests, userProfile }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [tests] = useState(initialTests);
-  const [currentView, setCurrentView] = useState<'list' | 'detail' | 'analytics'>('list');
+  const [tests, setTests] = useState(initialTests);
+  const [currentView, setCurrentView] = useState<'list' | 'detail' | 'analytics' | 'campaigns' | 'results' | 'class-analytics'>('list');
   const [selectedTest, setSelectedTest] = useState<TestWithQuestions | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { addToast } = useToast();
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [classStats, setClassStats] = useState<AggregatedClassStats[]>([]);
   
   const isInstitutional = !!userProfile.organization_id;
+
+  const refreshTests = async () => {
+      const { data } = await getTestsForTeacher();
+      setTests(data || []);
+  };
 
   // Efeito para buscar turmas e estatísticas agregadas
   useEffect(() => {
@@ -102,7 +111,8 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
             const { data: statsData, error: statsError } = await supabase.rpc('get_class_performance_summary', { p_class_ids: classIds });
 
             if(statsError) {
-                console.error("Erro ao buscar estatísticas das turmas:", statsError);
+                console.error("Erro ao buscar estatísticas das turmas:", statsError.message);
+                addToast({ title: "Erro de Estatísticas", message: "Não foi possível carregar os dados de desempenho das turmas.", type: 'error' });
             } else {
                 setClassStats(statsData || []);
             }
@@ -129,11 +139,17 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
 
   const handleBackToList = () => {
     setSelectedTest(null);
+    setSelectedClassId(null);
     setCurrentView('list');
   };
   
   const handleStartTest = () => {
     addToast({ title: "Ação de Aluno", message: "Professores não iniciam simulados, apenas visualizam.", type: 'error'});
+  };
+
+  const handleSelectClass = (classId: string) => {
+    setSelectedClassId(classId);
+    setCurrentView('class-analytics');
   };
 
   const renderMainContent = () => {
@@ -144,7 +160,15 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
     if (currentView === 'detail' && selectedTest) {
       return <TestDetailView test={selectedTest} onBack={handleBackToList} onStartTest={handleStartTest} />;
     }
-
+    if (currentView === 'class-analytics' && selectedClassId) {
+      return <ClassAnalytics classId={selectedClassId} onBack={handleBackToList} />;
+    }
+   if (currentView === 'campaigns') {
+      return <CampaignManager />;
+    }
+ if (currentView === 'results') {
+      return <ResultsDashboard />;
+    }
     return (
         <div className="space-y-12">
             {isInstitutional && classStats.length > 0 && (
@@ -152,7 +176,7 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
                     <h2 className="text-2xl font-bold mb-4 text-dark-text dark:text-white">Visão Geral das Turmas</h2>
                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {classStats.map(stat => (
-                            <ClassStatCard key={stat.class_id} stats={stat} onSelectClass={() => alert(`Em breve: Painel de análise detalhada para a turma: ${stat.class_name}`)} />
+                            <ClassStatCard key={stat.class_id} stats={stat} onSelectClass={handleSelectClass} />
                         ))}
                     </div>
                 </div>
@@ -189,7 +213,7 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
                                   Criado em {new Date(test.created_at).toLocaleDateString('pt-BR')}
                               </div>
                               <div className="mt-4 border-t dark:border-gray-700 pt-3 flex justify-end gap-3">
-                                  <button onClick={() => alert("Em breve: Visualizar resultados detalhados dos alunos para este teste.")} className="text-green-600 hover:underline text-sm font-semibold">Resultados</button>
+                                  <button onClick={() => setCurrentView('results')} className="text-green-600 hover:underline text-sm font-semibold">Resultados</button>
                                   <button onClick={() => handleViewDetails(test.id)} className="text-royal-blue hover:underline text-sm font-semibold">Ver Detalhes</button>
                                   <button onClick={() => addToast({ title: "Em Breve", message: "A função de excluir ainda está em desenvolvimento.", type: 'error'})} className="text-red-500 hover:underline text-sm font-semibold">Excluir</button>
                               </div>
@@ -211,13 +235,13 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
 
   return (
     <div>
-      {isModalOpen && <CreateTestModal onClose={() => setIsModalOpen(false)} classes={classes} isInstitutional={isInstitutional} />}
+      {isModalOpen && <CreateTestModal onClose={() => {setIsModalOpen(false); refreshTests();}} classes={classes} isInstitutional={isInstitutional} />}
 
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-dark-text dark:text-white">Gerenciador de Avaliações</h1>
         <div className="flex gap-2">
             <button 
-                onClick={() => alert("Em breve: Criação e gestão de Campanhas.")}
+                onClick={() => setCurrentView('campaigns')}
                 className="bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90"
             >
                 <i className="fas fa-trophy mr-2"></i> Campanhas
