@@ -2,39 +2,93 @@
 
 import { useState } from 'react';
 
+// Tipos simulados para os dados que o componente receberá
+type Result = {
+  id: number;
+  studentName: string;
+  testTitle: string;
+  score: number;
+  date: string;
+  class_id?: string; // Opcional, para filtrar por turma
+};
+
+// Dados de exemplo que seriam recebidos via props
+const mockResults: Result[] = [
+    { id: 1, studentName: 'João Silva', testTitle: 'Simulado SAEB - Português', score: 85, date: '2025-10-10', class_id: 'turma-a' },
+    { id: 2, studentName: 'Maria Oliveira', testTitle: 'Simulado SAEB - Português', score: 92, date: '2025-10-10', class_id: 'turma-a' },
+    { id: 3, studentName: 'Carlos Souza', testTitle: 'Simulado ENEM - Humanas', score: 78, date: '2025-10-09' },
+    { id: 4, studentName: 'Ana Pereira', testTitle: 'Simulado SAEB - Português', score: 88, date: '2025-10-10', class_id: 'turma-b' },
+    { id: 5, studentName: 'Lucas Martins', testTitle: 'Simulado FUVEST - Exatas', score: 72, date: '2025-10-08' },
+];
+
+
 const ResultsDashboard = () => {
-  const [results, setResults] = useState([
-    { id: 1, student: 'João Silva', test: 'Simulado ENEM - Humanas', score: 85, date: '2024-10-25' },
-    { id: 2, student: 'Maria Oliveira', test: 'Simulado ENEM - Humanas', score: 92, date: '2024-10-25' },
-    { id: 3, student: 'Carlos Souza', test: 'Simulado FUVEST - Exatas', score: 78, date: '2024-10-24' },
-  ]);
+  const [results, setResults] = useState<Result[]>(mockResults);
+  const [filterTest, setFilterTest] = useState('');
+  const [filterStudent, setFilterStudent] = useState('');
+
+  const filteredResults = results.filter(result => {
+      const matchesTest = filterTest ? result.testTitle.toLowerCase().includes(filterTest.toLowerCase()) : true;
+      const matchesStudent = filterStudent ? result.studentName.toLowerCase().includes(filterStudent.toLowerCase()) : true;
+      return matchesTest && matchesStudent;
+  });
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-500';
+    if (score >= 60) return 'text-yellow-500';
+    return 'text-red-500';
+  };
+
 
   return (
     <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-4 text-dark-text dark:text-white">Resultados dos Alunos</h2>
-      <div className="max-h-96 overflow-auto">
+      
+      {/* Filtros */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <input 
+            type="text"
+            placeholder="Filtrar por nome do aluno..."
+            value={filterStudent}
+            onChange={(e) => setFilterStudent(e.target.value)}
+            className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+          />
+          <input 
+            type="text"
+            placeholder="Filtrar por nome do simulado..."
+            value={filterTest}
+            onChange={(e) => setFilterTest(e.target.value)}
+            className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+          />
+      </div>
+
+      <div className="max-h-[60vh] overflow-auto">
         <table className="w-full text-sm text-left">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
             <tr>
               <th scope="col" className="px-6 py-3">Aluno</th>
               <th scope="col" className="px-6 py-3">Avaliação</th>
-              <th scope="col" className="px-6 py-3">Pontuação</th>
+              <th scope="col" className="px-6 py-3 text-center">Pontuação</th>
               <th scope="col" className="px-6 py-3">Data</th>
-              <th scope="col" className="px-6 py-3">Ações</th>
+              <th scope="col" className="px-6 py-3 text-center">Ações</th>
             </tr>
           </thead>
           <tbody>
-            {results.map((result) => (
-              <tr key={result.id} className="border-b dark:border-gray-700">
-                <td className="px-6 py-4 font-medium text-dark-text dark:text-white">{result.student}</td>
-                <td className="px-6 py-4">{result.test}</td>
-                <td className="px-6 py-4">{result.score}%</td>
-                <td className="px-6 py-4">{new Date(result.date).toLocaleDateString()}</td>
-                <td className="px-6 py-4">
-                  <button className="text-blue-500 hover:underline">Ver Detalhes</button>
+            {filteredResults.length > 0 ? filteredResults.map((result) => (
+              <tr key={result.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                <td className="px-6 py-4 font-medium text-dark-text dark:text-white">{result.studentName}</td>
+                <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{result.testTitle}</td>
+                <td className={`px-6 py-4 text-center font-bold text-lg ${getScoreColor(result.score)}`}>{result.score}%</td>
+                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{new Date(result.date).toLocaleDateString('pt-BR')}</td>
+                <td className="px-6 py-4 text-center">
+                  <button className="font-medium text-royal-blue hover:underline">Ver Detalhes</button>
                 </td>
               </tr>
-            ))}
+            )) : (
+                <tr>
+                    <td colSpan={5} className="text-center py-8 text-gray-500">Nenhum resultado encontrado para os filtros aplicados.</td>
+                </tr>
+            )}
           </tbody>
         </table>
       </div>

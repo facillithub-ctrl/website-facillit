@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect, useRef } from 'react';
+import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { submitTestAttempt } from '../actions';
 import type { TestWithQuestions, StudentAnswerPayload } from '../actions';
@@ -27,78 +27,12 @@ export default function AttemptView({ test, onFinish }: Props) {
     const questionStartTimeRef = useRef<number>(Date.now());
     const totalTimeStartRef = useRef<number>(Date.now());
 
-    // Mecanismos Antifraude
-    useEffect(() => {
-        const handleCopy = (e: ClipboardEvent) => {
-            e.preventDefault();
-            addToast({ title: "Ação Bloqueada", message: "Copiar conteúdo não é permitido durante o simulado.", type: "error" });
-        };
-
-        const handlePaste = (e: ClipboardEvent) => {
-            e.preventDefault();
-            addToast({ title: "Ação Bloqueada", message: "Colar conteúdo não é permitido durante o simulado.", type: "error" });
-        };
-
-        const handleVisibilityChange = () => {
-            if (document.hidden && !isFraudAlertOpen && !isConfirmModalOpen) {
-                executeSubmit(true); // Finaliza a tentativa por sair da tela
-            }
-        };
-
-        document.addEventListener('copy', handleCopy);
-        document.addEventListener('paste', handlePaste);
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-
-        return () => {
-            document.removeEventListener('copy', handleCopy);
-            document.removeEventListener('paste', handlePaste);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-        };
-    }, [isFraudAlertOpen, isConfirmModalOpen]);
-
-
-    useEffect(() => {
-        const previousQuestionIndex = currentQuestionIndex > 0 ? currentQuestionIndex - 1 : 0;
-        const previousQuestionId = test.questions[previousQuestionIndex].id;
-        
-        questionStartTimeRef.current = Date.now();
-
-        return () => {
-            const timeSpent = Math.round((Date.now() - questionStartTimeRef.current) / 1000);
-            setAnswers(currentAnswers =>
-                currentAnswers.map(a =>
-                    a.questionId === previousQuestionId
-                        ? { ...a, time_spent: a.time_spent + timeSpent }
-                        : a
-                )
-            );
-        };
-    }, [currentQuestionIndex, test.questions]);
-
-    const handleAnswerChange = (questionId: string, answer: number | string) => {
-        setAnswers(currentAnswers =>
-            currentAnswers.map(a => (a.questionId === questionId ? { ...a, answer } : a))
-        );
-    };
-    
-    const goToNextQuestion = () => {
-        if (currentQuestionIndex < test.questions.length - 1) {
-            setCurrentQuestionIndex(i => i + 1);
-        }
-    };
-    
-    const goToPreviousQuestion = () => {
-        if (currentQuestionIndex > 0) {
-            setCurrentQuestionIndex(i => i - 1);
-        }
-    };
-
-    const executeSubmit = (isAutoSubmit = false) => {
+    const executeSubmit = useCallback((isAutoSubmit = false) => {
         const lastQuestionId = test.questions[currentQuestionIndex].id;
         const timeSpentOnLast = Math.round((Date.now() - questionStartTimeRef.current) / 1000);
-        const finalAnswers = answers.map(a => 
-            a.questionId === lastQuestionId 
-                ? { ...a, time_spent: a.time_spent + timeSpentOnLast } 
+        const finalAnswers = answers.map(a =>
+            a.questionId === lastQuestionId
+                ? { ...a, time_spent: a.time_spent + timeSpentOnLast }
                 : a
         );
         const totalTimeSpent = Math.round((Date.now() - totalTimeStartRef.current) / 1000);
@@ -128,12 +62,78 @@ export default function AttemptView({ test, onFinish }: Props) {
                 }
             }
         });
+    }, [addToast, answers, currentQuestionIndex, onFinish, router, test.id, test.is_knowledge_test, test.questions, test.related_prompt_id]);
+
+    // Mecanismos Antifraude
+    useEffect(() => {
+        const handleCopy = (e: ClipboardEvent) => {
+            e.preventDefault();
+            addToast({ title: "Ação Bloqueada", message: "Copiar conteúdo não é permitido durante o simulado.", type: "error" });
+        };
+
+        const handlePaste = (e: ClipboardEvent) => {
+            e.preventDefault();
+            addToast({ title: "Ação Bloqueada", message: "Colar conteúdo não é permitido durante o simulado.", type: "error" });
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.hidden && !isFraudAlertOpen && !isConfirmModalOpen) {
+                executeSubmit(true); // Finaliza a tentativa por sair da tela
+            }
+        };
+
+        document.addEventListener('copy', handleCopy);
+        document.addEventListener('paste', handlePaste);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('copy', handleCopy);
+            document.removeEventListener('paste', handlePaste);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [isFraudAlertOpen, isConfirmModalOpen, addToast, executeSubmit]);
+
+
+    useEffect(() => {
+        const previousQuestionIndex = currentQuestionIndex > 0 ? currentQuestionIndex - 1 : 0;
+        const previousQuestionId = test.questions[previousQuestionIndex].id;
+
+        questionStartTimeRef.current = Date.now();
+
+        return () => {
+            const timeSpent = Math.round((Date.now() - questionStartTimeRef.current) / 1000);
+            setAnswers(currentAnswers =>
+                currentAnswers.map(a =>
+                    a.questionId === previousQuestionId
+                        ? { ...a, time_spent: a.time_spent + timeSpent }
+                        : a
+                )
+            );
+        };
+    }, [currentQuestionIndex, test.questions]);
+
+    const handleAnswerChange = (questionId: string, answer: number | string) => {
+        setAnswers(currentAnswers =>
+            currentAnswers.map(a => (a.questionId === questionId ? { ...a, answer } : a))
+        );
     };
-    
+
+    const goToNextQuestion = () => {
+        if (currentQuestionIndex < test.questions.length - 1) {
+            setCurrentQuestionIndex(i => i + 1);
+        }
+    };
+
+    const goToPreviousQuestion = () => {
+        if (currentQuestionIndex > 0) {
+            setCurrentQuestionIndex(i => i - 1);
+        }
+    };
+
     const handleFinishAttempt = () => {
         setConfirmModalOpen(true);
     };
-    
+
     if (!test || !test.questions || test.questions.length === 0) {
         return (
             <div className="text-center p-8 glass-card">
@@ -208,7 +208,7 @@ export default function AttemptView({ test, onFinish }: Props) {
                         </div>
                     )}
                     {currentQuestion.question_type === 'dissertation' && (
-                        <textarea 
+                        <textarea
                             placeholder="Digite sua resposta aqui..."
                             className="w-full h-48 p-4 border rounded-md dark:bg-dark-card dark:border-dark-border focus:outline-none focus:ring-2 focus:ring-royal-blue dark:text-white"
                             onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
@@ -216,9 +216,9 @@ export default function AttemptView({ test, onFinish }: Props) {
                         />
                     )}
                 </div>
-                
+
                 <div className="flex justify-between items-center mt-8 pt-4 border-t border-white/10">
-                    <button 
+                    <button
                         onClick={goToPreviousQuestion}
                         disabled={currentQuestionIndex === 0 || isFraudAlertOpen}
                         className="bg-white/20 hover:bg-white/30 font-bold py-2 px-4 rounded-lg disabled:opacity-50"
@@ -230,7 +230,7 @@ export default function AttemptView({ test, onFinish }: Props) {
                             {isSubmitting ? 'Enviando...' : 'Finalizar e Enviar'}
                         </button>
                     ) : (
-                        <button 
+                        <button
                             onClick={goToNextQuestion}
                             disabled={isFraudAlertOpen}
                             className="bg-royal-blue hover:bg-opacity-90 font-bold py-2 px-4 rounded-lg disabled:opacity-50"

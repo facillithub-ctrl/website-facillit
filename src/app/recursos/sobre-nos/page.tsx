@@ -53,7 +53,7 @@ export default function SobreNosPage() {
                         </div>
                     </div>
                 </section>
-                
+
                 <section className="py-20 lg:py-24 bg-background-light">
                 <div className="container mx-auto px-6 text-center">
                     <h2 className="text-3xl md:text-4xl font-bold text-dark-text mb-12">
@@ -63,9 +63,11 @@ export default function SobreNosPage() {
                     <div className="grid sm:grid-cols-2 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                     <div className="text-center">
                         <div className="w-32 h-32 md:w-40 md:h-40 mx-auto mb-4">
-                        <img
+                        <Image
                             src="/assets/images/time/pedro.JPG"
                             alt="Pedro Maia"
+                            width={160}
+                            height={160}
                             className="w-full h-full object-cover rounded-full shadow-md"
                         />
                         </div>
@@ -75,9 +77,11 @@ export default function SobreNosPage() {
 
                     <div className="text-center">
                         <div className="w-32 h-32 md:w-40 md:h-40 mx-auto mb-4">
-                        <img
+                        <Image
                             src="/assets/images/time/igor.jpg"
                             alt="Igor Santos"
+                            width={160}
+                            height={160}
                             className="w-full h-full object-cover rounded-full shadow-md"
                         />
                         </div>

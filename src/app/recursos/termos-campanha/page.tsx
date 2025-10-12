@@ -20,7 +20,7 @@ export default function TermosCampanhaPage() {
                             <div>
                                 <h2 className="text-2xl font-bold text-dark-text mb-4">1. Introdução e Aceitação</h2>
                                 <p>
-                                    Estes Termos e Condições regem a sua participação nas Campanhas de Simulados ("Campanhas") oferecidas pela plataforma Facillit Hub. Ao participar de uma Campanha, você concorda em cumprir integralmente estas regras, que são um complemento aos nossos <a href="/recursos/uso" className="text-royal-blue underline">Termos de Uso</a> gerais. A não concordância com estes termos impede a sua participação.
+                                    Estes Termos e Condições regem a sua participação nas Campanhas de Simulados (&quot;Campanhas&quot;) oferecidas pela plataforma Facillit Hub. Ao participar de uma Campanha, você concorda em cumprir integralmente estas regras, que são um complemento aos nossos <a href="/recursos/uso" className="text-royal-blue underline">Termos de Uso</a> gerais. A não concordância com estes termos impede a sua participação.
                                 </p>
                             </div>
 
@@ -36,7 +36,7 @@ export default function TermosCampanhaPage() {
                                     <li><strong>Tentativa Única:</strong> Cada simulado dentro de uma campanha só pode ser realizado uma única vez. Após a conclusão, o mesmo não estará mais disponível para uma nova tentativa.</li>
                                 </ul>
                             </div>
-                            
+
                             <div>
                                 <h2 className="text-2xl font-bold text-dark-text mb-4">3. Propriedade Intelectual e Uso de Dados</h2>
                                 <p>

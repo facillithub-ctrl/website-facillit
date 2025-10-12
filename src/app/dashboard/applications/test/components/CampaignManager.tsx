@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useCallback } from 'react';
 import { getCampaignsForTeacher, getTestsForTeacher, deleteCampaign, Campaign, Test } from '../actions';
 import CreateCampaignModal from './CreateCampaignModal';
 import { useToast } from '@/contexts/ToastContext';
@@ -16,7 +16,7 @@ const CampaignManager = () => {
   const [isPending, startTransition] = useTransition();
   const { addToast } = useToast();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     const [campaignsRes, testsRes] = await Promise.all([
       getCampaignsForTeacher(),
@@ -35,11 +35,11 @@ const CampaignManager = () => {
         setTests(testsRes.data || []);
     }
     setIsLoading(false);
-  };
+  }, [addToast]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleOpenModal = (campaign: Campaign | null) => {
     setCampaignToManage(campaign);
@@ -84,7 +84,7 @@ const CampaignManager = () => {
   return (
     <>
     {isModalOpen && (
-        <CreateCampaignModal 
+        <CreateCampaignModal
             tests={tests}
             existingCampaign={campaignToManage}
             onClose={handleCloseModal}
