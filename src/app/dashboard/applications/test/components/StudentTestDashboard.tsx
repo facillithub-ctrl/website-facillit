@@ -5,6 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 import AvailableTestCard from "./AvailableTestCard";
+import SurveyCard from "./SurveyCard"; // Importe o novo componente
 import AttemptView from "./AttemptView";
 import TestDetailView from "./TestDetailView";
 import ResultsView from "./ResultsView";
@@ -30,7 +31,7 @@ type TestCardInfo = {
   avg_score: number;
   total_attempts: number;
   points: number;
-  test_type: 'avaliativo' | 'pesquisa'; // Adicionado
+  test_type: 'avaliativo' | 'pesquisa';
   hasAttempted: boolean;
   cover_image_url?: string | null;
   collection?: string | null;
@@ -38,6 +39,7 @@ type TestCardInfo = {
   is_campaign_test?: boolean;
 };
 
+// ... (Restante dos tipos permanecem os mesmos)
 type KnowledgeTest = {
   id: string;
   title: string;
@@ -84,104 +86,13 @@ type Props = {
   consentedCampaignIds: string[];
 };
 
-// --- SUB-COMPONENTES ---
 
-const CampaignConsentModal = ({ onConfirm, onCancel }: { onConfirm: () => void, onCancel: () => void }) => (
-    <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-lg w-full">
-            <h2 className="text-2xl font-bold mb-4">Termos da Campanha</h2>
-            <div className="text-sm max-h-60 overflow-y-auto pr-2 mb-6">
-                <p className="mb-2">Ao participar desta campanha, você concorda com as seguintes regras:</p>
-                <ul className="list-disc pl-5 space-y-1">
-                    <li><strong>Tentativa Única:</strong> Cada simulado só pode ser realizado uma vez.</li>
-                    <li><strong>Antifraude:</strong> Não é permitido copiar/colar conteúdo ou sair da tela do teste. Sair da tela resultará no encerramento imediato da sua tentativa.</li>
-                    <li><strong>Uso de Dados:</strong> Seus resultados serão usados de forma anônima para compor o ranking da campanha.</li>
-                </ul>
-                <p className="mt-4">Para mais detalhes, consulte os <a href="/recursos/termos-campanha" target="_blank" className="text-royal-blue underline">Termos e Condições completos das Campanhas</a>.</p>
-            </div>
-            <div className="flex justify-end gap-4">
-                <button onClick={onCancel} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancelar</button>
-                <button onClick={onConfirm} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg">Aceito e quero começar</button>
-            </div>
-        </div>
-    </div>
-);
-
-const CampaignCard = ({ campaign, onStartTest }: { campaign: StudentCampaign, onStartTest: (testId: string, campaignId: string) => void }) => {
-    const endDate = new Date(campaign.end_date);
-    const now = new Date();
-    const diffTime = endDate.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    return (
-        <div className="glass-card p-6">
-            <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-bold dark:text-white">{campaign.title}</h3>
-                <span className="text-xs font-semibold bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
-                    Termina em {diffDays} {diffDays === 1 ? 'dia' : 'dias'}
-                </span>
-            </div>
-            <p className="text-sm text-dark-text-muted mb-4">{campaign.description}</p>
-            <div className="mb-4">
-                 <Link href="/recursos/termos-campanha" target="_blank" className="text-xs text-royal-blue underline font-semibold hover:opacity-80">
-                    Leia aqui as politicas da campanha
-                </Link>
-            </div>
-            <div className="space-y-2">
-                {campaign.tests?.map(test => (
-                    <div key={test.id} className="flex justify-between items-center p-2 rounded-md bg-white/10">
-                        <div>
-                            <p className="font-semibold text-sm dark:text-white">{test.title}</p>
-                            <p className="text-xs text-dark-text-muted">{test.question_count} questões</p>
-                        </div>
-                        <button onClick={() => onStartTest(test.id, campaign.campaign_id)} className="bg-royal-blue text-white text-xs font-bold py-1 px-3 rounded-md">
-                            Iniciar
-                        </button>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-const StatCard = ({ title, value, icon, unit }: { title: string; value: string | number; icon: string, unit?: string }) => (
-    <div className="glass-card p-4 flex items-center justify-between h-full">
-      <div>
-        <p className="text-sm text-dark-text-muted">{title}</p>
-        <p className="text-2xl font-bold text-dark-text dark:text-white">{value}<span className="text-base ml-1 font-normal">{unit}</span></p>
-      </div>
-      <div className="text-3xl text-lavender-blue">
-        <i className={`fas ${icon}`}></i>
-      </div>
-    </div>
-);
-
-const ActionCard = ({ title, description, icon, actionText, onClick }: { title: string; description: string; icon: string; actionText: string; onClick: () => void;}) => (
-    <div className="glass-card p-4 flex items-center gap-4">
-      <div className="bg-royal-blue/10 text-royal-blue w-12 h-12 flex items-center justify-center rounded-lg text-xl">
-        <i className={`fas ${icon}`}></i>
-      </div>
-      <div>
-        <h3 className="font-bold text-dark-text dark:text-white">{title}</h3>
-        <p className="text-sm text-dark-text-muted">{description}</p>
-        <button onClick={onClick} className="text-sm font-bold text-royal-blue mt-1 hover:underline">
-          {actionText}
-        </button>
-      </div>
-    </div>
-);
-
-const KnowledgeTestWidget = ({ test, onStart }: { test: KnowledgeTest; onStart: (testId: string) => void; }) => (
-    <div className="glass-card p-6 flex flex-col h-full bg-gradient-to-br from-purple-500/20 to-indigo-500/20">
-        <h3 className="font-bold mb-1 dark:text-white">Teste seu Conhecimento</h3>
-        <p className="text-lg font-semibold text-dark-text dark:text-white flex-grow">{test.title}</p>
-        <p className="text-xs text-dark-text-muted mb-4">{test.questions[0]?.count || 0} questões • {test.subject}</p>
-        <button onClick={() => onStart(test.id)} className="mt-auto bg-white/80 dark:bg-white/90 text-royal-blue font-bold py-2 px-6 rounded-lg hover:bg-white transition-transform hover:scale-105 w-full">
-            Começar
-        </button>
-    </div>
-);
-
+// --- SUB-COMPONENTES (sem alterações) ---
+const CampaignConsentModal = ({ onConfirm, onCancel }: { onConfirm: () => void, onCancel: () => void }) => ( <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4"> <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-lg w-full"> <h2 className="text-2xl font-bold mb-4">Termos da Campanha</h2> <div className="text-sm max-h-60 overflow-y-auto pr-2 mb-6"> <p className="mb-2">Ao participar desta campanha, você concorda com as seguintes regras:</p> <ul className="list-disc pl-5 space-y-1"> <li><strong>Tentativa Única:</strong> Cada simulado só pode ser realizado uma vez.</li> <li><strong>Antifraude:</strong> Não é permitido copiar/colar conteúdo ou sair da tela do teste. Sair da tela resultará no encerramento imediato da sua tentativa.</li> <li><strong>Uso de Dados:</strong> Seus resultados serão usados de forma anônima para compor o ranking da campanha.</li> </ul> <p className="mt-4">Para mais detalhes, consulte os <a href="/recursos/termos-campanha" target="_blank" className="text-royal-blue underline">Termos e Condições completos das Campanhas</a>.</p> </div> <div className="flex justify-end gap-4"> <button onClick={onCancel} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancelar</button> <button onClick={onConfirm} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg">Aceito e quero começar</button> </div> </div> </div> );
+const CampaignCard = ({ campaign, onStartTest }: { campaign: StudentCampaign, onStartTest: (testId: string, campaignId: string) => void }) => { const endDate = new Date(campaign.end_date); const now = new Date(); const diffTime = endDate.getTime() - now.getTime(); const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); return ( <div className="glass-card p-6"> <div className="flex justify-between items-start mb-2"> <h3 className="text-xl font-bold dark:text-white">{campaign.title}</h3> <span className="text-xs font-semibold bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full"> Termina em {diffDays} {diffDays === 1 ? 'dia' : 'dias'} </span> </div> <p className="text-sm text-dark-text-muted mb-4">{campaign.description}</p> <div className="mb-4"> <Link href="/recursos/termos-campanha" target="_blank" className="text-xs text-royal-blue underline font-semibold hover:opacity-80"> Leia aqui as politicas da campanha </Link> </div> <div className="space-y-2"> {campaign.tests?.map(test => ( <div key={test.id} className="flex justify-between items-center p-2 rounded-md bg-white/10"> <div> <p className="font-semibold text-sm dark:text-white">{test.title}</p> <p className="text-xs text-dark-text-muted">{test.question_count} questões</p> </div> <button onClick={() => onStartTest(test.id, campaign.campaign_id)} className="bg-royal-blue text-white text-xs font-bold py-1 px-3 rounded-md"> Iniciar </button> </div> ))} </div> </div> ); };
+const StatCard = ({ title, value, icon, unit }: { title: string; value: string | number; icon: string, unit?: string }) => ( <div className="glass-card p-4 flex items-center justify-between h-full"> <div> <p className="text-sm text-dark-text-muted">{title}</p> <p className="text-2xl font-bold text-dark-text dark:text-white">{value}<span className="text-base ml-1 font-normal">{unit}</span></p> </div> <div className="text-3xl text-lavender-blue"> <i className={`fas ${icon}`}></i> </div> </div> );
+const ActionCard = ({ title, description, icon, actionText, onClick }: { title: string; description: string; icon: string; actionText: string; onClick: () => void;}) => ( <div className="glass-card p-4 flex items-center gap-4"> <div className="bg-royal-blue/10 text-royal-blue w-12 h-12 flex items-center justify-center rounded-lg text-xl"> <i className={`fas ${icon}`}></i> </div> <div> <h3 className="font-bold text-dark-text dark:text-white">{title}</h3> <p className="text-sm text-dark-text-muted">{description}</p> <button onClick={onClick} className="text-sm font-bold text-royal-blue mt-1 hover:underline"> {actionText} </button> </div> </div> );
+const KnowledgeTestWidget = ({ test, onStart }: { test: KnowledgeTest; onStart: (testId: string) => void; }) => ( <div className="glass-card p-6 flex flex-col h-full bg-gradient-to-br from-purple-500/20 to-indigo-500/20"> <h3 className="font-bold mb-1 dark:text-white">Teste seu Conhecimento</h3> <p className="text-lg font-semibold text-dark-text dark:text-white flex-grow">{test.title}</p> <p className="text-xs text-dark-text-muted mb-4">{test.questions[0]?.count || 0} questões • {test.subject}</p> <button onClick={() => onStart(test.id)} className="mt-auto bg-white/80 dark:bg-white/90 text-royal-blue font-bold py-2 px-6 rounded-lg hover:bg-white transition-transform hover:scale-105 w-full"> Começar </button> </div> );
 const subjectColors: { [key: string]: string } = { Matemática: "#8b5cf6", Física: "#ec4899", Química: "#3b82f6", Biologia: "#22c55e", Português: "#f97316", Default: "#6b7280" };
 type CustomTooltipProps = { active?: boolean; payload?: { payload: PerformanceData }[]; label?: string; };
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => { if (active && payload && payload.length) { const data = payload[0].payload; const notaStr = typeof data.nota === "number" ? data.nota.toFixed(1) : "0"; return ( <div className="p-2 rounded-lg" style={{ backgroundColor: "#1A1A1D", border: "1px solid #2c2c31" }}><p className="text-sm font-bold" style={{ color: "#f8f9fa" }}>{`${label}`}</p><p className="text-xs" style={{ color: "#a0a0a0" }}>{`Acerto Médio: ${notaStr}% • ${data.simulados ?? 0} simulados`}</p></div> ); } return null; };
@@ -317,7 +228,7 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
     return (
         <div>
              <div className="mb-8 flex items-center justify-between">
-                 <h2 className="text-2xl font-bold text-dark-text dark:text-white">Explorar Simulados</h2>
+                 <h2 className="text-2xl font-bold text-dark-text dark:text-white">Explorar Simulados e Pesquisas</h2>
                  <div className="flex items-center gap-2 rounded-lg bg-gray-200 dark:bg-gray-700 p-1">
                      <button onClick={() => setFilter('all')} className={`px-3 py-1 text-sm font-semibold rounded-md ${filter === 'all' ? 'bg-white dark:bg-gray-800 shadow' : ''}`}>Todos</button>
                      <button onClick={() => setFilter('campaign')} className={`px-3 py-1 text-sm font-semibold rounded-md ${filter === 'campaign' ? 'bg-white dark:bg-gray-800 shadow' : ''}`}>Campanhas</button>
@@ -328,18 +239,27 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
 
             {filteredTests.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* LÓGICA DE RENDERIZAÇÃO CONDICIONAL */}
                     {filteredTests.map(test => (
-                        <AvailableTestCard
-                            key={test.id}
-                            test={test}
-                            onStart={(testId) => handleInitiateTest(testId, (test as any).campaignId)}
-                            onViewDetails={handleViewDetails}
-                        />
+                        test.test_type === 'pesquisa' ? (
+                            <SurveyCard
+                                key={test.id}
+                                survey={test}
+                                onStart={(surveyId) => handleInitiateTest(surveyId, (test as any).campaignId)}
+                            />
+                        ) : (
+                            <AvailableTestCard
+                                key={test.id}
+                                test={test}
+                                onStart={(testId) => handleInitiateTest(testId, (test as any).campaignId)}
+                                onViewDetails={handleViewDetails}
+                            />
+                        )
                     ))}
                 </div>
             ) : (
                 <div className="text-center p-8 glass-card">
-                    <p className="text-lg">Nenhum simulado encontrado para este filtro.</p>
+                    <p className="text-lg">Nenhum item encontrado para este filtro.</p>
                 </div>
             )}
         </div>

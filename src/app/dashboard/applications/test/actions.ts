@@ -337,7 +337,6 @@ export async function getCampaignsForStudent() {
     return { data: data as StudentCampaign[], error: null };
 }
 
-// ATUALIZADO: getAvailableTestsForStudent para incluir test_type
 export async function getAvailableTestsForStudent() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -350,7 +349,6 @@ export async function getAvailableTestsForStudent() {
         return { data: null, error: error.message };
     }
 
-    // A CORREÇÃO ESTÁ AQUI: Mapeando o campo 'test_type' que vem do banco de dados
     const formattedData = data.map((test: any) => ({
       id: test.id,
       title: test.title,
@@ -366,7 +364,7 @@ export async function getAvailableTestsForStudent() {
       collection: test.collection,
       class_id: test.class_id,
       is_campaign_test: test.is_campaign_test,
-      test_type: test.test_type, // Garantindo que o tipo seja passado para o front-end
+      test_type: test.test_type,
     }));
     
     const globalTests = formattedData.filter((t: any) => !t.class_id && !t.is_campaign_test);
@@ -548,6 +546,7 @@ export async function getQuickTest() {
     return { data: quickTest, error: null };
 }
 
+// CORREÇÃO APLICADA AQUI: Usando a nova função RPC
 export async function getSurveyResults(testId: string) {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -556,10 +555,17 @@ export async function getSurveyResults(testId: string) {
     const { data: profile } = await supabase.from('profiles').select('user_category, organization_id').eq('id', user.id).single();
     if (!profile) return { error: 'Perfil não encontrado.' };
 
-    const { data: test, error: testError } = await supabase.from('tests').select('organization_id').eq('id', testId).single();
-    if (testError) return { error: 'Pesquisa não encontrada.' };
+    // ETAPA 1: Usar a nova função RPC para buscar dados do teste com segurança
+    const { data: test, error: testError } = await supabase
+        .rpc('get_test_owner_and_org', { p_test_id: testId })
+        .single();
+
+    if (testError || !test) {
+        console.error("Erro ao buscar dados do teste via RPC:", testError);
+        return { error: 'Pesquisa não encontrada.' };
+    }
     
-    // Validação de permissão
+    // ETAPA 2: Validação de permissão
     const isGlobalAdmin = profile.user_category === 'administrator';
     const isDirectorOfOrg = profile.user_category === 'diretor' && profile.organization_id === test.organization_id;
 
@@ -567,7 +573,7 @@ export async function getSurveyResults(testId: string) {
         return { error: 'Você não tem permissão para ver os resultados desta pesquisa.' };
     }
 
-    // Busca as respostas
+    // ETAPA 3: Buscar os resultados da pesquisa (RPC existente)
     const { data: results, error: resultsError } = await supabase
         .rpc('get_survey_results', { p_test_id: testId });
 
