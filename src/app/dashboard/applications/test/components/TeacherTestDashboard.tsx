@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition, useCallback } from 'react';
 import CreateTestModal from './CreateTestModal';
 import TestDetailView from './TestDetailView';
-import { getTestWithQuestions, getTestsForTeacher } from '../actions';
-import type { Test, TestWithQuestions } from '../actions';
+import { getTestWithQuestions, getTestsForTeacher, deleteCampaign, Campaign, Test } from '../actions';
+import type { TestWithQuestions } from '../actions';
 import { useToast } from '@/contexts/ToastContext';
 import createClient from '@/utils/supabase/client';
 import type { UserProfile } from '@/app/dashboard/types';
 import CampaignManager from './CampaignManager';
 import ResultsDashboard from './ResultsDashboard';
 import ClassAnalytics from './ClassAnalytics';
+import SurveyResultsView from './SurveyResultsView'; // A importação deve ser default
 
 // Tipos de dados aprimorados para o dashboard do professor
 type SchoolClass = {
@@ -62,7 +63,7 @@ const ClassStatCard = ({ stats, onSelectClass }: { stats: AggregatedClassStats, 
 export default function TeacherTestDashboard({ initialTests, userProfile }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tests, setTests] = useState(initialTests);
-  const [currentView, setCurrentView] = useState<'list' | 'detail' | 'analytics' | 'campaigns' | 'results' | 'class-analytics'>('list');
+  const [currentView, setCurrentView] = useState<'list' | 'detail' | 'analytics' | 'campaigns' | 'results' | 'class-analytics' | 'survey-results'>('list');
   const [selectedTest, setSelectedTest] = useState<TestWithQuestions | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,14 +78,12 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
       setTests(data || []);
   };
 
-  // Efeito para buscar turmas e estatísticas agregadas
   useEffect(() => {
     if (isInstitutional) {
       const fetchInitialData = async () => {
         setIsLoading(true);
         const supabase = createClient();
         
-        // 1. Buscar as turmas do professor
         const { data: classData, error: classError } = await supabase
           .from('class_members')
           .select('school_classes(id, name)')
@@ -103,24 +102,6 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
             .filter((c): c is SchoolClass => !!c);
             
           setClasses(mappedClasses);
-
-          // =========================================================================
-          // !! BLOCO DAS ESTATÍSTICAS TEMPORARIAMENTE DESATIVADO !!
-          // Após aplicar o SQL da próxima etapa, você pode descomentar este bloco.
-          // =========================================================================
-          /*
-          if(mappedClasses.length > 0) {
-            const classIds = mappedClasses.map(c => c.id);
-            const { data: statsData, error: statsError } = await supabase.rpc('get_class_performance_summary', { p_class_ids: classIds });
-
-            if(statsError) {
-                console.error("Erro ao buscar estatísticas das turmas:", statsError.message);
-                addToast({ title: "Erro de Estatísticas", message: "Não foi possível carregar os dados de desempenho das turmas.", type: 'error' });
-            } else {
-                setClassStats(statsData || []);
-            }
-          }
-          */
         }
         setIsLoading(false);
       };
@@ -139,6 +120,11 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
       setCurrentView('detail');
     }
     setIsLoading(false);
+  };
+
+  const handleViewSurveyResults = (test: Test) => {
+      setSelectedTest(test as TestWithQuestions);
+      setCurrentView('survey-results');
   };
 
   const handleBackToList = () => {
@@ -167,11 +153,14 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
     if (currentView === 'class-analytics' && selectedClassId) {
       return <ClassAnalytics classId={selectedClassId} onBack={handleBackToList} />;
     }
-   if (currentView === 'campaigns') {
+    if (currentView === 'campaigns') {
       return <CampaignManager />;
     }
- if (currentView === 'results') {
+    if (currentView === 'results') {
       return <ResultsDashboard />;
+    }
+    if (currentView === 'survey-results' && selectedTest) {
+      return <SurveyResultsView testId={selectedTest.id} testTitle={selectedTest.title} onBack={handleBackToList} />;
     }
     return (
         <div className="space-y-12">
@@ -199,7 +188,11 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
                                   >
                                       {test.title}
                                   </h3>
-                                  {test.is_knowledge_test && (
+                                  {test.test_type === 'pesquisa' ? (
+                                    <span className="text-xs font-semibold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full flex-shrink-0">
+                                      Pesquisa
+                                    </span>
+                                  ) : test.is_knowledge_test && (
                                       <span className="text-xs font-semibold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full flex-shrink-0">
                                           Conhecimento
                                       </span>
@@ -217,7 +210,11 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
                                   Criado em {new Date(test.created_at).toLocaleDateString('pt-BR')}
                               </div>
                               <div className="mt-4 border-t dark:border-gray-700 pt-3 flex justify-end gap-3">
-                                  <button onClick={() => setCurrentView('results')} className="text-green-600 hover:underline text-sm font-semibold">Resultados</button>
+                                  {test.test_type === 'pesquisa' ? (
+                                      <button onClick={() => handleViewSurveyResults(test)} className="text-green-600 hover:underline text-sm font-semibold">Resultados</button>
+                                  ) : (
+                                      <button onClick={() => setCurrentView('results')} className="text-green-600 hover:underline text-sm font-semibold">Resultados</button>
+                                  )}
                                   <button onClick={() => handleViewDetails(test.id)} className="text-royal-blue hover:underline text-sm font-semibold">Ver Detalhes</button>
                                   <button onClick={() => addToast({ title: "Em Breve", message: "A função de excluir ainda está em desenvolvimento.", type: 'error'})} className="text-red-500 hover:underline text-sm font-semibold">Excluir</button>
                               </div>

@@ -34,6 +34,8 @@ export type TestWithQuestions = {
   cover_image_url?: string | null;
   collection?: string | null;
   class_id?: string | null;
+  serie?: string | null;
+  test_type: 'avaliativo' | 'pesquisa';
   hasAttempted?: boolean;
 };
 
@@ -61,9 +63,8 @@ export type Campaign = {
     campaign_tests: { test_id: string }[];
 };
 
-// TIPO CORRIGIDO AQUI
 export type StudentCampaign = {
-    campaign_id: string; // <-- A MUDANÇA ESTÁ AQUI
+    campaign_id: string;
     title: string;
     description: string | null;
     end_date: string;
@@ -102,6 +103,8 @@ export async function createOrUpdateTest(testData: {
   cover_image_url: string | null,
   collection: string | null,
   class_id: string | null;
+  serie: string | null;
+  test_type: 'avaliativo' | 'pesquisa';
 }) {
   if (!(await isTeacherOrHigher())) return { error: 'Acesso não autorizado.' };
   
@@ -122,7 +125,9 @@ export async function createOrUpdateTest(testData: {
       cover_image_url: testData.cover_image_url,
       collection: testData.collection,
       class_id: testData.class_id,
-      points: testData.questions.reduce((sum, q) => sum + (q.points || 0), 0)
+      serie: testData.serie,
+      test_type: testData.test_type,
+      points: testData.test_type === 'avaliativo' ? testData.questions.reduce((sum, q) => sum + (q.points || 0), 0) : 0
     })
     .select()
     .single();
@@ -139,7 +144,7 @@ export async function createOrUpdateTest(testData: {
       test_id: testResult.id,
       question_type: q.question_type,
       content: q.content,
-      points: q.points,
+      points: testData.test_type === 'avaliativo' ? q.points : 0,
       thematic_axis: q.thematic_axis
     }));
     const { error: questionsError } = await supabase.from('questions').insert(questionsToInsert);
@@ -332,6 +337,7 @@ export async function getCampaignsForStudent() {
     return { data: data as StudentCampaign[], error: null };
 }
 
+// ATUALIZADO: getAvailableTestsForStudent para incluir test_type
 export async function getAvailableTestsForStudent() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -344,6 +350,7 @@ export async function getAvailableTestsForStudent() {
         return { data: null, error: error.message };
     }
 
+    // A CORREÇÃO ESTÁ AQUI: Mapeando o campo 'test_type' que vem do banco de dados
     const formattedData = data.map((test: any) => ({
       id: test.id,
       title: test.title,
@@ -359,6 +366,7 @@ export async function getAvailableTestsForStudent() {
       collection: test.collection,
       class_id: test.class_id,
       is_campaign_test: test.is_campaign_test,
+      test_type: test.test_type, // Garantindo que o tipo seja passado para o front-end
     }));
     
     const globalTests = formattedData.filter((t: any) => !t.class_id && !t.is_campaign_test);
@@ -376,7 +384,7 @@ export async function submitTestAttempt(
   
     const { data: test, error: testError } = await supabase
       .from('tests')
-      .select('questions (id, question_type, content, points)')
+      .select('questions (id, question_type, content, points), test_type')
       .eq('id', test_id)
       .single();
 
@@ -384,6 +392,8 @@ export async function submitTestAttempt(
       console.error('Erro ao buscar o teste para correção:', testError);
       return { error: 'Não foi possível encontrar o simulado para correção.' };
     }
+    
+    const isSurvey = test.test_type === 'pesquisa';
 
     const { data: attempt, error: attemptError } = await supabase
         .from('test_attempts')
@@ -406,7 +416,7 @@ export async function submitTestAttempt(
     const answersToInsert = answers.map(studentAnswer => {
         const question = test.questions.find(q => q.id === studentAnswer.questionId);
         let isCorrect = false;
-        if (question && question.question_type === 'multiple_choice') {
+        if (!isSurvey && question && question.question_type === 'multiple_choice') {
             const correctOption = (question.content as QuestionContent).correct_option;
             if (studentAnswer.answer === correctOption) {
                 isCorrect = true;
@@ -418,7 +428,7 @@ export async function submitTestAttempt(
             question_id: studentAnswer.questionId,
             student_id: user.id,
             answer: studentAnswer.answer,
-            is_correct: isCorrect,
+            is_correct: isSurvey ? null : isCorrect,
             time_spent_seconds: studentAnswer.time_spent,
         };
     });
@@ -431,16 +441,17 @@ export async function submitTestAttempt(
         return { error: `Erro ao salvar respostas: ${answersError.message}`};
     }
 
-    const finalScore = test.questions.length > 0 ? Math.round((correctCount / test.questions.length) * 100) : 0;
-    
-    const { error: updateError } = await supabase
-        .from('test_attempts')
-        .update({ score: finalScore, status: 'graded' })
-        .eq('id', attempt.id);
+    if (!isSurvey) {
+        const finalScore = test.questions.length > 0 ? Math.round((correctCount / test.questions.length) * 100) : 0;
+        const { error: updateError } = await supabase
+            .from('test_attempts')
+            .update({ score: finalScore, status: 'graded' })
+            .eq('id', attempt.id);
 
-    if (updateError) {
-        console.error("Erro ao atualizar o score final:", updateError);
-        return { error: `Erro ao finalizar e calcular a nota: ${updateError.message}`};
+        if (updateError) {
+            console.error("Erro ao atualizar o score final:", updateError);
+            return { error: `Erro ao finalizar e calcular a nota: ${updateError.message}`};
+        }
     }
 
     revalidatePath('/dashboard/applications/test');
@@ -530,8 +541,40 @@ export async function getQuickTest() {
         created_by: 'system',
         created_at: new Date().toISOString(),
         duration_minutes: 15,
+        test_type: 'avaliativo',
         questions: data
     };
 
     return { data: quickTest, error: null };
+}
+
+export async function getSurveyResults(testId: string) {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Usuário não autenticado.' };
+
+    const { data: profile } = await supabase.from('profiles').select('user_category, organization_id').eq('id', user.id).single();
+    if (!profile) return { error: 'Perfil não encontrado.' };
+
+    const { data: test, error: testError } = await supabase.from('tests').select('organization_id').eq('id', testId).single();
+    if (testError) return { error: 'Pesquisa não encontrada.' };
+    
+    // Validação de permissão
+    const isGlobalAdmin = profile.user_category === 'administrator';
+    const isDirectorOfOrg = profile.user_category === 'diretor' && profile.organization_id === test.organization_id;
+
+    if (!isGlobalAdmin && !isDirectorOfOrg) {
+        return { error: 'Você não tem permissão para ver os resultados desta pesquisa.' };
+    }
+
+    // Busca as respostas
+    const { data: results, error: resultsError } = await supabase
+        .rpc('get_survey_results', { p_test_id: testId });
+
+    if (resultsError) {
+        console.error("Erro ao buscar resultados da pesquisa:", resultsError);
+        return { error: 'Não foi possível buscar os resultados.' };
+    }
+
+    return { data: results };
 }

@@ -23,9 +23,10 @@ type Props = {
   question: Question;
   onUpdate: (updatedQuestion: Question) => void;
   onRemove: (questionId: string) => void;
+  isSurvey: boolean; // Nova propriedade
 };
 
-export default function QuestionEditor({ question, onUpdate, onRemove }: Props) {
+export default function QuestionEditor({ question, onUpdate, onRemove, isSurvey }: Props) {
   const [localQuestion, setLocalQuestion] = useState<Question>(question);
 
   useEffect(() => {
@@ -39,7 +40,6 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
         const contentField = String(field).split('.')[1] as keyof QuestionContent;
         updatedQuestion.content = { ...updatedQuestion.content, [contentField]: value };
     } else {
-        // Lida com chaves no nível raiz como 'question_type' ou 'thematic_axis'
         (updatedQuestion as any)[field] = value;
     }
     setLocalQuestion(updatedQuestion);
@@ -117,19 +117,22 @@ export default function QuestionEditor({ question, onUpdate, onRemove }: Props) 
 
       {localQuestion.question_type === 'multiple_choice' && (
         <div className="space-y-2">
-          <h5 className="text-sm font-semibold">Alternativas (Marque a correta):</h5>
+          <h5 className="text-sm font-semibold">Alternativas {!isSurvey && '(Marque a correta)'}:</h5>
           {(localQuestion.content.options || []).map((option, index) => (
             <div key={index} className="flex items-center gap-2">
-               <label className="flex items-center gap-2 font-mono cursor-pointer">
-                <input
-                    type="radio"
-                    name={`correct_option_${question.id}`}
-                    checked={localQuestion.content.correct_option === index}
-                    onChange={() => handleUpdate('content.correct_option', index)}
-                    className="form-radio h-4 w-4 text-royal-blue focus:ring-royal-blue"
-                />
-                 {String.fromCharCode(65 + index)})
-               </label>
+               {/* Esconde o radio button de resposta correta se for pesquisa */}
+               {!isSurvey && (
+                 <label className="flex items-center gap-2 font-mono cursor-pointer">
+                  <input
+                      type="radio"
+                      name={`correct_option_${question.id}`}
+                      checked={localQuestion.content.correct_option === index}
+                      onChange={() => handleUpdate('content.correct_option', index)}
+                      className="form-radio h-4 w-4 text-royal-blue focus:ring-royal-blue"
+                  />
+                   {String.fromCharCode(65 + index)})
+                 </label>
+               )}
               <input
                 type="text"
                 placeholder={`Alternativa ${String.fromCharCode(65 + index)}`}

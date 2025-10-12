@@ -14,7 +14,8 @@ type FormData = {
     userCategory?: string;
     fullName?: string;
     birthDate?: string;
-    cpf?: string;
+    cpf?: string; // CPF agora é opcional
+    serie?: string; // Campo 'Série' adicionado
     email?: string;
     password?: string;
     nickname?: string;
@@ -46,18 +47,43 @@ type FormData = {
 const PersonalDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Partial<FormData>) => void, onBack: () => void, initialData: FormData }) => {
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        onNext({ fullName: e.currentTarget.fullName.value, birthDate: e.currentTarget.birthDate.value, cpf: e.currentTarget.cpf.value });
+        onNext({ 
+            fullName: e.currentTarget.fullName.value, 
+            birthDate: e.currentTarget.birthDate.value, 
+            cpf: e.currentTarget.cpf.value,
+            serie: e.currentTarget.serie.value // Coleta o dado da série
+        });
     };
     return (
         <form onSubmit={handleSubmit} className="space-y-4 text-sm">
             <h2 className="text-xl font-bold text-center mb-4">Seus Dados Pessoais</h2>
             <div><label htmlFor="fullName" className="font-medium">Nome Completo</label><input type="text" name="fullName" defaultValue={initialData.fullName || ''} required className="w-full p-2 border rounded-md mt-1" /></div>
             <div><label htmlFor="birthDate" className="font-medium">Data de Nascimento</label><input type="date" name="birthDate" defaultValue={initialData.birthDate || ''} required className="w-full p-2 border rounded-md mt-1" /></div>
-            <div><label htmlFor="cpf" className="font-medium">CPF</label><input type="text" name="cpf" defaultValue={initialData.cpf || ''} required placeholder="000.000.000-00" className="w-full p-2 border rounded-md mt-1" /></div>
+            
+            {/* CORREÇÃO AQUI: CPF é opcional, o atributo 'required' foi removido. */}
+            <div><label htmlFor="cpf" className="font-medium">CPF (Opcional)</label><input type="text" name="cpf" defaultValue={initialData.cpf || ''} placeholder="000.000.000-00" className="w-full p-2 border rounded-md mt-1" /></div>
+            
+            {/* CORREÇÃO AQUI: Novo campo de Série adicionado e obrigatório ('required'). */}
+            <div>
+                <label htmlFor="serie" className="font-medium">Série</label>
+                <select name="serie" defaultValue={initialData.serie || ''} required className="w-full p-2 border rounded-md mt-1 bg-white">
+                    <option value="">Selecione sua série</option>
+                    <option value="1_ano_em">1º Ano - Ensino Médio</option>
+                    <option value="2_ano_em">2º Ano - Ensino Médio</option>
+                    <option value="3_ano_em">3º Ano - Ensino Médio</option>
+                    <option value="9_ano_ef">9º Ano - Ensino Fundamental</option>
+                    <option value="8_ano_ef">8º Ano - Ensino Fundamental</option>
+                    <option value="7_ano_ef">7º Ano - Ensino Fundamental</option>
+                    <option value="6_ano_ef">6º Ano - Ensino Fundamental</option>
+                    <option value="5_ano_ef">5º Ano - Ensino Fundamental</option>
+                </select>
+            </div>
             <div className="flex justify-between items-center pt-4"><button type="button" onClick={onBack} className="text-sm text-text-muted hover:text-dark-text">Voltar</button><button type="submit" className="py-2 px-5 bg-royal-blue text-white rounded-lg font-bold">Próximo</button></div>
         </form>
     );
 };
+
+// ... (O restante dos componentes de etapa permanecem os mesmos, não precisam ser alterados)
 
 const AddressDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Partial<FormData>) => void, onBack: () => void, initialData: FormData }) => {
     const [address, setAddress] = useState({ 
@@ -74,7 +100,6 @@ const AddressDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Parti
             const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
             const data = await response.json();
             if (!data.erro) {
-                // ✅ CORREÇÃO: Garante que os valores sejam sempre strings
                 setAddress({ 
                     street: data.logouro || '', 
                     neighborhood: data.bairro || '', 
@@ -288,6 +313,16 @@ function InstitutionalRegister() {
         }
         
         if (user) {
+            // Lógica de matrícula automática
+            if (fullData.invitationCode === 'FHB-MARILDA') {
+                const { error: insertError } = await supabase
+                    .from('class_members')
+                    .insert({ class_id: '0f91bc59-862e-40cb-8863-d2c76c07b7ce', user_id: user.id, role: 'student' });
+                if (insertError) {
+                    console.error('Erro ao matricular usuário automaticamente:', insertError);
+                }
+            }
+
             const { error: profileError } = await supabase
                 .from('profiles')
                 .upsert({
@@ -298,6 +333,7 @@ function InstitutionalRegister() {
                     pronoun: fullData.pronoun,
                     user_category: fullData.userCategory,
                     cpf: fullData.cpf,
+                    serie: fullData.serie, // Salva a série no perfil
                     school_name: fullData.organizationName,
                     organization_id: fullData.organizationId,
                     address_cep: fullData.addressCep,

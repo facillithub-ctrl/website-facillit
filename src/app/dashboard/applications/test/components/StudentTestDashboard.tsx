@@ -30,6 +30,7 @@ type TestCardInfo = {
   avg_score: number;
   total_attempts: number;
   points: number;
+  test_type: 'avaliativo' | 'pesquisa'; // Adicionado
   hasAttempted: boolean;
   cover_image_url?: string | null;
   collection?: string | null;
@@ -209,7 +210,7 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
     setIsLoading(true);
     const { data } = await getTestWithQuestions(testId);
     if (data) {
-        if (!data.hasAttempted) {
+        if (!data.hasAttempted && data.test_type === 'avaliativo') {
             addToast({
                 title: "Gabarito Indisponível",
                 message: "Você precisa resolver o simulado antes de conferir o gabarito.",
@@ -236,7 +237,7 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
     const { data } = await getTestWithQuestions(testId);
     if (data) {
         if (data.hasAttempted) {
-            addToast({ title: "Simulado já Realizado", message: "Você já concluiu este simulado.", type: "error" });
+            addToast({ title: "Já Realizado", message: "Você já concluiu este teste.", type: "error" });
             setIsLoading(false);
             return;
         }
