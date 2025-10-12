@@ -14,8 +14,8 @@ type FormData = {
     userCategory?: string;
     fullName?: string;
     birthDate?: string;
-    cpf?: string; // CPF agora é opcional
-    serie?: string; // Campo 'Série' adicionado
+    cpf?: string;
+    serie?: string;
     email?: string;
     password?: string;
     nickname?: string;
@@ -43,27 +43,17 @@ type FormData = {
 };
 
 // --- Componentes de Etapa (Steps) ---
-
 const PersonalDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Partial<FormData>) => void, onBack: () => void, initialData: FormData }) => {
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        onNext({ 
-            fullName: e.currentTarget.fullName.value, 
-            birthDate: e.currentTarget.birthDate.value, 
-            cpf: e.currentTarget.cpf.value,
-            serie: e.currentTarget.serie.value // Coleta o dado da série
-        });
+        onNext({ fullName: e.currentTarget.fullName.value, birthDate: e.currentTarget.birthDate.value, cpf: e.currentTarget.cpf.value, serie: e.currentTarget.serie.value });
     };
     return (
         <form onSubmit={handleSubmit} className="space-y-4 text-sm">
             <h2 className="text-xl font-bold text-center mb-4">Seus Dados Pessoais</h2>
             <div><label htmlFor="fullName" className="font-medium">Nome Completo</label><input type="text" name="fullName" defaultValue={initialData.fullName || ''} required className="w-full p-2 border rounded-md mt-1" /></div>
             <div><label htmlFor="birthDate" className="font-medium">Data de Nascimento</label><input type="date" name="birthDate" defaultValue={initialData.birthDate || ''} required className="w-full p-2 border rounded-md mt-1" /></div>
-            
-            {/* CORREÇÃO AQUI: CPF é opcional, o atributo 'required' foi removido. */}
             <div><label htmlFor="cpf" className="font-medium">CPF (Opcional)</label><input type="text" name="cpf" defaultValue={initialData.cpf || ''} placeholder="000.000.000-00" className="w-full p-2 border rounded-md mt-1" /></div>
-            
-            {/* CORREÇÃO AQUI: Novo campo de Série adicionado e obrigatório ('required'). */}
             <div>
                 <label htmlFor="serie" className="font-medium">Série</label>
                 <select name="serie" defaultValue={initialData.serie || ''} required className="w-full p-2 border rounded-md mt-1 bg-white">
@@ -83,16 +73,8 @@ const PersonalDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Part
     );
 };
 
-// ... (O restante dos componentes de etapa permanecem os mesmos, não precisam ser alterados)
-
 const AddressDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Partial<FormData>) => void, onBack: () => void, initialData: FormData }) => {
-    const [address, setAddress] = useState({ 
-        street: initialData.addressStreet || '', 
-        neighborhood: initialData.addressNeighborhood || '', 
-        city: initialData.addressCity || '', 
-        state: initialData.addressState || '' 
-    });
-
+    const [address, setAddress] = useState({ street: initialData.addressStreet || '', neighborhood: initialData.addressNeighborhood || '', city: initialData.addressCity || '', state: initialData.addressState || '' });
     const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
         const cep = e.target.value.replace(/\D/g, '');
         if (cep.length !== 8) return;
@@ -100,32 +82,15 @@ const AddressDataStep = ({ onNext, onBack, initialData }: { onNext: (data: Parti
             const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
             const data = await response.json();
             if (!data.erro) {
-                setAddress({ 
-                    street: data.logouro || '', 
-                    neighborhood: data.bairro || '', 
-                    city: data.localidade || '', 
-                    state: data.uf || '' 
-                });
+                setAddress({ street: data.logouro || '', neighborhood: data.bairro || '', city: data.localidade || '', state: data.uf || '' });
             }
-        } catch (error) {
-            console.error("Erro ao buscar CEP:", error);
-        }
+        } catch (error) { console.error("Erro ao buscar CEP:", error); }
     };
-
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const form = e.currentTarget;
-        onNext({ 
-            addressCep: form.cep.value, 
-            addressStreet: form.street.value, 
-            addressNumber: form.number.value, 
-            addressComplement: form.complement.value, 
-            addressNeighborhood: form.neighborhood.value, 
-            addressCity: form.city.value, 
-            addressState: form.state.value 
-        });
+        onNext({ addressCep: form.cep.value, addressStreet: form.street.value, addressNumber: form.number.value, addressComplement: form.complement.value, addressNeighborhood: form.neighborhood.value, addressCity: form.city.value, addressState: form.state.value });
     };
-
     return (
         <form onSubmit={handleSubmit} className="space-y-3 text-sm">
             <h3 className="text-xl font-bold text-center mb-4">Seu Endereço</h3>
@@ -147,15 +112,7 @@ const AuthStep = ({ onNext, onBack, initialData }: { onNext: (data: Partial<Form
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [passwordCriteria, setPasswordCriteria] = useState({ length: false, uppercase: false, number: false });
-
-    useEffect(() => {
-        setPasswordCriteria({
-            length: password.length >= 8,
-            uppercase: /[A-Z]/.test(password),
-            number: /[0-9]/.test(password),
-        });
-    }, [password]);
-
+    useEffect(() => { setPasswordCriteria({ length: password.length >= 8, uppercase: /[A-Z]/.test(password), number: /[0-9]/.test(password), }); }, [password]);
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const form = e.currentTarget;
@@ -163,18 +120,11 @@ const AuthStep = ({ onNext, onBack, initialData }: { onNext: (data: Partial<Form
         if (!Object.values(passwordCriteria).every(Boolean)) { alert("A senha não cumpre todos os requisitos."); return; }
         onNext({ email: form.email.value, password: form.password.value });
     };
-
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <h2 className="text-2xl font-bold text-center mb-4">Crie seus dados de acesso</h2>
             <div><label htmlFor="email" className="block text-sm font-medium mb-1">Seu melhor e-mail</label><input type="email" name="email" defaultValue={initialData.email || ''} required className="w-full p-3 border rounded-lg" /></div>
-            <div className="relative">
-                <label htmlFor="password" className="block text-sm font-medium mb-1">Crie uma senha</label>
-                <input type={showPassword ? 'text' : 'password'} name="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border rounded-lg" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-9 text-text-muted">
-                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                </button>
-            </div>
+            <div className="relative"><label htmlFor="password" className="block text-sm font-medium mb-1">Crie uma senha</label><input type={showPassword ? 'text' : 'password'} name="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border rounded-lg" /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-9 text-text-muted"><i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i></button></div>
             <div className="text-xs space-y-1 text-gray-500">
                 <p className={passwordCriteria.length ? 'text-green-600' : ''}>{passwordCriteria.length ? '✓' : '•'} Mínimo de 8 caracteres</p>
                 <p className={passwordCriteria.uppercase ? 'text-green-600' : ''}>{passwordCriteria.uppercase ? '✓' : '•'} Pelo menos uma letra maiúscula</p>
@@ -187,21 +137,13 @@ const AuthStep = ({ onNext, onBack, initialData }: { onNext: (data: Partial<Form
 };
 
 const PersonalizationStep = ({ onSubmit, onBack, isLoading, agreedToTerms, setAgreedToTerms, initialData }: { onSubmit: (data: Partial<FormData>) => void, onBack: () => void, isLoading: boolean, agreedToTerms: boolean, setAgreedToTerms: (value: boolean) => void, initialData: FormData }) => {
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        onSubmit({ nickname: e.currentTarget.nickname.value, pronoun: e.currentTarget.pronoun.value });
-    };
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => { e.preventDefault(); onSubmit({ nickname: e.currentTarget.nickname.value, pronoun: e.currentTarget.pronoun.value }); };
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <h2 className="text-2xl font-bold text-center mb-4">Quase lá! Personalize seu perfil</h2>
             <div><label htmlFor="nickname" className="block text-sm font-medium mb-1">Como gostaria de ser chamado(a)? (Apelido)</label><input type="text" name="nickname" defaultValue={initialData.nickname || ''} className="w-full p-3 border rounded-lg" /></div>
             <div><label htmlFor="pronoun" className="block text-sm font-medium mb-1">Pronome</label><select name="pronoun" defaultValue={initialData.pronoun || ''} className="w-full p-3 border rounded-lg bg-white"><option>Ele/Dele</option><option>Ela/Dela</option><option>Elu/Delu</option><option>Prefiro não informar</option></select></div>
-            <div className="pt-2">
-                <label className="flex items-start gap-3 cursor-pointer">
-                    <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} className="h-5 w-5 mt-1 rounded border-gray-300 text-royal-blue focus:ring-royal-blue flex-shrink-0" />
-                    <span className="text-sm text-gray-600">Eu li e concordo com os <Link href="/recursos/uso" target="_blank" className="font-bold text-royal-blue underline">Termos de Uso</Link> e a <Link href="/recursos/privacidade" target="_blank" className="font-bold text-royal-blue underline">Política de Privacidade</Link>.</span>
-                </label>
-            </div>
+            <div className="pt-2"><label className="flex items-start gap-3 cursor-pointer"><input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} className="h-5 w-5 mt-1 rounded border-gray-300 text-royal-blue focus:ring-royal-blue flex-shrink-0" /><span className="text-sm text-gray-600">Eu li e concordo com os <Link href="/recursos/uso" target="_blank" className="font-bold text-royal-blue underline">Termos de Uso</Link> e a <Link href="/recursos/privacidade" target="_blank" className="font-bold text-royal-blue underline">Política de Privacidade</Link>.</span></label></div>
             <div className="flex justify-between items-center pt-4"><button type="button" onClick={onBack} className="text-sm text-text-muted hover:text-dark-text">Voltar</button><button type="submit" disabled={isLoading || !agreedToTerms} className="py-3 px-6 bg-royal-blue text-white rounded-lg font-bold disabled:bg-gray-400">{isLoading ? 'Finalizando...' : 'Finalizar Cadastro'}</button></div>
         </form>
     );
@@ -209,9 +151,7 @@ const PersonalizationStep = ({ onSubmit, onBack, isLoading, agreedToTerms, setAg
 
 const SuccessStep = () => {
     const router = useRouter();
-    const goToLogin = () => {
-        router.push('/login');
-    };
+    const goToLogin = () => router.push('/login');
     return (
         <div className="text-center flex flex-col h-full justify-center">
             <div className="mx-auto bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mb-4"><i className="fas fa-check text-3xl"></i></div>
@@ -227,7 +167,6 @@ function InstitutionalRegister() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const supabase = createClient();
-
     const [step, setStep] = useState('verifying');
     const [formData, setFormData] = useState<FormData>({ userCategory: 'aluno' });
     const [isLoading, setIsLoading] = useState(false);
@@ -235,97 +174,50 @@ function InstitutionalRegister() {
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [init, setInit] = useState(false);
 
-    useEffect(() => {
-        initParticlesEngine(async (engine) => { await loadSlim(engine); }).then(() => { setInit(true); });
-    }, []);
+    useEffect(() => { initParticlesEngine(async (engine) => { await loadSlim(engine); }).then(() => { setInit(true); }); }, []);
     
     useEffect(() => {
         const code = searchParams.get('code');
-        if (!code) {
-            router.push('/login/institucional');
-            return;
-        }
-
+        if (!code) { router.push('/login/institucional'); return; }
         const verifyCodeAndGetOrg = async () => {
-            const { data, error } = await supabase
-                .rpc('get_organization_for_invitation_code', { p_code: code })
-                .single<{ organization_id: string; organization_name: string }>();
-
-            if (error || !data || !data.organization_id) {
-                setError('Código de convite inválido ou a organização associada não foi encontrada.');
-                setTimeout(() => router.push('/login/institucional'), 3000);
-            } else {
-                setFormData(prev => ({
-                    ...prev,
-                    invitationCode: code,
-                    organizationId: data.organization_id,
-                    organizationName: data.organization_name,
-                }));
-                setStep('personalData');
-            }
+            const { data, error } = await supabase.rpc('get_organization_for_invitation_code', { p_code: code }).single<{ organization_id: string; organization_name: string }>();
+            if (error || !data || !data.organization_id) { setError('Código de convite inválido ou a organização associada não foi encontrada.'); setTimeout(() => router.push('/login/institucional'), 3000); } else { setFormData(prev => ({ ...prev, invitationCode: code, organizationId: data.organization_id, organizationName: data.organization_name, })); setStep('personalData'); }
         };
-        
         verifyCodeAndGetOrg();
     }, [searchParams, router, supabase]);
 
     const particlesLoaded = async (container?: Container): Promise<void> => {};
-    const options: ISourceOptions = useMemo(() => ({
-      background: { color: { value: "transparent" } }, fpsLimit: 60, interactivity: { events: { onClick: { enable: true, mode: "push" }, onHover: { enable: true, mode: "repulse" }, }, modes: { push: { quantity: 4 }, repulse: { distance: 100, duration: 0.4 }, }, }, particles: { color: { value: "#ffffff" }, links: { color: "#ffffff", distance: 150, enable: true, opacity: 0.4, width: 1 }, move: { direction: "none", enable: true, outModes: { default: "out" }, random: false, speed: 2, straight: false }, number: { density: { enable: true }, value: 80 }, opacity: { value: 0.5 }, shape: { type: "circle" }, size: { value: { min: 1, max: 5 } }, }, detectRetina: true,
-    }), []);
+    const options: ISourceOptions = useMemo(() => ({ background: { color: { value: "transparent" } }, fpsLimit: 60, interactivity: { events: { onClick: { enable: true, mode: "push" }, onHover: { enable: true, mode: "repulse" }, }, modes: { push: { quantity: 4 }, repulse: { distance: 100, duration: 0.4 }, }, }, particles: { color: { value: "#ffffff" }, links: { color: "#ffffff", distance: 150, enable: true, opacity: 0.4, width: 1 }, move: { direction: "none", enable: true, outModes: { default: "out" }, random: false, speed: 2, straight: false }, number: { density: { enable: true }, value: 80 }, opacity: { value: 0.5 }, shape: { type: "circle" }, size: { value: { min: 1, max: 5 } }, }, detectRetina: true, }), []);
 
-    const handleNextStep = (nextStep: string, data: Partial<FormData> = {}) => {
-        setFormData(prev => ({ ...prev, ...data }));
-        setError(null);
-        setStep(nextStep);
-    };
-
-    const handlePreviousStep = (prevStep: string) => {
-        setError(null);
-        setStep(prevStep);
-    };
+    const handleNextStep = (nextStep: string, data: Partial<FormData> = {}) => { setFormData(prev => ({ ...prev, ...data })); setError(null); setStep(nextStep); };
+    const handlePreviousStep = (prevStep: string) => { setError(null); setStep(prevStep); };
     
     const handleRegister = async (finalData: Partial<FormData>) => {
-        if (!agreedToTerms) {
-            setError("Você precisa concordar com os Termos de Uso e a Política de Privacidade para continuar.");
-            return;
-        }
-
+        if (!agreedToTerms) { setError("Você precisa concordar com os Termos de Uso e a Política de Privacidade para continuar."); return; }
         setIsLoading(true);
         setError(null);
         const fullData = { ...formData, ...finalData };
-
-        if (!fullData.email || !fullData.password) {
-            setError("E-mail e senha são obrigatórios.");
-            setIsLoading(false);
-            return;
-        }
+        if (!fullData.email || !fullData.password) { setError("E-mail e senha são obrigatórios."); setIsLoading(false); return; }
         
-        const { data: { user }, error: signUpError } = await supabase.auth.signUp({
-            email: fullData.email,
-            password: fullData.password,
-            options: { data: { full_name: fullData.fullName } }
-        });
-
-        if (signUpError) {
-            setError(signUpError.message === 'User already registered' ? 'Este e-mail já está em uso.' : 'Erro ao criar usuário: ' + signUpError.message);
-            setIsLoading(false);
-            return;
-        }
+        const { data: { user }, error: signUpError } = await supabase.auth.signUp({ email: fullData.email, password: fullData.password, options: { data: { full_name: fullData.fullName } } });
+        if (signUpError) { setError(signUpError.message === 'User already registered' ? 'Este e-mail já está em uso.' : 'Erro ao criar usuário: ' + signUpError.message); setIsLoading(false); return; }
         
         if (user) {
-            // Lógica de matrícula automática
-            if (fullData.invitationCode === 'FHB-MARILDA') {
-                const { error: insertError } = await supabase
-                    .from('class_members')
-                    .insert({ class_id: '0f91bc59-862e-40cb-8863-d2c76c07b7ce', user_id: user.id, role: 'student' });
-                if (insertError) {
-                    console.error('Erro ao matricular usuário automaticamente:', insertError);
-                }
-            }
+            // ** INÍCIO DA CORREÇÃO **
+            // 1. Chamar a função SQL segura para matricular o utilizador
+            const { error: enrollmentError } = await supabase.rpc('handle_new_user_enrollment', {
+                p_user_id: user.id,
+                p_invitation_code: fullData.invitationCode
+            });
 
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .upsert({
+            if (enrollmentError) {
+                // Mesmo que a matrícula automática falhe, continuamos o registo do perfil
+                // É importante registar o erro para depuração
+                console.error('Erro na matrícula automática via RPC:', enrollmentError);
+            }
+            // ** FIM DA CORREÇÃO **
+
+            const { error: profileError } = await supabase.from('profiles').upsert({
                     id: user.id, 
                     full_name: fullData.fullName,
                     nickname: fullData.nickname,
@@ -333,7 +225,7 @@ function InstitutionalRegister() {
                     pronoun: fullData.pronoun,
                     user_category: fullData.userCategory,
                     cpf: fullData.cpf,
-                    serie: fullData.serie, // Salva a série no perfil
+                    serie: fullData.serie,
                     school_name: fullData.organizationName,
                     organization_id: fullData.organizationId,
                     address_cep: fullData.addressCep,
@@ -347,39 +239,24 @@ function InstitutionalRegister() {
                     has_completed_onboarding: false, 
                     updated_at: new Date().toISOString(),
                 });
-
-            if (profileError) {
-                setError(`Erro ao salvar seu perfil: ${profileError.message}.`);
-            } else {
-                await supabase.from('invitation_codes').update({ used_by: user.id }).eq('code', fullData.invitationCode!);
-                setStep('success');
-            }
+            if (profileError) { setError(`Erro ao salvar seu perfil: ${profileError.message}.`); } else { await supabase.from('invitation_codes').update({ used_by: user.id }).eq('code', fullData.invitationCode!); setStep('success'); }
         }
         setIsLoading(false);
     };
 
     const renderStep = () => {
         switch (step) {
-            case 'verifying':
-                return <div className="text-center p-8">Verificando código...</div>;
-            case 'personalData':
-                return <PersonalDataStep onNext={(data) => handleNextStep('addressData', data)} onBack={() => router.push('/login/institucional')} initialData={formData} />;
-            case 'addressData':
-                return <AddressDataStep onNext={(data) => handleNextStep('authSetup', data)} onBack={() => handlePreviousStep('personalData')} initialData={formData} />;
-            case 'authSetup':
-                return <AuthStep onNext={(data) => handleNextStep('personalization', data)} onBack={() => handlePreviousStep('addressData')} initialData={formData} />;
-            case 'personalization':
-                return <PersonalizationStep onSubmit={handleRegister} onBack={() => handlePreviousStep('authSetup')} isLoading={isLoading} agreedToTerms={agreedToTerms} setAgreedToTerms={setAgreedToTerms} initialData={formData} />;
-            case 'success':
-                return <SuccessStep />;
-            default:
-                return <div className="text-center p-8">Carregando...</div>;
+            case 'verifying': return <div className="text-center p-8">Verificando código...</div>;
+            case 'personalData': return <PersonalDataStep onNext={(data) => handleNextStep('addressData', data)} onBack={() => router.push('/login/institucional')} initialData={formData} />;
+            case 'addressData': return <AddressDataStep onNext={(data) => handleNextStep('authSetup', data)} onBack={() => handlePreviousStep('personalData')} initialData={formData} />;
+            case 'authSetup': return <AuthStep onNext={(data) => handleNextStep('personalization', data)} onBack={() => handlePreviousStep('addressData')} initialData={formData} />;
+            case 'personalization': return <PersonalizationStep onSubmit={handleRegister} onBack={() => handlePreviousStep('authSetup')} isLoading={isLoading} agreedToTerms={agreedToTerms} setAgreedToTerms={setAgreedToTerms} initialData={formData} />;
+            case 'success': return <SuccessStep />;
+            default: return <div className="text-center p-8">Carregando...</div>;
         }
     };
 
-    if (!init) {
-        return <div className="min-h-screen bg-royal-blue" />;
-    }
+    if (!init) { return <div className="min-h-screen bg-royal-blue" />; }
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "linear-gradient(135deg, #2e14ed 0%, #0c0082 100%)" }}>
