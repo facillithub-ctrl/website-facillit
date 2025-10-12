@@ -192,7 +192,7 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
 
   const [consentModal, setConsentModal] = useState<{isOpen: boolean, testId?: string, campaignId?: string}>({isOpen: false});
   
-  const { addToast } = useToast(); // Hook para notificações
+  const { addToast } = useToast();
   
   const myConsentedCampaignIds = useMemo(() => new Set(consentedCampaignIds), [consentedCampaignIds]);
 
