@@ -14,12 +14,14 @@ type Test = {
     points: number;
     cover_image_url?: string | null;
     collection?: string | null;
+    is_campaign_test?: boolean; // Adicionado para destacar testes de campanha
+    hasAttempted: boolean; // Adicionado para saber se o usuário já fez o teste
 };
 
 type Props = {
     test: Test;
     onStart: (testId: string) => void;
-    onViewDetails: (testId: string) => void; 
+    onViewDetails: (testId: string) => void;
 };
 
 const difficultyStyles = {
@@ -32,13 +34,18 @@ export default function AvailableTestCard({ test, onStart, onViewDetails }: Prop
     const difficulty = difficultyStyles[test.difficulty] || difficultyStyles['Médio'];
 
     return (
-        <div className="glass-card flex flex-col p-5">
+        <div className={`glass-card flex flex-col p-5 relative overflow-hidden ${test.is_campaign_test ? 'border-2 border-yellow-400' : ''}`}>
+            {test.is_campaign_test && (
+                <div className="absolute top-0 left-0 bg-yellow-400 text-black text-xs font-bold px-3 py-1" style={{ clipPath: 'polygon(0 0, 100% 0, 85% 100%, 0 100%)' }}>
+                    <i className="fas fa-star mr-1"></i> Campanha
+                </div>
+            )}
             {test.cover_image_url && (
-                <div className="relative h-40 w-full mb-4">
+                <div className="relative h-40 w-full mb-4 mt-4">
                     <Image src={test.cover_image_url} alt={test.title} layout="fill" objectFit="cover" className="rounded-lg" />
                 </div>
             )}
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start mt-4">
                 <div>
                     <h3 className="text-lg font-bold text-dark-text dark:text-white mb-1">{test.title}</h3>
                     {test.collection && (
@@ -68,18 +75,27 @@ export default function AvailableTestCard({ test, onStart, onViewDetails }: Prop
             <div className="border-t border-white/10 pt-4 text-center">
                  <div className="flex items-center justify-between mb-4">
                     <span className="font-bold text-green-500 text-sm">+{test.points} pts</span>
-                    <button 
-                        onClick={() => onStart(test.id)}
-                        className="bg-royal-blue text-white font-bold py-2 px-6 rounded-lg hover:bg-opacity-90 transition-transform hover:scale-105"
-                    >
-                        Iniciar Simulado
-                    </button>
+                    {test.hasAttempted ? (
+                        <button 
+                            disabled 
+                            className="bg-gray-400 text-white font-bold py-2 px-6 rounded-lg cursor-not-allowed"
+                        >
+                            Já foi resolvido
+                        </button>
+                    ) : (
+                        <button 
+                            onClick={() => onStart(test.id)}
+                            className="bg-royal-blue text-white font-bold py-2 px-6 rounded-lg hover:bg-opacity-90 transition-transform hover:scale-105"
+                        >
+                            Iniciar Simulado
+                        </button>
+                    )}
                 </div>
                  <button 
                     onClick={() => onViewDetails(test.id)} 
                     className="w-full text-center text-sm text-dark-text-muted hover:underline"
                  >
-                    Ver Detalhes
+                    Conferir o gabarito
                 </button>
             </div>
         </div>

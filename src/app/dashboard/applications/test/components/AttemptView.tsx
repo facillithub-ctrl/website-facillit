@@ -16,27 +16,53 @@ type Props = {
 export default function AttemptView({ test, onFinish }: Props) {
     const [isSubmitting, startSubmitTransition] = useTransition();
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    // Armazena o objeto completo da resposta, incluindo o tempo gasto
     const [answers, setAnswers] = useState<StudentAnswerPayload[]>(
         test.questions.map(q => ({ questionId: q.id, answer: null, time_spent: 0 }))
     );
     const router = useRouter();
     const { addToast } = useToast();
     const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [isFraudAlertOpen, setFraudAlertOpen] = useState(true); // Começa aberto
 
-    // Refs para controle de tempo
     const questionStartTimeRef = useRef<number>(Date.now());
     const totalTimeStartRef = useRef<number>(Date.now());
 
-    // Efeito para atualizar o tempo da questão ao trocar de slide
+    // Mecanismos Antifraude
+    useEffect(() => {
+        const handleCopy = (e: ClipboardEvent) => {
+            e.preventDefault();
+            addToast({ title: "Ação Bloqueada", message: "Copiar conteúdo não é permitido durante o simulado.", type: "error" });
+        };
+
+        const handlePaste = (e: ClipboardEvent) => {
+            e.preventDefault();
+            addToast({ title: "Ação Bloqueada", message: "Colar conteúdo não é permitido durante o simulado.", type: "error" });
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.hidden && !isFraudAlertOpen && !isConfirmModalOpen) {
+                executeSubmit(true); // Finaliza a tentativa por sair da tela
+            }
+        };
+
+        document.addEventListener('copy', handleCopy);
+        document.addEventListener('paste', handlePaste);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('copy', handleCopy);
+            document.removeEventListener('paste', handlePaste);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [isFraudAlertOpen, isConfirmModalOpen]);
+
+
     useEffect(() => {
         const previousQuestionIndex = currentQuestionIndex > 0 ? currentQuestionIndex - 1 : 0;
         const previousQuestionId = test.questions[previousQuestionIndex].id;
         
-        // Zera o cronômetro para a nova questão
         questionStartTimeRef.current = Date.now();
 
-        // Esta função de limpeza será chamada QUANDO a questão mudar
         return () => {
             const timeSpent = Math.round((Date.now() - questionStartTimeRef.current) / 1000);
             setAnswers(currentAnswers =>
@@ -67,8 +93,7 @@ export default function AttemptView({ test, onFinish }: Props) {
         }
     };
 
-    const executeSubmit = () => {
-        // Salva o tempo da última questão antes de submeter
+    const executeSubmit = (isAutoSubmit = false) => {
         const lastQuestionId = test.questions[currentQuestionIndex].id;
         const timeSpentOnLast = Math.round((Date.now() - questionStartTimeRef.current) / 1000);
         const finalAnswers = answers.map(a => 
@@ -89,7 +114,9 @@ export default function AttemptView({ test, onFinish }: Props) {
             if (result.error) {
                 addToast({ title: "Erro ao Enviar", message: `Não foi possível registrar suas respostas: ${result.error}`, type: 'error' });
             } else {
-                if (test.is_knowledge_test && test.related_prompt_id) {
+                if(isAutoSubmit) {
+                    addToast({ title: "Simulado Finalizado", message: "Sua tentativa foi encerrada por você ter saído da tela.", type: 'error' });
+                } else if (test.is_knowledge_test && test.related_prompt_id) {
                     if (confirm("Parabéns! Você concluiu o teste.\nAcha que consegue escrever uma redação sobre esse tema?")) {
                         router.push(`/dashboard/applications/write?promptId=${test.related_prompt_id}`);
                     } else {
@@ -123,11 +150,24 @@ export default function AttemptView({ test, onFinish }: Props) {
 
     return (
         <div>
+            {isFraudAlertOpen && (
+                 <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-md w-full text-center">
+                        <i className="fas fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+                        <h2 className="text-xl font-bold mb-2">Atenção!</h2>
+                        <p className="text-text-muted mb-6">Para garantir a lisura do simulado, não é permitido sair desta tela (minimizar ou trocar de aba). Caso isso aconteça, sua tentativa será finalizada automaticamente. Ações de copiar e colar também estão desativadas.</p>
+                        <button onClick={() => setFraudAlertOpen(false)} className="bg-royal-blue text-white font-bold py-2 px-6 rounded-lg">
+                            Entendi, começar o simulado
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <ConfirmationModal
                 isOpen={isConfirmModalOpen}
                 title="Finalizar Simulado?"
                 message="Tem certeza que deseja finalizar e enviar suas respostas? Esta ação não pode ser desfeita."
-                onConfirm={executeSubmit}
+                onConfirm={() => executeSubmit()}
                 onClose={() => setConfirmModalOpen(false)}
                 confirmText="Finalizar e Enviar"
             />
@@ -138,7 +178,7 @@ export default function AttemptView({ test, onFinish }: Props) {
                         <h2 className="text-2xl font-bold dark:text-white">{test.title}</h2>
                         <p className="text-dark-text-muted">Questão {currentQuestionIndex + 1} de {test.questions.length}</p>
                     </div>
-                    <Timer isRunning={true} durationInSeconds={(test.duration_minutes || 60) * 60} onTimeUp={handleFinishAttempt} />
+                    <Timer isRunning={!isFraudAlertOpen} durationInSeconds={(test.duration_minutes || 60) * 60} onTimeUp={handleFinishAttempt} />
                 </div>
 
                 <div>
@@ -180,19 +220,20 @@ export default function AttemptView({ test, onFinish }: Props) {
                 <div className="flex justify-between items-center mt-8 pt-4 border-t border-white/10">
                     <button 
                         onClick={goToPreviousQuestion}
-                        disabled={currentQuestionIndex === 0}
+                        disabled={currentQuestionIndex === 0 || isFraudAlertOpen}
                         className="bg-white/20 hover:bg-white/30 font-bold py-2 px-4 rounded-lg disabled:opacity-50"
                     >
                         Anterior
                     </button>
                     {currentQuestionIndex === test.questions.length - 1 ? (
-                        <button onClick={handleFinishAttempt} disabled={isSubmitting} className="bg-green-500 hover:bg-green-600 font-bold py-2 px-6 rounded-lg disabled:opacity-50">
+                        <button onClick={handleFinishAttempt} disabled={isSubmitting || isFraudAlertOpen} className="bg-green-500 hover:bg-green-600 font-bold py-2 px-6 rounded-lg disabled:opacity-50">
                             {isSubmitting ? 'Enviando...' : 'Finalizar e Enviar'}
                         </button>
                     ) : (
                         <button 
                             onClick={goToNextQuestion}
-                            className="bg-royal-blue hover:bg-opacity-90 font-bold py-2 px-4 rounded-lg"
+                            disabled={isFraudAlertOpen}
+                            className="bg-royal-blue hover:bg-opacity-90 font-bold py-2 px-4 rounded-lg disabled:opacity-50"
                         >
                             Próxima
                         </button>

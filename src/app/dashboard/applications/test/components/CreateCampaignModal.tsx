@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useToast } from '@/contexts/ToastContext';
-import { createCampaign } from '../actions';
-import type { Test } from '../actions';
+import { createOrUpdateCampaign } from '../actions';
+import type { Test, Campaign } from '../actions';
 
 type Props = {
   tests: Test[];
+  existingCampaign?: Campaign | null;
   onClose: () => void;
-  onCampaignCreated: () => void;
+  onCampaignSaved: () => void;
 };
 
-export default function CreateCampaignModal({ tests, onClose, onCampaignCreated }: Props) {
-  // ✅ CORREÇÃO APLICADA AQUI: 'name' foi renomeado para 'title'
+export default function CreateCampaignModal({ tests, existingCampaign = null, onClose, onCampaignSaved }: Props) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -20,6 +20,16 @@ export default function CreateCampaignModal({ tests, onClose, onCampaignCreated 
   const [selectedTests, setSelectedTests] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
   const { addToast } = useToast();
+
+  useEffect(() => {
+    if (existingCampaign) {
+      setTitle(existingCampaign.title || '');
+      setDescription(existingCampaign.description || '');
+      setStartDate(existingCampaign.start_date ? new Date(existingCampaign.start_date).toISOString().split('T')[0] : '');
+      setEndDate(existingCampaign.end_date ? new Date(existingCampaign.end_date).toISOString().split('T')[0] : '');
+      setSelectedTests(existingCampaign.campaign_tests?.map(ct => ct.test_id) || []);
+    }
+  }, [existingCampaign]);
 
   const handleTestSelection = (testId: string) => {
     setSelectedTests(prev =>
@@ -29,14 +39,23 @@ export default function CreateCampaignModal({ tests, onClose, onCampaignCreated 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!title.trim()) {
+      addToast({ title: "Campo Obrigatório", message: "O nome da campanha não pode ficar em branco.", type: "error" });
+      return;
+    }
     if (new Date(startDate) >= new Date(endDate)) {
       addToast({ title: "Datas Inválidas", message: "A data de término deve ser posterior à data de início.", type: "error" });
       return;
     }
+    if (selectedTests.length === 0) {
+      addToast({ title: "Nenhum Simulado", message: "Você deve selecionar pelo menos um simulado para a campanha.", type: "error" });
+      return;
+    }
 
     startTransition(async () => {
-      const result = await createCampaign({
-        title, // <-- DE 'name' PARA 'title'
+      const result = await createOrUpdateCampaign({
+        id: existingCampaign?.id,
+        title,
         description,
         start_date: startDate,
         end_date: endDate,
@@ -44,10 +63,10 @@ export default function CreateCampaignModal({ tests, onClose, onCampaignCreated 
       });
 
       if (result.error) {
-        addToast({ title: "Erro ao Criar", message: result.error, type: "error" });
+        addToast({ title: "Erro ao Salvar", message: result.error, type: "error" });
       } else {
-        addToast({ title: "Sucesso!", message: "Campanha criada com sucesso.", type: "success" });
-        onCampaignCreated();
+        addToast({ title: "Sucesso!", message: `Campanha "${title}" foi salva com sucesso.`, type: "success" });
+        onCampaignSaved();
         onClose();
       }
     });
@@ -58,12 +77,11 @@ export default function CreateCampaignModal({ tests, onClose, onCampaignCreated 
       <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <div className="p-4 border-b dark:border-gray-700">
-            <h3 className="text-lg font-bold">Nova Campanha de Simulados</h3>
+            <h3 className="text-lg font-bold">{existingCampaign ? 'Editar Campanha' : 'Nova Campanha de Simulados'}</h3>
           </div>
           <div className="p-6 space-y-4 overflow-y-auto">
             <div>
               <label className="block text-sm font-medium mb-1">Nome da Campanha</label>
-              {/* ✅ CORREÇÃO APLICADA AQUI: O estado agora é 'title' */}
               <input type="text" value={title} onChange={e => setTitle(e.target.value)} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" />
             </div>
             <div>
@@ -84,7 +102,7 @@ export default function CreateCampaignModal({ tests, onClose, onCampaignCreated 
               <h4 className="font-semibold mb-2">Selecione os Simulados</h4>
               <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-2 dark:border-gray-600">
                 {tests.map(test => (
-                  <label key={test.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                  <label key={test.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={selectedTests.includes(test.id)}
@@ -100,7 +118,7 @@ export default function CreateCampaignModal({ tests, onClose, onCampaignCreated 
           <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-2 mt-auto">
             <button type="button" onClick={onClose} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancelar</button>
             <button type="submit" disabled={isPending} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg disabled:bg-gray-400">
-              {isPending ? 'Criando...' : 'Criar Campanha'}
+              {isPending ? 'Salvando...' : 'Salvar Campanha'}
             </button>
           </div>
         </form>

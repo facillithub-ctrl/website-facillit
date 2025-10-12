@@ -7,7 +7,8 @@ import {
     getStudentTestDashboardData, 
     getAvailableTestsForStudent, 
     getKnowledgeTestsForDashboard,
-    getCampaignsForStudent // ✅ IMPORTAÇÃO ADICIONADA
+    getCampaignsForStudent,
+    getConsentedCampaignsForStudent // Importa a nova action
 } from './actions';
 import type { UserProfile } from '../../types';
 
@@ -31,12 +32,12 @@ export default async function TestPage() {
 
   // ROTA PARA ALUNO
   if (['aluno', 'vestibulando'].includes(profile.user_category || '')) {
-    // ✅ BUSCA DAS CAMPANHAS É ADICIONADA AQUI
-    const [dashboardDataRes, availableTestsRes, knowledgeTestsRes, campaignsRes] = await Promise.all([
+    const [dashboardDataRes, availableTestsRes, knowledgeTestsRes, campaignsRes, consentedCampaignsRes] = await Promise.all([
       getStudentTestDashboardData(),
       getAvailableTestsForStudent(),
       getKnowledgeTestsForDashboard(),
-      getCampaignsForStudent() // <-- Nova chamada
+      getCampaignsForStudent(),
+      getConsentedCampaignsForStudent() // Busca os consentimentos
     ]);
     
     return (
@@ -45,7 +46,8 @@ export default async function TestPage() {
         globalTests={availableTestsRes.data?.globalTests || []}
         classTests={availableTestsRes.data?.classTests || []}
         knowledgeTests={knowledgeTestsRes.data || []}
-        campaigns={campaignsRes.data || []} // ✅ DADOS DA CAMPANHA SÃO PASSADOS
+        campaigns={campaignsRes.data || []}
+        consentedCampaignIds={consentedCampaignsRes.data || []} // Passa os IDs para o componente
       />
     );
   }

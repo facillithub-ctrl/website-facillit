@@ -13,8 +13,10 @@ import {
     type TestWithQuestions, 
     getQuickTest, 
     getStudentResultsHistory,
-    type StudentCampaign // ✅ IMPORTAÇÃO DO TIPO
+    type StudentCampaign,
+    submitCampaignConsent
 } from '../actions';
+import { useToast } from "@/contexts/ToastContext";
 
 // --- TIPOS ---
 type TestCardInfo = {
@@ -31,6 +33,7 @@ type TestCardInfo = {
   cover_image_url?: string | null;
   collection?: string | null;
   class_id?: string | null;
+  is_campaign_test?: boolean;
 };
 
 type KnowledgeTest = {
@@ -41,7 +44,6 @@ type KnowledgeTest = {
 };
 
 type PerformanceData = { materia: string; nota: number; simulados: number };
-type AxisPerformanceData = { axis: string; acerto: number };
 
 type RecentAttempt = {
   tests: { title: string; subject: string | null };
@@ -54,10 +56,9 @@ type DashboardData = {
     simuladosFeitos: number;
     mediaGeral: number;
     taxaAcerto: number;
-    tempoMedio: number; // em segundos
+    tempoMedio: number;
   };
   performanceBySubject: PerformanceData[];
-  performanceByAxis: AxisPerformanceData[];
   recentAttempts: RecentAttempt[];
 };
 
@@ -77,13 +78,34 @@ type Props = {
   globalTests: TestCardInfo[];
   classTests: TestCardInfo[];
   knowledgeTests: KnowledgeTest[];
-  campaigns: StudentCampaign[]; // ✅ NOVA PROP: 'campaigns'
+  campaigns: StudentCampaign[];
+  consentedCampaignIds: string[];
 };
 
 // --- SUB-COMPONENTES ---
 
-// NOVO COMPONENTE: Card de Campanha
-const CampaignCard = ({ campaign, onStartTest }: { campaign: StudentCampaign, onStartTest: (testId: string) => void }) => {
+const CampaignConsentModal = ({ onConfirm, onCancel }: { onConfirm: () => void, onCancel: () => void }) => (
+    <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-lg w-full">
+            <h2 className="text-2xl font-bold mb-4">Termos da Campanha</h2>
+            <div className="text-sm max-h-60 overflow-y-auto pr-2 mb-6">
+                <p className="mb-2">Ao participar desta campanha, você concorda com as seguintes regras:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                    <li><strong>Tentativa Única:</strong> Cada simulado só pode ser realizado uma vez.</li>
+                    <li><strong>Antifraude:</strong> Não é permitido copiar/colar conteúdo ou sair da tela do teste. Sair da tela resultará no encerramento imediato da sua tentativa.</li>
+                    <li><strong>Uso de Dados:</strong> Seus resultados serão usados de forma anônima para compor o ranking da campanha.</li>
+                </ul>
+                <p className="mt-4">Para mais detalhes, consulte os <a href="/recursos/termos-campanha" target="_blank" className="text-royal-blue underline">Termos e Condições completos das Campanhas</a>.</p>
+            </div>
+            <div className="flex justify-end gap-4">
+                <button onClick={onCancel} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancelar</button>
+                <button onClick={onConfirm} className="bg-royal-blue text-white font-bold py-2 px-4 rounded-lg">Aceito e quero começar</button>
+            </div>
+        </div>
+    </div>
+);
+
+const CampaignCard = ({ campaign, onStartTest }: { campaign: StudentCampaign, onStartTest: (testId: string, campaignId: string) => void }) => {
     const endDate = new Date(campaign.end_date);
     const now = new Date();
     const diffTime = endDate.getTime() - now.getTime();
@@ -105,7 +127,7 @@ const CampaignCard = ({ campaign, onStartTest }: { campaign: StudentCampaign, on
                             <p className="font-semibold text-sm dark:text-white">{test.title}</p>
                             <p className="text-xs text-dark-text-muted">{test.question_count} questões</p>
                         </div>
-                        <button onClick={() => onStartTest(test.id)} className="bg-royal-blue text-white text-xs font-bold py-1 px-3 rounded-md">
+                        <button onClick={() => onStartTest(test.id, campaign.campaign_id)} className="bg-royal-blue text-white text-xs font-bold py-1 px-3 rounded-md">
                             Iniciar
                         </button>
                     </div>
@@ -114,7 +136,6 @@ const CampaignCard = ({ campaign, onStartTest }: { campaign: StudentCampaign, on
         </div>
     );
 };
-
 
 const StatCard = ({ title, value, icon, unit }: { title: string; value: string | number; icon: string, unit?: string }) => (
     <div className="glass-card p-4 flex items-center justify-between h-full">
@@ -154,69 +175,6 @@ const KnowledgeTestWidget = ({ test, onStart }: { test: KnowledgeTest; onStart: 
     </div>
 );
 
-const CollectionGroup = ({ collection, tests, onStart, onViewDetails }: { collection: string, tests: TestCardInfo[], onStart: (id: string) => void, onViewDetails: (id: string) => void }) => (
-    <div>
-        <h3 className="text-xl font-bold text-dark-text dark:text-white mb-4">{collection}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tests.map(test => <AvailableTestCard key={test.id} test={test} onStart={onStart} onViewDetails={onViewDetails} />)}
-        </div>
-    </div>
-);
-
-const TestBrowser = ({ globalTests, classTests, campaigns, onStartTest, onViewDetails }: { globalTests: TestCardInfo[], classTests: TestCardInfo[], campaigns: StudentCampaign[], onStartTest: (testId: string) => void, onViewDetails: (testId: string) => void }) => {
-    
-    const groupTestsByCollection = (tests: TestCardInfo[]) => {
-        return tests.reduce((acc, test) => {
-            const key = test.collection || 'Outros Simulados';
-            if (!acc[key]) acc[key] = [];
-            acc[key].push(test);
-            return acc;
-        }, {} as Record<string, TestCardInfo[]>);
-    };
-
-    const globalCollections = groupTestsByCollection(globalTests);
-    const classCollections = groupTestsByCollection(classTests);
-
-    return (
-        <div className="space-y-12">
-            {/* ✅ SEÇÃO DE CAMPANHAS ADICIONADA */}
-            {campaigns.length > 0 && (
-                 <div>
-                    <h2 className="text-2xl font-bold mb-6 pb-2 border-b-2 border-yellow-400 text-dark-text dark:text-white">Campanhas Ativas</h2>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {campaigns.map(campaign => (
-                            <CampaignCard key={campaign.id} campaign={campaign} onStartTest={onStartTest} />
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {Object.keys(classCollections).length > 0 && (
-                <div>
-                    <h2 className="text-2xl font-bold mb-6 pb-2 border-b-2 border-royal-blue text-dark-text dark:text-white">Simulados da Turma</h2>
-                    <div className="space-y-8">
-                        {Object.entries(classCollections).map(([collection, tests]) => (
-                            <CollectionGroup key={collection} collection={collection} tests={tests} onStart={onStartTest} onViewDetails={onViewDetails} />
-                        ))}
-                    </div>
-                </div>
-            )}
-            
-            {Object.keys(globalCollections).length > 0 && (
-                 <div>
-                    <h2 className="text-2xl font-bold mb-6 pb-2 border-b-2 border-gray-300 dark:border-gray-600 text-dark-text dark:text-white">Simulados Globais</h2>
-                     <div className="space-y-8">
-                        {Object.entries(globalCollections).map(([collection, tests]) => (
-                            <CollectionGroup key={collection} collection={collection} tests={tests} onStart={onStartTest} onViewDetails={onViewDetails} />
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-
 const subjectColors: { [key: string]: string } = { Matemática: "#8b5cf6", Física: "#ec4899", Química: "#3b82f6", Biologia: "#22c55e", Português: "#f97316", Default: "#6b7280" };
 type CustomTooltipProps = { active?: boolean; payload?: { payload: PerformanceData }[]; label?: string; };
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => { if (active && payload && payload.length) { const data = payload[0].payload; const notaStr = typeof data.nota === "number" ? data.nota.toFixed(1) : "0"; return ( <div className="p-2 rounded-lg" style={{ backgroundColor: "#1A1A1D", border: "1px solid #2c2c31" }}><p className="text-sm font-bold" style={{ color: "#f8f9fa" }}>{`${label}`}</p><p className="text-xs" style={{ color: "#a0a0a0" }}>{`Acerto Médio: ${notaStr}% • ${data.simulados ?? 0} simulados`}</p></div> ); } return null; };
@@ -225,23 +183,81 @@ const RecentTests = ({ data }: { data: RecentAttempt[] }) => { const getIconForS
 
 
 // --- COMPONENTE PRINCIPAL ---
-export default function StudentTestDashboard({ dashboardData, globalTests, classTests, knowledgeTests, campaigns }: Props) {
+export default function StudentTestDashboard({ dashboardData, globalTests, classTests, knowledgeTests, campaigns, consentedCampaignIds }: Props) {
   const [view, setView] = useState<"dashboard" | "browse" | "attempt" | "detail" | "results">("dashboard");
   const [selectedTest, setSelectedTest] = useState<TestWithQuestions | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [resultsHistory, setResultsHistory] = useState<AttemptHistory[]>([]);
+  const [filter, setFilter] = useState<'all' | 'class' | 'global' | 'campaign'>('all');
+
+  const [consentModal, setConsentModal] = useState<{isOpen: boolean, testId?: string, campaignId?: string}>({isOpen: false});
+  
+  const { addToast } = useToast(); // Hook para notificações
+  
+  const myConsentedCampaignIds = useMemo(() => new Set(consentedCampaignIds), [consentedCampaignIds]);
 
   const handleStartTest = (testData: TestWithQuestions) => { setSelectedTest(testData); setView("attempt"); };
   const handleFinishAttempt = () => { setView("dashboard"); window.location.reload(); };
-  const handleViewDetails = async (testId: string) => { setIsLoading(true); const { data } = await getTestWithQuestions(testId); if (data) { setSelectedTest(data); setView("detail"); } else { alert("Não foi possível carregar os detalhes do simulado."); } setIsLoading(false); };
-  const handleInitiateTestFromBrowse = async (testId: string) => { setIsLoading(true); const { data } = await getTestWithQuestions(testId); if (data) { handleStartTest(data); } else { alert("Não foi possível iniciar o simulado."); } setIsLoading(false); }
-  const handleStartQuickTest = async () => { setIsLoading(true); const { data, error } = await getQuickTest(); if (error) { alert(error); } else if (data) { handleStartTest(data); } setIsLoading(false); };
+  
+  const handleViewDetails = async (testId: string) => { 
+    setIsLoading(true); 
+    const { data } = await getTestWithQuestions(testId); 
+    if (data) { 
+        if (!data.hasAttempted) {
+            addToast({
+                title: "Gabarito Indisponível",
+                message: "Você precisa resolver o simulado antes de conferir o gabarito.",
+                type: "error"
+            });
+            setIsLoading(false);
+            return;
+        }
+        setSelectedTest(data); 
+        setView("detail"); 
+    } else { 
+        addToast({ title: "Erro", message: "Não foi possível carregar os detalhes do simulado.", type: "error" }); 
+    } 
+    setIsLoading(false); 
+  };
+  
+  const handleInitiateTest = async (testId: string, campaignId?: string) => {
+    if (campaignId && !myConsentedCampaignIds.has(campaignId)) {
+        setConsentModal({ isOpen: true, testId, campaignId });
+        return;
+    }
+    
+    setIsLoading(true);
+    const { data } = await getTestWithQuestions(testId);
+    if (data) {
+        if (data.hasAttempted) {
+            addToast({ title: "Simulado já Realizado", message: "Você já concluiu este simulado.", type: "error" });
+            setIsLoading(false);
+            return;
+        }
+        handleStartTest(data);
+    } else {
+        addToast({ title: "Erro", message: "Não foi possível iniciar o simulado.", type: "error" });
+    }
+    setIsLoading(false);
+  };
+
+  const handleConfirmConsent = async () => {
+      const { testId, campaignId } = consentModal;
+      if (!testId || !campaignId) return;
+
+      setConsentModal({ isOpen: false });
+      await submitCampaignConsent(campaignId);
+      myConsentedCampaignIds.add(campaignId);
+      handleInitiateTest(testId, campaignId);
+  };
+
+  const handleStartQuickTest = async () => { setIsLoading(true); const { data, error } = await getQuickTest(); if (error) { addToast({title: "Erro", message: error, type: "error"}); } else if (data) { handleStartTest(data); } setIsLoading(false); };
   
   const handleViewResults = async () => {
     setIsLoading(true);
     const { data, error } = await getStudentResultsHistory();
     if (error) {
-        alert(error);
+        addToast({title: "Erro", message: error, type: "error"});
     } else if (data) {
         const mappedData = data.map(attempt => ({
             ...attempt,
@@ -254,6 +270,75 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
   };
   
   const handleBackToDashboard = () => { setView("dashboard"); setSelectedTest(null); };
+
+  const allCampaignTests = useMemo(() => {
+    if (!campaigns || !Array.isArray(campaigns)) {
+      return [];
+    }
+    return campaigns.flatMap(c => c.tests.map(t => {
+        const baseTest = [...globalTests, ...classTests].find(gt => gt.id === t.id);
+        if (!baseTest) return null;
+        return { ...baseTest, is_campaign_test: true, campaignId: c.campaign_id };
+    }))
+    .filter(Boolean) as (TestCardInfo & { campaignId: string })[]
+  }, [campaigns, globalTests, classTests]);
+
+  const filteredTests = useMemo(() => {
+        const classTestsWithType = classTests.map(t => ({...t, type: 'class'}));
+        const globalTestsWithType = globalTests.map(t => ({...t, type: 'global'}));
+        const campaignTestsWithType = allCampaignTests.map(t => ({...t, type: 'campaign'}));
+
+        let testsToShow: (TestCardInfo & { type: string, campaignId?: string })[] = [];
+
+        if (filter === 'all' || filter === 'class') testsToShow.push(...classTestsWithType);
+        if (filter === 'all' || filter === 'global') testsToShow.push(...globalTestsWithType);
+        if (filter === 'all' || filter === 'campaign') testsToShow.push(...campaignTestsWithType);
+
+        const uniqueTests = new Map<string, TestCardInfo & { type: string, campaignId?: string }>();
+        testsToShow.forEach(test => {
+            const existing = uniqueTests.get(test.id);
+            if (!existing || test.type === 'campaign') {
+                uniqueTests.set(test.id, test);
+            }
+        });
+
+        return Array.from(uniqueTests.values());
+
+  }, [classTests, globalTests, allCampaignTests, filter]);
+
+  const TestBrowser = () => {
+    return (
+        <div>
+             <div className="mb-8 flex items-center justify-between">
+                 <h2 className="text-2xl font-bold text-dark-text dark:text-white">Explorar Simulados</h2>
+                 <div className="flex items-center gap-2 rounded-lg bg-gray-200 dark:bg-gray-700 p-1">
+                     <button onClick={() => setFilter('all')} className={`px-3 py-1 text-sm font-semibold rounded-md ${filter === 'all' ? 'bg-white dark:bg-gray-800 shadow' : ''}`}>Todos</button>
+                     <button onClick={() => setFilter('campaign')} className={`px-3 py-1 text-sm font-semibold rounded-md ${filter === 'campaign' ? 'bg-white dark:bg-gray-800 shadow' : ''}`}>Campanhas</button>
+                     <button onClick={() => setFilter('class')} className={`px-3 py-1 text-sm font-semibold rounded-md ${filter === 'class' ? 'bg-white dark:bg-gray-800 shadow' : ''}`}>Da Turma</button>
+                     <button onClick={() => setFilter('global')} className={`px-3 py-1 text-sm font-semibold rounded-md ${filter === 'global' ? 'bg-white dark:bg-gray-800 shadow' : ''}`}>Globais</button>
+                 </div>
+            </div>
+
+            {filteredTests.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredTests.map(test => (
+                        <AvailableTestCard 
+                            key={test.id} 
+                            test={test} 
+                            onStart={(testId) => handleInitiateTest(testId, (test as any).campaignId)} 
+                            onViewDetails={handleViewDetails} 
+                        />
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center p-8 glass-card">
+                    <p className="text-lg">Nenhum simulado encontrado para este filtro.</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
 
   const MainDashboard = () => (
     <>
@@ -279,13 +364,12 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
             <ActionCard title="Meus Resultados" description="Análise detalhada" icon="fa-chart-pie" actionText="Ver relatórios" onClick={handleViewResults} />
           </div>
           
-          {/* ✅ RENDERIZAÇÃO DAS CAMPANHAS NO DASHBOARD PRINCIPAL */}
-          {campaigns.length > 0 && (
+          {campaigns && campaigns.length > 0 && (
                  <div>
                     <h2 className="text-2xl font-bold mb-6 text-dark-text dark:text-white">Campanhas Ativas</h2>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {campaigns.map(campaign => (
-                            <CampaignCard key={campaign.id} campaign={campaign} onStartTest={handleInitiateTestFromBrowse} />
+                            <CampaignCard key={campaign.campaign_id} campaign={campaign} onStartTest={handleInitiateTest} />
                         ))}
                     </div>
                 </div>
@@ -303,7 +387,7 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
           {knowledgeTests && knowledgeTests.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {knowledgeTests.slice(0, 3).map(kt => (
-                    <KnowledgeTestWidget key={kt.id} test={kt} onStart={handleInitiateTestFromBrowse} />
+                    <KnowledgeTestWidget key={kt.id} test={kt} onStart={handleInitiateTest} />
                 ))}
             </div>
           )}
@@ -315,7 +399,7 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
   const renderContent = () => {
     if (isLoading) { return <div className="text-center p-8">Carregando...</div>; }
     switch (view) {
-      case "browse": return ( <><button onClick={handleBackToDashboard} className="text-sm font-bold text-royal-blue mb-6"><i className="fas fa-arrow-left mr-2"></i> Voltar</button><TestBrowser globalTests={globalTests} classTests={classTests} campaigns={campaigns} onStartTest={handleInitiateTestFromBrowse} onViewDetails={handleViewDetails} /></> );
+      case "browse": return ( <><button onClick={handleBackToDashboard} className="text-sm font-bold text-royal-blue mb-6"><i className="fas fa-arrow-left mr-2"></i> Voltar</button><TestBrowser /></> );
       case "attempt": if (!selectedTest) { setView("browse"); return null; } return <AttemptView test={selectedTest} onFinish={handleFinishAttempt} />;
       case "detail": if (!selectedTest) { setView("browse"); return null; } return <TestDetailView test={selectedTest} onBack={() => setView("browse")} onStartTest={handleStartTest} />;
       case "results": return <ResultsView attempts={resultsHistory} onBack={handleBackToDashboard} />;
@@ -323,5 +407,13 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
     }
   };
 
-  return <div>{renderContent()}</div>;
+  return <div>
+        {consentModal.isOpen && (
+            <CampaignConsentModal 
+                onConfirm={handleConfirmConsent} 
+                onCancel={() => setConsentModal({isOpen: false})}
+            />
+        )}
+        {renderContent()}
+    </div>;
 }

@@ -34,6 +34,7 @@ export type TestWithQuestions = {
   cover_image_url?: string | null;
   collection?: string | null;
   class_id?: string | null;
+  hasAttempted?: boolean;
 };
 
 export type Test = Omit<TestWithQuestions, 'questions'>;
@@ -60,9 +61,9 @@ export type Campaign = {
     campaign_tests: { test_id: string }[];
 };
 
-// NOVO TIPO: Define a estrutura de uma campanha para o aluno
+// TIPO CORRIGIDO AQUI
 export type StudentCampaign = {
-    id: string;
+    campaign_id: string; // <-- A MUDANÇA ESTÁ AQUI
     title: string;
     description: string | null;
     end_date: string;
@@ -75,9 +76,23 @@ export type StudentCampaign = {
 };
 
 
-// --- FUNÇÕES DO PROFESSOR ---
+// --- FUNÇÕES DE PROFESSOR E DIRETOR ---
+async function isTeacherOrHigher() {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('user_category')
+        .eq('id', user.id)
+        .single();
+    
+    return ['professor', 'diretor', 'administrator'].includes(profile?.user_category || '');
+}
 
 export async function createOrUpdateTest(testData: {
+  id?: string;
   title: string;
   description: string | null;
   questions: Omit<Question, 'id' | 'test_id'>[],
@@ -88,37 +103,36 @@ export async function createOrUpdateTest(testData: {
   collection: string | null,
   class_id: string | null;
 }) {
+  if (!(await isTeacherOrHigher())) return { error: 'Acesso não autorizado.' };
+  
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Usuário não autenticado.' };
 
-  const totalPoints = testData.questions.reduce((sum, q) => sum + (q.points || 0), 0);
-  const isPublicTest = testData.class_id ? false : testData.is_public;
-
   const { data: testResult, error: testError } = await supabase
     .from('tests')
-    .insert({
+    .upsert({
+      id: testData.id,
       title: testData.title,
       description: testData.description,
       created_by: user.id,
-      is_public: isPublicTest,
-      subject: 'Geral',
-      difficulty: 'Médio',
-      duration_minutes: 60,
-      points: totalPoints,
+      is_public: testData.class_id ? false : testData.is_public,
       is_knowledge_test: testData.is_knowledge_test,
       related_prompt_id: testData.related_prompt_id,
       cover_image_url: testData.cover_image_url,
       collection: testData.collection,
       class_id: testData.class_id,
+      points: testData.questions.reduce((sum, q) => sum + (q.points || 0), 0)
     })
     .select()
     .single();
 
   if (testError) {
-    console.error("Erro ao criar avaliação:", testError);
-    return { error: `Erro ao criar avaliação: ${testError.message}` };
+    console.error("Erro no upsert da avaliação:", testError);
+    return { error: `Erro ao salvar avaliação: ${testError.message}` };
   }
+
+  await supabase.from('questions').delete().eq('test_id', testResult.id);
 
   if (testData.questions.length > 0) {
     const questionsToInsert = testData.questions.map(q => ({
@@ -131,7 +145,6 @@ export async function createOrUpdateTest(testData: {
     const { error: questionsError } = await supabase.from('questions').insert(questionsToInsert);
     if (questionsError) {
       console.error("Erro ao salvar questões:", questionsError);
-      await supabase.from('tests').delete().eq('id', testResult.id);
       return { error: `Erro ao salvar questões: ${questionsError.message}` };
     }
   }
@@ -160,7 +173,10 @@ export async function getTestsForTeacher() {
 
 export async function getTestWithQuestions(testId: string): Promise<{ data: TestWithQuestions | null; error: string | null; }> {
     const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'Usuário não autenticado' };
+
+    const { data: testData, error } = await supabase
         .from('tests')
         .select('*, questions(*)')
         .eq('id', testId)
@@ -170,34 +186,39 @@ export async function getTestWithQuestions(testId: string): Promise<{ data: Test
         console.error(`Erro ao buscar detalhes do teste ${testId}:`, error);
         return { data: null, error: `Erro ao buscar detalhes do teste: ${error.message}` };
     }
+
+    const { data: attemptData } = await supabase
+        .from('test_attempts')
+        .select('id')
+        .eq('student_id', user.id)
+        .eq('test_id', testId)
+        .limit(1)
+        .single();
     
-    return { data, error: null };
+    return { data: { ...testData, hasAttempted: !!attemptData }, error: null };
 }
 
-export async function getClassAnalytics(classId: string) {
-    const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.rpc('get_class_analytics', { p_class_id: classId });
 
-    if (error) {
-        console.error(`Error fetching analytics for class ${classId}:`, error);
-        return { data: null, error: error.message };
-    }
-
-    return { data, error: null };
-}
-
-export async function createCampaign(campaignData: { title: string, description: string | null, start_date: string, end_date: string, test_ids: string[] }) {
+export async function createOrUpdateCampaign(campaignData: {
+    id?: string;
+    title: string;
+    description: string | null;
+    start_date: string;
+    end_date: string;
+    test_ids: string[];
+}) {
+    if (!(await isTeacherOrHigher())) return { error: 'Acesso não autorizado.' };
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Usuário não autenticado.' };
 
     const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-
     const { test_ids, ...campaignDetails } = campaignData;
 
-    const { data: newCampaign, error: campaignError } = await supabase
+    const { data: upsertedCampaign, error: campaignError } = await supabase
         .from('campaigns')
-        .insert({
+        .upsert({
+            id: campaignDetails.id,
             title: campaignDetails.title,
             description: campaignDetails.description,
             start_date: campaignDetails.start_date,
@@ -207,26 +228,41 @@ export async function createCampaign(campaignData: { title: string, description:
         })
         .select()
         .single();
-    
+
     if (campaignError) {
-        return { error: `Erro ao criar campanha: ${campaignError.message}` };
+        return { error: `Erro ao salvar campanha: ${campaignError.message}` };
     }
+
+    await supabase.from('campaign_tests').delete().eq('campaign_id', upsertedCampaign.id);
 
     if (test_ids && test_ids.length > 0) {
         const testsToLink = test_ids.map(test_id => ({
-            campaign_id: newCampaign.id,
+            campaign_id: upsertedCampaign.id,
             test_id: test_id,
         }));
         const { error: linkError } = await supabase.from('campaign_tests').insert(testsToLink);
         if (linkError) {
-            await supabase.from('campaigns').delete().eq('id', newCampaign.id);
             return { error: `Erro ao associar testes à campanha: ${linkError.message}` };
         }
     }
 
     revalidatePath('/dashboard/applications/test');
-    return { data: newCampaign, error: null };
+    return { data: upsertedCampaign, error: null };
 }
+
+export async function deleteCampaign(campaignId: string) {
+    if (!(await isTeacherOrHigher())) return { error: 'Acesso não autorizado.' };
+    const supabase = await createSupabaseServerClient();
+
+    const { error } = await supabase.from('campaigns').delete().eq('id', campaignId);
+
+    if (error) {
+        return { error: `Erro ao deletar campanha: ${error.message}` };
+    }
+    revalidatePath('/dashboard/applications/test');
+    return { data: { success: true } };
+}
+
 
 export async function getCampaignsForTeacher() {
     const supabase = await createSupabaseServerClient();
@@ -248,7 +284,40 @@ export async function getCampaignsForTeacher() {
 
 // --- FUNÇÕES DO ALUNO ---
 
-// ✅ NOVA FUNÇÃO ADICIONADA: Busca as campanhas ativas para o aluno.
+export async function submitCampaignConsent(campaignId: string) {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Usuário não autenticado.' };
+
+    const { error } = await supabase
+        .from('campaign_consent')
+        .insert({ student_id: user.id, campaign_id: campaignId });
+
+    if (error) {
+        console.error('Erro ao registrar consentimento:', error);
+        return { error: 'Não foi possível registrar seu consentimento.' };
+    }
+    
+    return { data: { success: true } };
+}
+
+export async function getConsentedCampaignsForStudent() {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'Usuário não autenticado' };
+
+    const { data, error } = await supabase
+        .from('campaign_consent')
+        .select('campaign_id')
+        .eq('student_id', user.id);
+
+    if (error) {
+        return { data: null, error: error.message };
+    }
+
+    return { data: data.map(c => c.campaign_id), error: null };
+}
+
 export async function getCampaignsForStudent() {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -289,10 +358,11 @@ export async function getAvailableTestsForStudent() {
       cover_image_url: test.cover_image_url,
       collection: test.collection,
       class_id: test.class_id,
+      is_campaign_test: test.is_campaign_test,
     }));
     
-    const globalTests = formattedData.filter((t: any) => !t.class_id);
-    const classTests = formattedData.filter((t: any) => t.class_id);
+    const globalTests = formattedData.filter((t: any) => !t.class_id && !t.is_campaign_test);
+    const classTests = formattedData.filter((t: any) => t.class_id && !t.is_campaign_test);
 
     return { data: { globalTests, classTests }, error: null };
 }
