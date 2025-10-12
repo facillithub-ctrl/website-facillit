@@ -558,7 +558,7 @@ export async function getSurveyResults(testId: string) {
     // ETAPA 1: Usar a nova função RPC para buscar dados do teste com segurança
     const { data: test, error: testError } = await supabase
         .rpc('get_test_owner_and_org', { p_test_id: testId })
-        .single();
+        .single<{ organization_id: string | null }>();
 
     if (testError || !test) {
         console.error("Erro ao buscar dados do teste via RPC:", testError);
