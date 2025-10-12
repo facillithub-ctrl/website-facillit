@@ -1,7 +1,7 @@
 import createSupabaseServerClient from '@/utils/supabase/server';
 import Link from 'next/link';
 import { getLatestEssayForDashboard } from '@/app/dashboard/applications/write/actions';
-import { getStudentTestDashboardData } from '@/app/dashboard/applications/test/actions';
+import { getStudentTestDashboardData, getCampaignsForStudent } from '@/app/dashboard/applications/test/actions';
 import CountdownWidget from '@/components/dashboard/CountdownWidget';
 
 const getWelcomeMessage = (pronoun: string | null | undefined): string => {
@@ -48,14 +48,16 @@ export default async function DashboardPage() {
 
     if (!user) { return null; }
 
-    const [profileResult, essayRes, testRes] = await Promise.all([
+    const [profileResult, essayRes, testRes, campaignsRes] = await Promise.all([
         supabase.from('profiles').select('full_name, pronoun, target_exam').eq('id', user.id).single(),
         getLatestEssayForDashboard(),
-        getStudentTestDashboardData()
+        getStudentTestDashboardData(),
+        getCampaignsForStudent()
     ]);
 
     const profile = profileResult.data;
     const welcomeMessage = getWelcomeMessage(profile?.pronoun);
+    const campaigns = campaignsRes.data;
 
     const latestEssay = essayRes.data ? {
       // @ts-ignore
@@ -86,7 +88,27 @@ export default async function DashboardPage() {
                 <div className="lg:col-span-3 bg-white dark:bg-dark-card rounded-lg shadow-md p-6">
                     <CountdownWidget targetExam={examDate?.name} examDate={examDate?.exam_date} />
                 </div>
-                
+
+                {campaigns && campaigns.length > 0 && (
+                  <div className="lg:col-span-3 bg-royal-blue text-white rounded-lg shadow-md p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <i className="fas fa-trophy text-yellow-300 text-3xl"></i>
+                      <div>
+                        <h2 className="text-lg font-bold">Campanha Ativa: {campaigns[0].title}</h2>
+                        <p className="text-sm opacity-90">
+                          Prepare-se para o SAEB 2025 e concorra a prêmios! A campanha termina em {new Date(campaigns[0].end_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}.
+                        </p>
+                        <Link href="/recursos/termos-campanha" target="_blank" className="text-xs text-white underline font-semibold hover:opacity-80 mt-2 inline-block">
+                            Confira as regras e termos da competição
+                        </Link>
+                      </div>
+                    </div>
+                    <Link href="/dashboard/applications/test" className="mt-4 md:mt-0 w-full md:w-auto bg-white text-royal-blue text-center font-bold py-2 px-6 rounded-lg hover:bg-gray-200 transition-colors flex-shrink-0">
+                      Participar Agora
+                    </Link>
+                  </div>
+                )}
+
                 <DashboardCard
                     title="Facillit Write"
                     latestItem={latestEssay}

@@ -8,6 +8,7 @@ import AvailableTestCard from "./AvailableTestCard";
 import AttemptView from "./AttemptView";
 import TestDetailView from "./TestDetailView";
 import ResultsView from "./ResultsView";
+import Link from "next/link";
 import { 
     getTestWithQuestions, 
     type TestWithQuestions, 
@@ -120,6 +121,11 @@ const CampaignCard = ({ campaign, onStartTest }: { campaign: StudentCampaign, on
                 </span>
             </div>
             <p className="text-sm text-dark-text-muted mb-4">{campaign.description}</p>
+            <div className="mb-4">
+                 <Link href="/recursos/termos-campanha" target="_blank" className="text-xs text-royal-blue underline font-semibold hover:opacity-80">
+                    Leia aqui as politicas da campanha
+                </Link>
+            </div>
             <div className="space-y-2">
                 {campaign.tests?.map(test => (
                     <div key={test.id} className="flex justify-between items-center p-2 rounded-md bg-white/10">
@@ -191,18 +197,18 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
   const [filter, setFilter] = useState<'all' | 'class' | 'global' | 'campaign'>('all');
 
   const [consentModal, setConsentModal] = useState<{isOpen: boolean, testId?: string, campaignId?: string}>({isOpen: false});
-  
+
   const { addToast } = useToast();
-  
+
   const myConsentedCampaignIds = useMemo(() => new Set(consentedCampaignIds), [consentedCampaignIds]);
 
   const handleStartTest = (testData: TestWithQuestions) => { setSelectedTest(testData); setView("attempt"); };
   const handleFinishAttempt = () => { setView("dashboard"); window.location.reload(); };
-  
-  const handleViewDetails = async (testId: string) => { 
-    setIsLoading(true); 
-    const { data } = await getTestWithQuestions(testId); 
-    if (data) { 
+
+  const handleViewDetails = async (testId: string) => {
+    setIsLoading(true);
+    const { data } = await getTestWithQuestions(testId);
+    if (data) {
         if (!data.hasAttempted) {
             addToast({
                 title: "Gabarito Indisponível",
@@ -212,20 +218,20 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
             setIsLoading(false);
             return;
         }
-        setSelectedTest(data); 
-        setView("detail"); 
-    } else { 
-        addToast({ title: "Erro", message: "Não foi possível carregar os detalhes do simulado.", type: "error" }); 
-    } 
-    setIsLoading(false); 
+        setSelectedTest(data);
+        setView("detail");
+    } else {
+        addToast({ title: "Erro", message: "Não foi possível carregar os detalhes do simulado.", type: "error" });
+    }
+    setIsLoading(false);
   };
-  
+
   const handleInitiateTest = async (testId: string, campaignId?: string) => {
     if (campaignId && !myConsentedCampaignIds.has(campaignId)) {
         setConsentModal({ isOpen: true, testId, campaignId });
         return;
     }
-    
+
     setIsLoading(true);
     const { data } = await getTestWithQuestions(testId);
     if (data) {
@@ -252,7 +258,7 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
   };
 
   const handleStartQuickTest = async () => { setIsLoading(true); const { data, error } = await getQuickTest(); if (error) { addToast({title: "Erro", message: error, type: "error"}); } else if (data) { handleStartTest(data); } setIsLoading(false); };
-  
+
   const handleViewResults = async () => {
     setIsLoading(true);
     const { data, error } = await getStudentResultsHistory();
@@ -268,7 +274,7 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
     }
     setIsLoading(false);
   };
-  
+
   const handleBackToDashboard = () => { setView("dashboard"); setSelectedTest(null); };
 
   const allCampaignTests = useMemo(() => {
@@ -322,11 +328,11 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
             {filteredTests.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredTests.map(test => (
-                        <AvailableTestCard 
-                            key={test.id} 
-                            test={test} 
-                            onStart={(testId) => handleInitiateTest(testId, (test as any).campaignId)} 
-                            onViewDetails={handleViewDetails} 
+                        <AvailableTestCard
+                            key={test.id}
+                            test={test}
+                            onStart={(testId) => handleInitiateTest(testId, (test as any).campaignId)}
+                            onViewDetails={handleViewDetails}
                         />
                     ))}
                 </div>
@@ -363,7 +369,7 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
             <ActionCard title="Praticar" description="Escolha um simulado" icon="fa-stream" actionText="Ver todos" onClick={() => setView("browse")} />
             <ActionCard title="Meus Resultados" description="Análise detalhada" icon="fa-chart-pie" actionText="Ver relatórios" onClick={handleViewResults} />
           </div>
-          
+
           {campaigns && campaigns.length > 0 && (
                  <div>
                     <h2 className="text-2xl font-bold mb-6 text-dark-text dark:text-white">Campanhas Ativas</h2>
@@ -383,7 +389,7 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
                 {dashboardData.recentAttempts?.length > 0 && <RecentTests data={dashboardData.recentAttempts} />}
             </div>
           </div>
-          
+
           {knowledgeTests && knowledgeTests.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {knowledgeTests.slice(0, 3).map(kt => (
@@ -409,8 +415,8 @@ export default function StudentTestDashboard({ dashboardData, globalTests, class
 
   return <div>
         {consentModal.isOpen && (
-            <CampaignConsentModal 
-                onConfirm={handleConfirmConsent} 
+            <CampaignConsentModal
+                onConfirm={handleConfirmConsent}
                 onCancel={() => setConsentModal({isOpen: false})}
             />
         )}
