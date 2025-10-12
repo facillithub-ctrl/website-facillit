@@ -9,7 +9,7 @@ export default function TermosCampanhaPage() {
             <main>
                 <section className="bg-royal-blue text-white pt-32 pb-20 text-center">
                     <div className="container mx-auto px-6 text-center">
-                        <h1 className="text-4xl md:text-5xl font-black text-white-text mb-4">Regulamento Oficial da Campanha de Incentivo "SAEB 2025"</h1>
+                        <h1 className="text-4xl md:text-5xl font-black text-white-text mb-4">Regulamento Oficial da Campanha de Incentivo &quot;SAEB 2025&quot;</h1>
                     </div>
                 </section>
 
@@ -20,7 +20,7 @@ export default function TermosCampanhaPage() {
                             <div>
                                 <h2 className="text-2xl font-bold text-dark-text mb-4">Preâmbulo</h2>
                                 <p>
-                                    O presente documento estabelece os termos e as regras para a campanha de incentivo acadêmico &quot;SAEB 2025&quot;, doravante denominada &quot;Campanha&quot;. Esta iniciativa é promovida pela plataforma FACILLIT HUB&quot;. A Campanha enquadra-se na modalidade de concurso de natureza exclusivamente cultural e educativa, fundamentado no mérito e desempenho acadêmico dos participantes, sem qualquer subordinação a sorteio ou pagamento. O objetivo principal é estimular o engajamento dos estudantes, reconhecer e premiar a excelência acadêmica e prepará-los de forma lúdica e competitiva para o Sistema de Avaliação da Educação Básica (SAEB) de 2025, em alinhamento com a missão pedagógica da empresa. A participação é voluntária e implica a aceitação integral e irrestrita de todos os termos aqui dispostos.
+                                    O presente documento estabelece os termos e as regras para a campanha de incentivo acadêmico &quot;SAEB 2025&quot;, doravante denominada &quot;Campanha&quot;. Esta iniciativa é promovida pela plataforma FACILLIT HUB. A Campanha enquadra-se na modalidade de concurso de natureza exclusivamente cultural e educativa, fundamentado no mérito e desempenho acadêmico dos participantes, sem qualquer subordinação a sorteio ou pagamento. O objetivo principal é estimular o engajamento dos estudantes, reconhecer e premiar a excelência acadêmica e prepará-los de forma lúdica e competitiva para o Sistema de Avaliação da Educação Básica (SAEB) de 2025, em alinhamento com a missão pedagógica da empresa. A participação é voluntária e implica a aceitação integral e irrestrita de todos os termos aqui dispostos.
                                 </p>
                             </div>
 
