@@ -45,7 +45,6 @@ const ModuleManager = ({ userProfile, onClose }: { userProfile: UserProfile; onC
     const router = useRouter();
 
     const toggleModule = (slug: string) => {
-        // MODIFICAÇÃO: Diretor não pode desativar o módulo Edu
         if (userProfile.userCategory === 'diretor' && slug === 'edu') {
             alert("O módulo Edu é essencial para diretores e não pode ser desativado.");
             return;
@@ -79,7 +78,6 @@ const ModuleManager = ({ userProfile, onClose }: { userProfile: UserProfile; onC
             <div className="grid grid-cols-3 gap-2">
                 {modulesData.map((module) => {
                     const isSelected = selectedModules.includes(module.slug);
-                    // MODIFICAÇÃO: Lógica para desabilitar o módulo Edu para não-diretores
                     const isDisabled = module.slug === 'edu' && userProfile.userCategory !== 'diretor';
                     
                     return (
@@ -211,9 +209,12 @@ export default function Topbar({ userProfile, toggleSidebar }: TopbarProps) {
       </div>
       
       <div className="flex items-center gap-4 md:gap-6">
+        {/* MODIFICADO: Botão de tema foi comentado */}
+        {/*
         <button onClick={toggleTheme} className="text-gray-500 hover:text-royal-blue text-xl dark:text-gray-400">
             {theme === 'light' ? <i className="fas fa-moon"></i> : <i className="fas fa-sun"></i>}
         </button>
+        */}
         
         <div className="relative" ref={gridRef}>
             <button onClick={() => setGridOpen(!isGridOpen)} className="text-gray-500 hover:text-royal-blue text-xl dark:text-gray-400">

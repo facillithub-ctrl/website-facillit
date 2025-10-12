@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
-  darkMode: 'class',
+  // MODIFICADO: A linha 'darkMode' foi completamente removida para desativar o modo escuro.
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -10,12 +10,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        'royal-blue': '#2e14ed', // azul violeta elétrico
-        'dark-purple-blue': '#190894', // azul roxo escuro
-        'lavender-blue': '#5e55f9', // azul lavanda
-        'light-lavender': '#dfdefe', // lavanda clara
-        'light-gray': '#e0e0e2', // cinza claro
-        'graphite-black': '#111114', // preto grafite
+        'royal-blue': '#2e14ed',
+        'dark-purple-blue': '#190894',
+        'lavender-blue': '#5e55f9',
+        'light-lavender': '#dfdefe',
+        'light-gray': '#e0e0e2',
+        'graphite-black': '#111114',
         'dark-text': '#111114',
         'white-text': '#f8f9fa',
         'white': '#ffffff',
@@ -46,7 +46,6 @@ const config: Config = {
       },
     },
   },
-  // ADICIONE O PLUGIN AQUI
   plugins: [
     require('@tailwindcss/typography'),
   ],

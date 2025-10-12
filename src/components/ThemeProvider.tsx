@@ -15,24 +15,34 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
-    // Verifica o tema salvo no localStorage ou a preferência do sistema
+    // A lógica de detecção de preferência foi mantida, mas a aplicação da classe foi removida abaixo.
     const savedTheme = localStorage.getItem('theme') as Theme | null;
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light');
-    setTheme(initialTheme);
+    // Forçamos o tema para 'light' para desativar o modo escuro
+    setTheme('light');
   }, []);
 
   useEffect(() => {
-    // Aplica a classe 'dark' no elemento <html> e salva a preferência
+    // MODIFICADO: Lógica de manipulação da classe 'dark' foi comentada/removida
+    // para desativar a troca de tema visualmente.
+    /*
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
     localStorage.setItem('theme', theme);
+    */
+
+    // Garante que a classe 'dark' seja sempre removida
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('theme', 'light');
+
   }, [theme]);
 
   const toggleTheme = () => {
+    // A função de troca agora não terá efeito visual
     setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   };
 
@@ -43,7 +53,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Hook customizado para usar o contexto do tema
 export const useTheme = (): ThemeContextType => {
   const context = useContext(ThemeContext);
   if (!context) {
