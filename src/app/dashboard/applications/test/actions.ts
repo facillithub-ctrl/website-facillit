@@ -546,14 +546,14 @@ export async function getQuickTest() {
     return { data: quickTest, error: null };
 }
 
-// CORREÇÃO APLICADA AQUI: Usando a nova função RPC
+
 export async function getSurveyResults(testId: string) {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { error: 'Usuário não autenticado.' };
+    if (!user) return { data: null, error: 'Usuário não autenticado.' };
 
     const { data: profile } = await supabase.from('profiles').select('user_category, organization_id').eq('id', user.id).single();
-    if (!profile) return { error: 'Perfil não encontrado.' };
+    if (!profile) return { data: null, error: 'Perfil não encontrado.' };
 
     // ETAPA 1: Usar a nova função RPC para buscar dados do teste com segurança
     const { data: test, error: testError } = await supabase
@@ -562,7 +562,7 @@ export async function getSurveyResults(testId: string) {
 
     if (testError || !test) {
         console.error("Erro ao buscar dados do teste via RPC:", testError);
-        return { error: 'Pesquisa não encontrada.' };
+        return { data: null, error: 'Pesquisa não encontrada.' };
     }
     
     // ETAPA 2: Validação de permissão
@@ -570,7 +570,7 @@ export async function getSurveyResults(testId: string) {
     const isDirectorOfOrg = profile.user_category === 'diretor' && profile.organization_id === test.organization_id;
 
     if (!isGlobalAdmin && !isDirectorOfOrg) {
-        return { error: 'Você não tem permissão para ver os resultados desta pesquisa.' };
+        return { data: null, error: 'Você não tem permissão para ver os resultados desta pesquisa.' };
     }
 
     // ETAPA 3: Buscar os resultados da pesquisa (RPC existente)
@@ -579,8 +579,8 @@ export async function getSurveyResults(testId: string) {
 
     if (resultsError) {
         console.error("Erro ao buscar resultados da pesquisa:", resultsError);
-        return { error: 'Não foi possível buscar os resultados.' };
+        return { data: null, error: 'Não foi possível buscar os resultados.' };
     }
 
-    return { data: results };
+    return { data: results, error: null };
 }

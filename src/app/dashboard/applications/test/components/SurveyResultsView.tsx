@@ -18,20 +18,19 @@ type Props = {
 };
 
 // Função para tentar extrair a opção de múltipla escolha do HTML da pergunta
-// NOTA: Esta é uma solução simples e pode precisar de ajustes se a estrutura do seu HTML mudar.
 const getOptionTextFromStatement = (statement: string, optionIndex: number): string => {
     try {
         const parser = new DOMParser();
         const doc = parser.parseFromString(statement, 'text/html');
-        // Tenta encontrar as opções em listas (<li>) ou parágrafos (<p>)
         const options = Array.from(doc.querySelectorAll('li, p'));
-        if (options.length > optionIndex) {
-            return options[optionIndex].textContent || `Opção ${optionIndex + 1}`;
+        if (options.length > optionIndex && options[optionIndex].textContent) {
+            return options[optionIndex].textContent!;
         }
     } catch (e) {
         console.error("Erro ao parsear HTML da questão:", e);
     }
-    return `Opção ${optionIndex + 1}`;
+    // Fallback caso não consiga extrair o texto
+    return `Opção ${String.fromCharCode(65 + optionIndex)}`;
 };
 
 
