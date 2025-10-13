@@ -78,19 +78,7 @@ export default function FeedbackTabs({ correction }: Props) {
                                 ))}
                             </ul>
                         </div>
-                        <div>
-                            <h4 className="font-bold text-lg mb-2 dark:text-white-text">Sugestões de Reescrita</h4>
-                             <ul className="space-y-4">
-                                {aiFeedback.rewrite_suggestions.map((item, index) => (
-                                    <li key={index} className="border-l-4 border-royal-blue pl-4">
-                                        <p className="text-sm text-red-500 line-through">“{item.original}”</p>
-                                        <p className="text-sm text-green-600 dark:text-green-400">
-                                            <i className="fas fa-arrow-right mr-2"></i>“{item.suggestion}”
-                                        </p>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
+                        {/* MODIFICAÇÃO: Seção de Sugestões de Reescrita removida */}
                     </div>
                 )}
                 

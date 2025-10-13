@@ -237,12 +237,10 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
 
     if (!user) return { error: 'Usuário não autenticado.' };
 
-    const { ai_feedback, ...humanCorrectionData } = correctionData;
-
     const { data: correction, error: correctionError } = await supabase
         .from('essay_corrections')
         .insert({
-            ...humanCorrectionData,
+            ...correctionData,
             corrector_id: user.id
         })
         .select()
@@ -250,20 +248,8 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
 
     if (correctionError) return { error: `Erro ao salvar correção: ${correctionError.message}` };
 
-    if (ai_feedback) {
-        const { error: aiError } = await supabase
-            .from('ai_feedback')
-            .insert({
-                essay_id: correctionData.essay_id,
-                detailed_feedback: ai_feedback.detailed_feedback,
-                rewrite_suggestions: ai_feedback.rewrite_suggestions,
-                actionable_items: ai_feedback.actionable_items
-            });
-
-        if (aiError) {
-            console.error("Erro ao salvar feedback da IA:", aiError);
-        }
-    }
+    // MODIFICAÇÃO: A lógica de inserir na tabela `ai_feedback` foi removida,
+    // pois os dados agora estão na coluna `ai_feedback` da própria `essay_corrections`.
 
     const { data: essayData, error: essayError } = await supabase
         .from('essays')
@@ -524,9 +510,10 @@ export async function getCorrectedEssaysForTeacher(teacherId: string, organizati
 export async function getAIFeedbackForEssay(essayId: string) {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
-        .from('ai_feedback')
-        .select('*')
+        .from('essay_corrections') // MODIFICADO: Busca direto na tabela de correções
+        .select('ai_feedback')
         .eq('essay_id', essayId)
+        .not('ai_feedback', 'is', null)
         .maybeSingle();
     
     if (error) {
@@ -534,7 +521,7 @@ export async function getAIFeedbackForEssay(essayId: string) {
         return { data: null, error: error.message };
     }
 
-    return { data };
+    return { data: data?.ai_feedback || null };
 }
 
 export async function checkForPlagiarism(_text: string): Promise<{ data?: { similarity_percentage: number; matches: { source: string; text: string }[] }; error?: string }> {

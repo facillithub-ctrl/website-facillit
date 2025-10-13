@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition, useRef, MouseEvent, ReactNode } from 'react';
-import { Essay, getEssayDetails, submitCorrection, Annotation, getAIFeedbackForEssay, AIFeedback } from '../actions';
+import { Essay, getEssayDetails, submitCorrection, Annotation, AIFeedback } from '../actions';
 import Image from 'next/image';
 import createClient from '@/utils/supabase/client';
 
@@ -62,7 +62,6 @@ const AnnotationPopup = ({ position, onSave, onClose }: AnnotationPopupProps) =>
     );
 };
 
-// AJUSTE 3 e 4: Função para renderizar o texto com anotações sem quebrar a formatação
 const renderAnnotatedText = (text: string, annotations: Annotation[]): ReactNode => {
     const textAnnotations = annotations.filter(a => a.type === 'text' && a.selection);
     if (!text || textAnnotations.length === 0) {
@@ -138,8 +137,18 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
     const [popupState, setPopupState] = useState<{ visible: boolean; x: number; y: number; selectionText?: string; position?: Annotation['position'] }>({ visible: false, x: 0, y: 0 });
     const imageContainerRef = useRef<HTMLDivElement>(null);
 
-    const [aiFeedback, setAIFeedback] = useState<AIFeedback | null>(null);
-    const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+    // MODIFICAÇÃO: Estado para o feedback manual que simula a IA
+    const [manualAIFeedback, setManualAIFeedback] = useState<AIFeedback>({
+        detailed_feedback: [
+            { competency: 'Competência 1: Domínio da Escrita Formal', feedback: '' },
+            { competency: 'Competência 2: Compreensão do Tema e Estrutura', feedback: '' },
+            { competency: 'Competência 3: Argumentação', feedback: '' },
+            { competency: 'Competência 4: Coesão e Coerência', feedback: '' },
+            { competency: 'Competência 5: Proposta de Intervenção', feedback: '' },
+        ],
+        actionable_items: [''],
+        rewrite_suggestions: [], // Removido da interface manual
+    });
 
     const [isDrawing, setIsDrawing] = useState(false);
     const [selectionBox, setSelectionBox] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
@@ -160,11 +169,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                     setError(result.error);
                 }
 
-                const { data: existingAIFeedback } = await getAIFeedbackForEssay(essayId);
-                if (existingAIFeedback) {
-                    setAIFeedback(existingAIFeedback as AIFeedback);
-                }
-
             } catch (err: unknown) {
                 if (err instanceof Error) {
                     setError(err.message);
@@ -178,6 +182,30 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
 
         fetchInitialData();
     }, [essayId, supabase]);
+
+    // MODIFICAÇÃO: Funções para manipular o estado do feedback manual da IA
+    const handleDetailedFeedbackChange = (index: number, value: string) => {
+        const newDetailedFeedback = [...manualAIFeedback.detailed_feedback];
+        newDetailedFeedback[index] = { ...newDetailedFeedback[index], feedback: value };
+        setManualAIFeedback(prev => ({ ...prev, detailed_feedback: newDetailedFeedback }));
+    };
+
+    const handleActionableItemChange = (index: number, value: string) => {
+        const newActionableItems = [...manualAIFeedback.actionable_items];
+        newActionableItems[index] = value;
+        setManualAIFeedback(prev => ({ ...prev, actionable_items: newActionableItems }));
+    };
+
+    const addActionableItem = () => {
+        setManualAIFeedback(prev => ({ ...prev, actionable_items: [...prev.actionable_items, ''] }));
+    };
+
+    const removeActionableItem = (index: number) => {
+        if (manualAIFeedback.actionable_items.length <= 1) return;
+        const newActionableItems = manualAIFeedback.actionable_items.filter((_, i) => i !== index);
+        setManualAIFeedback(prev => ({ ...prev, actionable_items: newActionableItems }));
+    };
+
 
     const handleGradeChange = (c: keyof typeof grades, value: string) => {
         const numericValue = parseInt(value, 10);
@@ -318,39 +346,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
         setPopupState({ visible: false, x: 0, y: 0 });
     };
 
-    const handleGenerateAIFeedback = async () => {
-        if (!essay?.content?.trim()) {
-            alert("A redação não tem conteúdo de texto para ser analisado. A análise de imagens (OCR) será implementada em breve.");
-            return;
-        }
-
-        setIsGeneratingAI(true);
-        try {
-            const response = await fetch('/api/generate-feedback', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: essay.content }),
-            });
-
-            const responseBody = await response.json();
-
-            if (!response.ok) {
-                const errorMessage = responseBody.error || "Falha ao gerar o feedback da IA.";
-                throw new Error(errorMessage);
-            }
-
-            setAIFeedback(responseBody);
-        } catch (error: unknown) {
-            if (error instanceof Error) {
-                alert(error.message);
-            } else {
-                alert("Ocorreu um erro desconhecido.");
-            }
-        } finally {
-            setIsGeneratingAI(false);
-        }
-    };
-
     const handleSubmit = async () => {
         const final_grade = Object.values(grades).reduce((a, b) => a + b, 0);
         if (!feedback) {
@@ -368,6 +363,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 }
             }
 
+            // MODIFICAÇÃO: Passar o feedback manual da IA para a função de submissão
             const result = await submitCorrection({
                 essay_id: essayId,
                 feedback,
@@ -379,7 +375,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 final_grade,
                 audio_feedback_url: uploadedAudioUrl,
                 annotations,
-                ai_feedback: aiFeedback,
+                ai_feedback: manualAIFeedback, // Objeto com os dados manuais
             });
 
             if (!result.error && result.data) {
@@ -484,20 +480,49 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                             ))}
                         </div>
                     </div>
-
-                    <div>
-                        <h3 className="font-bold mb-2 dark:text-white-text">Análise com Inteligência Artificial</h3>
-                        {aiFeedback ? (
-                             <div className="p-4 bg-green-50 dark:bg-green-900/20 text-center rounded-lg">
-                                <p className="text-sm text-green-700 dark:text-green-300 font-medium">Análise da IA já foi gerada para esta redação.</p>
+                    
+                    {/* MODIFICAÇÃO: Seção de Análise Manual (Simula IA) */}
+                    <div className="border-t dark:border-gray-700 pt-4 space-y-4">
+                        <h3 className="font-bold text-lg dark:text-white-text">Análise Manual (Simula IA)</h3>
+                        
+                        <div>
+                            <h4 className="font-semibold text-md mb-2">Análise por Competência</h4>
+                            <div className="space-y-2">
+                                {manualAIFeedback.detailed_feedback.map((item, index) => (
+                                    <div key={index}>
+                                        <label className="text-sm font-medium">Competência {index + 1}</label>
+                                        <textarea
+                                            rows={2}
+                                            value={item.feedback}
+                                            onChange={(e) => handleDetailedFeedbackChange(index, e.target.value)}
+                                            className="w-full p-2 border rounded-md mt-1 text-sm dark:bg-gray-700 dark:border-gray-600"
+                                        />
+                                    </div>
+                                ))}
                             </div>
-                        ) : (
-                            <button onClick={handleGenerateAIFeedback} disabled={isGeneratingAI} className="w-full flex items-center justify-center gap-2 py-2 px-4 border-2 border-dashed rounded-lg text-text-muted hover:border-royal-blue hover:text-royal-blue transition disabled:opacity-50">
-                                <i className={`fas ${isGeneratingAI ? 'fa-spinner fa-spin' : 'fa-robot'}`}></i>
-                                {isGeneratingAI ? 'Analisando...' : 'Gerar Análise com IA'}
-                            </button>
-                        )}
+                        </div>
+
+                        <div>
+                            <h4 className="font-semibold text-md mb-2">Plano de Ação</h4>
+                            <div className="space-y-2">
+                                {manualAIFeedback.actionable_items.map((item, index) => (
+                                    <div key={index} className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={item}
+                                            onChange={(e) => handleActionableItemChange(index, e.target.value)}
+                                            className="w-full p-2 border rounded-md text-sm dark:bg-gray-700 dark:border-gray-600"
+                                        />
+                                        <button type="button" onClick={() => removeActionableItem(index)} className="text-red-500 hover:text-red-700 text-sm">
+                                            <i className="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                ))}
+                                <button type="button" onClick={addActionableItem} className="text-xs font-bold text-royal-blue">+ Adicionar item</button>
+                            </div>
+                        </div>
                     </div>
+
 
                     <div className="border-t dark:border-gray-700 pt-4">
                          <h3 className="font-bold mb-2 dark:text-white-text">Feedback Geral (Humano)</h3>
