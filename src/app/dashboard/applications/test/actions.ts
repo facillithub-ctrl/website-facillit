@@ -163,11 +163,22 @@ export async function getTestsForTeacher() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: "Usuário não autenticado." };
 
-  const { data, error } = await supabase
-    .from('tests')
-    .select('*')
-    .eq('created_by', user.id)
-    .order('created_at', { ascending: false });
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single();
+
+  let query = supabase.from('tests').select('*');
+
+  if (profile?.organization_id) {
+    query = query.eq('organization_id', profile.organization_id);
+  } else {
+    query = query.eq('created_by', user.id);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
+
 
   if (error) {
     console.error("Erro ao buscar testes do professor:", error);
@@ -583,4 +594,19 @@ export async function getSurveyResults(testId: string) {
     }
 
     return { data: results, error: null };
+}
+
+export async function getResultsForTeacher() {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { data: null, error: 'Usuário não autenticado.' };
+
+  const { data, error } = await supabase.rpc('get_test_results_for_teacher', { p_teacher_id: user.id });
+
+  if (error) {
+    console.error("Erro ao buscar resultados dos alunos via RPC:", error);
+    return { data: null, error: error.message };
+  }
+
+  return { data, error: null };
 }

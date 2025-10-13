@@ -1,35 +1,34 @@
 "use client";
 
 import { useState } from 'react';
+import { Test, Campaign } from '../actions';
+
 
 // Tipos simulados para os dados que o componente receberá
 type Result = {
-  id: number;
-  studentName: string;
-  testTitle: string;
+  id: string;
+  student_name: string;
+  test_title: string;
   score: number;
   date: string;
   class_id?: string; // Opcional, para filtrar por turma
+  class_name?: string | null;
 };
 
-// Dados de exemplo que seriam recebidos via props
-const mockResults: Result[] = [
-    { id: 1, studentName: 'João Silva', testTitle: 'Simulado SAEB - Português', score: 85, date: '2025-10-10', class_id: 'turma-a' },
-    { id: 2, studentName: 'Maria Oliveira', testTitle: 'Simulado SAEB - Português', score: 92, date: '2025-10-10', class_id: 'turma-a' },
-    { id: 3, studentName: 'Carlos Souza', testTitle: 'Simulado ENEM - Humanas', score: 78, date: '2025-10-09' },
-    { id: 4, studentName: 'Ana Pereira', testTitle: 'Simulado SAEB - Português', score: 88, date: '2025-10-10', class_id: 'turma-b' },
-    { id: 5, studentName: 'Lucas Martins', testTitle: 'Simulado FUVEST - Exatas', score: 72, date: '2025-10-08' },
-];
+type ResultsDashboardProps = {
+  results: Result[];
+  onViewDetails: (testId: string) => void;
+};
 
 
-const ResultsDashboard = () => {
-  const [results, setResults] = useState<Result[]>(mockResults);
+const ResultsDashboard = ({ results: initialResults, onViewDetails }: ResultsDashboardProps) => {
+  const [results, setResults] = useState<Result[]>(initialResults);
   const [filterTest, setFilterTest] = useState('');
   const [filterStudent, setFilterStudent] = useState('');
 
   const filteredResults = results.filter(result => {
-      const matchesTest = filterTest ? result.testTitle.toLowerCase().includes(filterTest.toLowerCase()) : true;
-      const matchesStudent = filterStudent ? result.studentName.toLowerCase().includes(filterStudent.toLowerCase()) : true;
+      const matchesTest = filterTest ? result.test_title.toLowerCase().includes(filterTest.toLowerCase()) : true;
+      const matchesStudent = filterStudent ? result.student_name.toLowerCase().includes(filterStudent.toLowerCase()) : true;
       return matchesTest && matchesStudent;
   });
 
@@ -68,6 +67,7 @@ const ResultsDashboard = () => {
             <tr>
               <th scope="col" className="px-6 py-3">Aluno</th>
               <th scope="col" className="px-6 py-3">Avaliação</th>
+              <th scope="col" className="px-6 py-3">Turma</th>
               <th scope="col" className="px-6 py-3 text-center">Pontuação</th>
               <th scope="col" className="px-6 py-3">Data</th>
               <th scope="col" className="px-6 py-3 text-center">Ações</th>
@@ -76,17 +76,18 @@ const ResultsDashboard = () => {
           <tbody>
             {filteredResults.length > 0 ? filteredResults.map((result) => (
               <tr key={result.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
-                <td className="px-6 py-4 font-medium text-dark-text dark:text-white">{result.studentName}</td>
-                <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{result.testTitle}</td>
+                <td className="px-6 py-4 font-medium text-dark-text dark:text-white">{result.student_name}</td>
+                <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{result.test_title}</td>
+                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{result.class_name || '-'}</td>
                 <td className={`px-6 py-4 text-center font-bold text-lg ${getScoreColor(result.score)}`}>{result.score}%</td>
                 <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{new Date(result.date).toLocaleDateString('pt-BR')}</td>
                 <td className="px-6 py-4 text-center">
-                  <button className="font-medium text-royal-blue hover:underline">Ver Detalhes</button>
+                  <button onClick={() => onViewDetails(result.id)} className="font-medium text-royal-blue hover:underline">Ver Detalhes</button>
                 </td>
               </tr>
             )) : (
                 <tr>
-                    <td colSpan={5} className="text-center py-8 text-gray-500">Nenhum resultado encontrado para os filtros aplicados.</td>
+                    <td colSpan={6} className="text-center py-8 text-gray-500">Nenhum resultado encontrado para os filtros aplicados.</td>
                 </tr>
             )}
           </tbody>

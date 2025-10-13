@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition, useCallback } from 'react';
 import CreateTestModal from './CreateTestModal';
 import TestDetailView from './TestDetailView';
-import { getTestWithQuestions, getTestsForTeacher, deleteCampaign, Campaign, Test } from '../actions';
+import { getTestWithQuestions, getTestsForTeacher, deleteCampaign, Campaign, Test, getResultsForTeacher } from '../actions';
 import type { TestWithQuestions } from '../actions';
 import { useToast } from '@/contexts/ToastContext';
 import createClient from '@/utils/supabase/client';
@@ -26,6 +26,16 @@ type AggregatedClassStats = {
     total_attempts: number;
     hardest_axis: string | null;
     easiest_axis: string | null;
+};
+
+type Result = {
+  id: string;
+  student_name: string;
+  test_title: string;
+  score: number;
+  date: string;
+  class_id?: string;
+  class_name?: string | null;
 };
 
 type Props = {
@@ -70,6 +80,7 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
   const { addToast } = useToast();
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [classStats, setClassStats] = useState<AggregatedClassStats[]>([]);
+  const [resultsData, setResultsData] = useState<Result[]>([]);
   
   const isInstitutional = !!userProfile.organization_id;
 
@@ -122,6 +133,18 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
     setIsLoading(false);
   };
 
+  const handleViewResults = async () => {
+    setIsLoading(true);
+    const { data, error } = await getResultsForTeacher();
+    if (error) {
+        addToast({ title: "Erro", message: "Não foi possível carregar os resultados.", type: "error" });
+    } else {
+        setResultsData(data || []);
+        setCurrentView('results');
+    }
+    setIsLoading(false);
+  };
+
   const handleViewSurveyResults = (test: Test) => {
       setSelectedTest(test as TestWithQuestions);
       setCurrentView('survey-results');
@@ -157,7 +180,7 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
       return <CampaignManager />;
     }
     if (currentView === 'results') {
-      return <ResultsDashboard />;
+      return <ResultsDashboard results={resultsData} onViewDetails={handleViewDetails} />;
     }
     if (currentView === 'survey-results' && selectedTest) {
       return <SurveyResultsView testId={selectedTest.id} testTitle={selectedTest.title} onBack={handleBackToList} />;
@@ -213,7 +236,7 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
                                   {test.test_type === 'pesquisa' ? (
                                       <button onClick={() => handleViewSurveyResults(test)} className="text-green-600 hover:underline text-sm font-semibold">Resultados</button>
                                   ) : (
-                                      <button onClick={() => setCurrentView('results')} className="text-green-600 hover:underline text-sm font-semibold">Resultados</button>
+                                      <button onClick={() => handleViewResults()} className="text-green-600 hover:underline text-sm font-semibold">Resultados</button>
                                   )}
                                   <button onClick={() => handleViewDetails(test.id)} className="text-royal-blue hover:underline text-sm font-semibold">Ver Detalhes</button>
                                   <button onClick={() => addToast({ title: "Em Breve", message: "A função de excluir ainda está em desenvolvimento.", type: 'error'})} className="text-red-500 hover:underline text-sm font-semibold">Excluir</button>
@@ -241,6 +264,12 @@ export default function TeacherTestDashboard({ initialTests, userProfile }: Prop
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-dark-text dark:text-white">Gerenciador de Avaliações</h1>
         <div className="flex gap-2">
+             <button 
+                onClick={() => handleViewResults()}
+                className="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90"
+            >
+                <i className="fas fa-chart-bar mr-2"></i> Resultados
+            </button>
             <button 
                 onClick={() => setCurrentView('campaigns')}
                 className="bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90"
