@@ -205,6 +205,7 @@ export async function getLatestEssayForDashboard() {
 type CorrectionWithProfile = Omit<EssayCorrection, 'ai_feedback'> & {
     profiles: { full_name: string | null, verification_badge: string | null };
     essay_correction_errors: { common_errors: { error_type: string } }[];
+    ai_feedback: AIFeedback[] // Ajustado para ser um array
 };
 
 export async function getCorrectionForEssay(essayId: string): Promise<{ data?: CorrectionWithProfile; error?: string }> {
@@ -217,7 +218,8 @@ export async function getCorrectionForEssay(essayId: string): Promise<{ data?: C
             profiles (full_name, verification_badge),
             essay_correction_errors (
                 common_errors (error_type)
-            )
+            ),
+            ai_feedback(*)
         `)
         .eq('essay_id', essayId)
         .maybeSingle();
@@ -237,10 +239,12 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
 
     if (!user) return { error: 'Usuário não autenticado.' };
 
+    const { ai_feedback, ...humanCorrectionData } = correctionData;
+
     const { data: correction, error: correctionError } = await supabase
         .from('essay_corrections')
         .insert({
-            ...correctionData,
+            ...humanCorrectionData,
             corrector_id: user.id
         })
         .select()
@@ -248,8 +252,23 @@ export async function submitCorrection(correctionData: Omit<EssayCorrection, 'id
 
     if (correctionError) return { error: `Erro ao salvar correção: ${correctionError.message}` };
 
-    // MODIFICAÇÃO: A lógica de inserir na tabela `ai_feedback` foi removida,
-    // pois os dados agora estão na coluna `ai_feedback` da própria `essay_corrections`.
+    if (ai_feedback) {
+        const { error: aiError } = await supabase
+            .from('ai_feedback')
+            .insert({
+                essay_id: correctionData.essay_id,
+                correction_id: correction.id, // Adicionando a referência à correção
+                detailed_feedback: ai_feedback.detailed_feedback,
+                rewrite_suggestions: ai_feedback.rewrite_suggestions,
+                actionable_items: ai_feedback.actionable_items
+            });
+
+        if (aiError) {
+            // Mesmo que o feedback da IA falhe, a correção principal foi salva.
+            // É importante logar o erro.
+            console.error("Erro ao salvar feedback da IA:", aiError);
+        }
+    }
 
     const { data: essayData, error: essayError } = await supabase
         .from('essays')
@@ -510,10 +529,9 @@ export async function getCorrectedEssaysForTeacher(teacherId: string, organizati
 export async function getAIFeedbackForEssay(essayId: string) {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
-        .from('essay_corrections') // MODIFICADO: Busca direto na tabela de correções
-        .select('ai_feedback')
+        .from('ai_feedback')
+        .select('*')
         .eq('essay_id', essayId)
-        .not('ai_feedback', 'is', null)
         .maybeSingle();
     
     if (error) {
@@ -521,7 +539,7 @@ export async function getAIFeedbackForEssay(essayId: string) {
         return { data: null, error: error.message };
     }
 
-    return { data: data?.ai_feedback || null };
+    return { data };
 }
 
 export async function checkForPlagiarism(_text: string): Promise<{ data?: { similarity_percentage: number; matches: { source: string; text: string }[] }; error?: string }> {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, ReactElement } from 'react';
-import { Essay, EssayCorrection, Annotation, getEssayDetails, getCorrectionForEssay, getAIFeedbackForEssay, AIFeedback } from '../actions';
+import { Essay, EssayCorrection, Annotation, getEssayDetails, AIFeedback } from '../actions';
 import Image from 'next/image';
 import { VerificationBadge } from '@/components/VerificationBadge';
 import FeedbackTabs from './FeedbackTabs';
@@ -10,6 +10,7 @@ import FeedbackTabs from './FeedbackTabs';
 
 type CorrectionWithDetails = EssayCorrection & {
   profiles: { full_name: string | null; verification_badge: string | null };
+  ai_feedback: AIFeedback[]; // Ajustado para ser um array
 };
 
 type FullEssayDetails = Essay & {
@@ -99,19 +100,17 @@ export default function EssayCorrectionView({ essayId, onBack }: {essayId: strin
             setIsLoading(true);
             const essayResult = await getEssayDetails(essayId);
             if (essayResult.data) {
-                const [correctionResult, aiFeedbackResult] = await Promise.all([
-                    getCorrectionForEssay(essayId),
-                    getAIFeedbackForEssay(essayId)
-                ]);
+                const correctionResult = await getCorrectionForEssay(essayId);
 
+                // MODIFICAÇÃO: Extrai o feedback da IA do array
                 const correctionData = correctionResult.data;
-                const aiFeedbackData = aiFeedbackResult.data;
+                const aiFeedbackData = correctionData?.ai_feedback?.[0] || null;
 
                 const finalCorrection: CorrectionWithDetails | null = correctionData
                     ? {
                         ...correctionData,
-                        ai_feedback: aiFeedbackData || null,
-                      } as CorrectionWithDetails
+                        ai_feedback: aiFeedbackData,
+                      } as any // Usando 'any' para contornar a diferença de tipo temporária
                     : null;
 
                 setDetails({

@@ -62,55 +62,6 @@ const AnnotationPopup = ({ position, onSave, onClose }: AnnotationPopupProps) =>
     );
 };
 
-const renderAnnotatedText = (text: string, annotations: Annotation[]): ReactNode => {
-    const textAnnotations = annotations.filter(a => a.type === 'text' && a.selection);
-    if (!text || textAnnotations.length === 0) {
-        return <div dangerouslySetInnerHTML={{ __html: text.replace(/\n/g, '<br />') }} />;
-    }
-
-    const markerStyles = {
-        erro: 'bg-red-200 dark:bg-red-500/30',
-        acerto: 'bg-green-200 dark:bg-green-500/30',
-        sugestao: 'bg-blue-200 dark:bg-blue-500/30',
-    };
-
-    let result: (string | ReactNode)[] = [text];
-
-    textAnnotations.forEach((anno, i) => {
-        const newResult: (string | ReactNode)[] = [];
-        result.forEach((node) => {
-            if (typeof node !== 'string') {
-                newResult.push(node);
-                return;
-            }
-            const parts = node.split(anno.selection!);
-            for (let j = 0; j < parts.length; j++) {
-                newResult.push(parts[j]);
-                if (j < parts.length - 1) {
-                    newResult.push(
-                        <mark key={`${anno.id}-${i}-${j}`} className={`${markerStyles[anno.marker]} relative group cursor-pointer px-1 rounded-sm`}>
-                            {anno.selection}
-                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">{anno.comment}</span>
-                        </mark>
-                    );
-                }
-            }
-        });
-        result = newResult;
-    });
-
-    return (
-        <div>
-            {result.map((node, index) =>
-                typeof node === 'string'
-                    ? <span key={index} dangerouslySetInnerHTML={{ __html: node.replace(/\n/g, '<br />') }} />
-                    : node
-            )}
-        </div>
-    );
-};
-
-
 // --- COMPONENTE PRINCIPAL ---
 export default function CorrectionInterface({ essayId, onBack }: { essayId: string; onBack: () => void }) {
     const [essay, setEssay] = useState<EssayWithProfile | null>(null);
@@ -137,7 +88,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
     const [popupState, setPopupState] = useState<{ visible: boolean; x: number; y: number; selectionText?: string; position?: Annotation['position'] }>({ visible: false, x: 0, y: 0 });
     const imageContainerRef = useRef<HTMLDivElement>(null);
 
-    // MODIFICAÇÃO: Estado para o feedback manual que simula a IA
     const [manualAIFeedback, setManualAIFeedback] = useState<AIFeedback>({
         detailed_feedback: [
             { competency: 'Competência 1: Domínio da Escrita Formal', feedback: '' },
@@ -147,12 +97,69 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
             { competency: 'Competência 5: Proposta de Intervenção', feedback: '' },
         ],
         actionable_items: [''],
-        rewrite_suggestions: [], // Removido da interface manual
+        rewrite_suggestions: [],
     });
 
     const [isDrawing, setIsDrawing] = useState(false);
     const [selectionBox, setSelectionBox] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
     const startCoords = useRef<{ x: number, y: number }>({ x: 0, y: 0 });
+
+    // MELHORIA: Função para remover anotações
+    const removeAnnotation = (idToRemove: string) => {
+        setAnnotations(prev => prev.filter(anno => anno.id !== idToRemove));
+    };
+
+    const renderAnnotatedText = (text: string, annotations: Annotation[]): ReactNode => {
+        const textAnnotations = annotations.filter(a => a.type === 'text' && a.selection);
+        if (!text || textAnnotations.length === 0) {
+            return <div dangerouslySetInnerHTML={{ __html: text.replace(/\n/g, '<br />') }} />;
+        }
+
+        const markerStyles = {
+            erro: 'bg-red-200 dark:bg-red-500/30',
+            acerto: 'bg-green-200 dark:bg-green-500/30',
+            sugestao: 'bg-blue-200 dark:bg-blue-500/30',
+        };
+
+        let result: (string | ReactNode)[] = [text];
+
+        textAnnotations.forEach((anno, i) => {
+            const newResult: (string | ReactNode)[] = [];
+            result.forEach((node) => {
+                if (typeof node !== 'string') {
+                    newResult.push(node);
+                    return;
+                }
+                const parts = node.split(anno.selection!);
+                for (let j = 0; j < parts.length; j++) {
+                    newResult.push(parts[j]);
+                    if (j < parts.length - 1) {
+                        newResult.push(
+                            <mark
+                                key={`${anno.id}-${i}-${j}`}
+                                className={`${markerStyles[anno.marker]} relative group cursor-pointer px-1 rounded-sm`}
+                                onClick={() => { if (window.confirm('Deseja remover esta anotação?')) removeAnnotation(anno.id) }}
+                            >
+                                {anno.selection}
+                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">{anno.comment}</span>
+                            </mark>
+                        );
+                    }
+                }
+            });
+            result = newResult;
+        });
+
+        return (
+            <div>
+                {result.map((node, index) =>
+                    typeof node === 'string'
+                        ? <span key={index} dangerouslySetInnerHTML={{ __html: node.replace(/\n/g, '<br />') }} />
+                        : node
+                )}
+            </div>
+        );
+    };
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -168,7 +175,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 } else if (result.error) {
                     setError(result.error);
                 }
-
             } catch (err: unknown) {
                 if (err instanceof Error) {
                     setError(err.message);
@@ -183,7 +189,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
         fetchInitialData();
     }, [essayId, supabase]);
 
-    // MODIFICAÇÃO: Funções para manipular o estado do feedback manual da IA
     const handleDetailedFeedbackChange = (index: number, value: string) => {
         const newDetailedFeedback = [...manualAIFeedback.detailed_feedback];
         newDetailedFeedback[index] = { ...newDetailedFeedback[index], feedback: value };
@@ -362,8 +367,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                     return;
                 }
             }
-
-            // MODIFICAÇÃO: Passar o feedback manual da IA para a função de submissão
+            
             const result = await submitCorrection({
                 essay_id: essayId,
                 feedback,
@@ -375,7 +379,7 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                 final_grade,
                 audio_feedback_url: uploadedAudioUrl,
                 annotations,
-                ai_feedback: manualAIFeedback, // Objeto com os dados manuais
+                ai_feedback: manualAIFeedback,
             });
 
             if (!result.error && result.data) {
@@ -443,8 +447,12 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                             )}
 
                             {annotations.filter(a => a.type === 'image' && a.position?.width).map(a => (
-                                <div key={a.id} className={`absolute border-2 bg-yellow-400/20 group pointer-events-none ${markerStyles[a.marker]}`} style={{ left: `${a.position!.x}%`, top: `${a.position!.y}%`, width: `${a.position!.width}%`, height: `${a.position!.height}%` }}>
-                                    <div className="absolute -top-7 left-0 w-max px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div key={a.id} 
+                                     className={`absolute border-2 bg-yellow-400/20 group cursor-pointer ${markerStyles[a.marker]}`} 
+                                     style={{ left: `${a.position!.x}%`, top: `${a.position!.y}%`, width: `${a.position!.width}%`, height: `${a.position!.height}%` }}
+                                     onClick={() => { if (window.confirm('Deseja remover esta anotação?')) removeAnnotation(a.id) }}
+                                >
+                                    <div className="absolute -top-7 left-0 w-max px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                         {a.comment}
                                     </div>
                                 </div>
@@ -481,7 +489,6 @@ export default function CorrectionInterface({ essayId, onBack }: { essayId: stri
                         </div>
                     </div>
                     
-                    {/* MODIFICAÇÃO: Seção de Análise Manual (Simula IA) */}
                     <div className="border-t dark:border-gray-700 pt-4 space-y-4">
                         <h3 className="font-bold text-lg dark:text-white-text">Análise Manual (Simula IA)</h3>
                         
