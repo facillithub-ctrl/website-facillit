@@ -12,8 +12,8 @@ interface RichTextEditorProps {
 }
 
 export default function DynamicRichTextEditor({ value, onChange, placeholder, height = 300 }: RichTextEditorProps) {
-  // A chave de API é lida das variáveis de ambiente
-  const  apiKey='kn453hlf9g4t506lbc664inmn8fvn8xwpjw5lqg7vd0d8cmm'
+  // ✅ CORREÇÃO: A chave de API agora é lida das variáveis de ambiente do cliente
+  const apiKey = process.env.NEXT_PUBLIC_TINYMCE_API_KEY;
 
   if (!apiKey) {
     console.error("A chave de API do TinyMCE não foi encontrada. Verifique seu arquivo .env.local");
@@ -24,7 +24,6 @@ export default function DynamicRichTextEditor({ value, onChange, placeholder, he
     <Editor
       apiKey={apiKey}
       value={value}
-      // ✅ CORREÇÃO: O parâmetro 'editor' foi removido
       onEditorChange={(content) => onChange(content)}
       init={{
         height: height,

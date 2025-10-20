@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState, ReactElement } from 'react';
-// ✅ CORREÇÃO: A função 'getCorrectionForEssay' foi adicionada de volta na importação.
-import { Essay, EssayCorrection, Annotation, getEssayDetails, getCorrectionForEssay, getAIFeedbackForEssay, AIFeedback } from '../actions';
+import { Essay, EssayCorrection, Annotation, getEssayDetails, getCorrectionForEssay, AIFeedback } from '../actions';
 import Image from 'next/image';
 import { VerificationBadge } from '@/components/VerificationBadge';
 import FeedbackTabs from './FeedbackTabs';
@@ -11,7 +10,7 @@ import FeedbackTabs from './FeedbackTabs';
 
 type CorrectionWithDetails = EssayCorrection & {
   profiles: { full_name: string | null; verification_badge: string | null };
-  ai_feedback: AIFeedback[]; 
+  ai_feedback: AIFeedback | null;
 };
 
 type FullEssayDetails = Essay & {
@@ -103,14 +102,15 @@ export default function EssayCorrectionView({ essayId, onBack }: {essayId: strin
             if (essayResult.data) {
                 const correctionResult = await getCorrectionForEssay(essayId);
 
-                const correctionData = correctionResult.data;
-                const aiFeedbackData = correctionData?.ai_feedback?.[0] || null;
+                // Acessa o primeiro (e único) item do array de ai_feedback, se existir
+                const aiFeedbackData = correctionResult.data?.ai_feedback?.[0] || null;
 
-                const finalCorrection: CorrectionWithDetails | null = correctionData
+                // Monta o objeto de correção final
+                const finalCorrection: CorrectionWithDetails | null = correctionResult.data
                     ? {
-                        ...correctionData,
-                        ai_feedback: aiFeedbackData,
-                      } as any 
+                        ...correctionResult.data,
+                        ai_feedback: aiFeedbackData, // Atribui o objeto ou null
+                      }
                     : null;
 
                 setDetails({

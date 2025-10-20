@@ -78,7 +78,6 @@ export default function FeedbackTabs({ correction }: Props) {
                                 ))}
                             </ul>
                         </div>
-                        {/* MODIFICAÇÃO: Seção de Sugestões de Reescrita removida */}
                     </div>
                 )}
                 
