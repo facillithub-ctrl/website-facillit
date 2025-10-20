@@ -1,3 +1,4 @@
+// src/components/DynamicRichTextEditor.tsx
 "use client";
 
 import React from 'react';
@@ -12,12 +13,12 @@ interface RichTextEditorProps {
 }
 
 export default function DynamicRichTextEditor({ value, onChange, placeholder, height = 300 }: RichTextEditorProps) {
-  // ✅ CORREÇÃO: A chave de API agora é lida das variáveis de ambiente do cliente
+  // ✅ CORREÇÃO: A chave de API agora é lida corretamente das variáveis de ambiente PÚBLICAS do Next.js
   const apiKey = process.env.NEXT_PUBLIC_TINYMCE_API_KEY;
 
   if (!apiKey) {
-    console.error("A chave de API do TinyMCE não foi encontrada. Verifique seu arquivo .env.local");
-    return <div className="p-4 border rounded-md bg-red-100 text-red-800">Erro: Chave de API do Editor não configurada.</div>;
+    console.error("A chave de API do TinyMCE (NEXT_PUBLIC_TINYMCE_API_KEY) não foi encontrada. Verifique seu arquivo .env.local");
+    return <div className="p-4 border rounded-md bg-red-100 text-red-800">Erro: Chave de API do Editor não configurada. Certifique-se de que a variável NEXT_PUBLIC_TINYMCE_API_KEY está definida no seu .env.local</div>;
   }
 
   return (
@@ -35,7 +36,10 @@ export default function DynamicRichTextEditor({ value, onChange, placeholder, he
                  'align lineheight | numlist bullist indent outdent | ' +
                  'emoticons charmap | removeformat',
         content_style: 'body { font-family:Inter,sans-serif; font-size:14px }',
-        placeholder: placeholder
+        placeholder: placeholder,
+        // Adicionado para garantir que o editor funcione mesmo com CSP mais restrito (opcional, teste sem isso primeiro)
+        // external_plugins: { tiny_mce_wiris: 'https://www.wiris.net/demo/plugins/tiny_mce/plugin.js' },
+        // allow_script_urls: true
       }}
     />
   );
