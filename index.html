@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site em Desenvolvimento - Facillit Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'royal-blue': '#2E14ED',
+                        'light-gray': '#E0E0E2',
+                        'soft-black': '#111114'
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(46, 20, 237, 0.2);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(46, 20, 237, 0.4);
+                transform: scale(1.01);
+            }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+        
+        @keyframes progress {
+            0% { width: 0%; }
+            100% { width: 78%; }
+        }
+        
+        .pulse-glow {
+            animation: pulse-glow 4s ease-in-out infinite;
+        }
+        
+        .float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .loading-dots::after {
+            content: '';
+            animation: dots 2s infinite;
+        }
+        
+        .progress-bar {
+            animation: progress 3s ease-out infinite alternate;
+        }
+        
+        .image-placeholder {
+            background: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+                        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
+                        linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
+                        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+    </style>
+</head>
+<body class="h-full bg-light-gray flex items-center justify-center p-3 sm:p-4 md:p-6">
+    <main class="text-center w-full max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-4xl mx-auto">
+        <!-- Container Principal -->
+        <div class="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 md:p-10 lg:p-12 border border-gray-200">
+            
+            <!-- Área da Logo/Imagem -->
+            <div class="float mb-6 sm:mb-8 md:mb-12">
+                <div class="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 mx-auto bg-gray-100 rounded-xl sm:rounded-2xl flex items-center justify-center pulse-glow image-placeholder border-2 border-dashed border-gray-300">
+                    <div class="text-center">
+                        <svg class="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 text-gray-400 mx-auto mb-1 sm:mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <p class="text-xs sm:text-xs text-gray-500 font-medium">Logo aqui</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Título Principal -->
+            <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-soft-black mb-3 sm:mb-4 tracking-tight font-inter">
+                Facillit Hub
+            </h1>
+
+            <!-- Mensagem Principal -->
+            <div class="mb-8 sm:mb-10 md:mb-12">
+                <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-royal-blue mb-4 sm:mb-5 md:mb-6 font-inter">
+                    Site em Desenvolvimento
+                </h2>
+                <p class="text-base sm:text-lg md:text-xl text-soft-black/80 mb-6 sm:mb-7 md:mb-8 font-medium px-2 sm:px-0">
+                    Estamos trabalhando para você
+                </p>
+                
+                <!-- Barra de Progresso Profissional -->
+                <div class="max-w-xs sm:max-w-sm md:max-w-md mx-auto mb-4 sm:mb-5 md:mb-6 px-4 sm:px-0">
+                    <div class="flex justify-between text-xs sm:text-sm text-soft-black/60 mb-2 font-medium">
+                        <span>Progresso</span>
+                        <span>78%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 sm:h-3">
+                        <div class="bg-royal-blue h-2 sm:h-3 rounded-full progress-bar shadow-sm"></div>
+                    </div>
+                </div>
+                
+                <p class="text-sm sm:text-base text-soft-black/60 font-medium loading-dots">
+                    Carregando
+                </p>
+            </div>
+
+            <!-- Informações Profissionais -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-8 sm:mb-10 md:mb-12">
+                <div class="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 border border-gray-100 hover:shadow-lg transition-all duration-300">
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-royal-blue/10 rounded-lg sm:rounded-xl flex items-center justify-center mx-auto mb-4 sm:mb-5 md:mb-6">
+                        <svg class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-royal-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-soft-black font-semibold mb-2 sm:mb-3 text-base sm:text-lg font-inter">Performance</h3>
+                    <p class="text-soft-black/70 text-xs sm:text-sm font-medium">Otimização avançada para máxima velocidade</p>
+                </div>
+                
+                <div class="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 border border-gray-100 hover:shadow-lg transition-all duration-300">
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-royal-blue/10 rounded-lg sm:rounded-xl flex items-center justify-center mx-auto mb-4 sm:mb-5 md:mb-6">
+                        <svg class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-royal-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-soft-black font-semibold mb-2 sm:mb-3 text-base sm:text-lg font-inter">Segurança</h3>
+                    <p class="text-soft-black/70 text-xs sm:text-sm font-medium">Proteção de dados com padrões internacionais</p>
+                </div>
+                
+                <div class="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 border border-gray-100 hover:shadow-lg transition-all duration-300 sm:col-span-2 lg:col-span-1">
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-royal-blue/10 rounded-lg sm:rounded-xl flex items-center justify-center mx-auto mb-4 sm:mb-5 md:mb-6">
+                        <svg class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-royal-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-soft-black font-semibold mb-2 sm:mb-3 text-base sm:text-lg font-inter">Inovação</h3>
+                    <p class="text-soft-black/70 text-xs sm:text-sm font-medium">Tecnologia de ponta para sua empresa</p>
+                </div>
+            </div>
+
+            <!-- Rodapé Profissional -->
+            <footer class="border-t border-gray-200 pt-6 sm:pt-7 md:pt-8">
+                <p class="text-soft-black/60 text-xs sm:text-sm font-medium px-2 sm:px-0">
+                    © 2024 Facillit Hub. Em breve disponível para transformar seu negócio.
+                </p>
+            </footer>
+        </div>
+    </main>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99208c8e52f17dfd',t:'MTc2MTA0NzU0OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
